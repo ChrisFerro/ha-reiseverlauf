@@ -1,0 +1,14 @@
+{
+  "domain": "reiseverlauftracker",
+  "name": "Reiseverlauf Tracker für Wohnmobile",
+  "codeowners": [
+    "@ChrisFerro"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/ChrisFerro/ha-reiseverlauf",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/ChrisFerro/ha-reiseverlauf/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
