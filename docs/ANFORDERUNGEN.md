@@ -35,6 +35,8 @@ keine Abhängigkeit von der SSH-App, Einstellungen in der Oberfläche statt im C
 
 Wichtig:
 
+- D+ wechselt bei jedem HA-Neustart kurz auf `unavailable`/`unknown`. Diese Zustände dürfen nicht als
+  „Aus“ gewertet werden.
 - Der Geschwindigkeits-Sensor war bis zum 04.10.2026 falsch als Ganzzahl konfiguriert. Ältere History-Werte
   liegen als rohe Float-Bits vor (z. B. `1118656744` = 86,67 km/h). Beim Lesen alter Daten:
   Werte über 100000 als Big-Endian-`float32` zurückrechnen (`struct.unpack(">f", struct.pack(">I", n))`).
@@ -96,6 +98,7 @@ Dateinamen: `<slug des Titels>` oder `track_<von>_<bis>`.
 ### 5.4 Technik
 
 - Karte mit `staticmap` (OpenStreetMap-Kacheln, eigener User-Agent). Nur einzelne Läufe, kein Massenabruf.
+- Schrift: DejaVu Sans wird mit der Integration ausgeliefert (`export/fonts/`, Lizenzdatei dabei).
 - Diagramme und Gesamtbild nur mit **Pillow** (kein matplotlib: auf Python 3.14/musl gibt es keine
   Wheels, Kompilieren schlägt ohne Compiler fehl).
 - Pillow-Standardschrift kennt kein „ö“, „–“, „Ø“: TrueType-Schrift suchen (DejaVu/Liberation), sonst
@@ -154,10 +157,12 @@ Migration: Dashboard auf Dienste umstellen, Helfer und Hintergrunddienst entfern
 
 ## 9. Offene Entscheidungen
 
-1. Datenhaltung: nur Recorder (einfach, 10 Tage Limit) oder eigene Speicherung der Reisepunkte?
+1. ~~Datenhaltung~~ – entschieden (06.10.2026): eigene Speicherung der Reisepunkte (Position, Genauigkeit,
+   Geschwindigkeit, Höhe) pro Reise, aufbewahrt bis zum Löschen über `aufraeumen` (Dateityp „Rohdaten“).
 2. Ausgabeort: `/config/www` (offen abrufbar) oder `/media` (geschützt, Zugriff über Anmeldung)?
-3. Sprachen der Oberfläche: nur Deutsch oder Deutsch + Englisch?
-4. Höhen-Hysterese 5 m oder 15 m (mit echten Daten prüfen).
+3. ~~Sprachen~~ – entschieden (06.10.2026): Deutsch + Englisch für Oberfläche und Exporte (Sprache der HA-Instanz).
+4. ~~Höhen-Hysterese~~ – vorläufig 5 m (06.10.2026): im Stand driftet die Höhe über 48 h um knapp 4 m.
+   Nach der ersten echten Fahrt erneut prüfen.
 5. ~~Reise mit langen Pausen~~ – entschieden (06.10.2026): automatische Zusammenführung, siehe 4.
 6. Soll die Integration später auch die Höhe selbst vom Router holen (statt Skript)?
 

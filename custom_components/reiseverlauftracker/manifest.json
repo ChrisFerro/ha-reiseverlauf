@@ -9,6 +9,8 @@
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/ChrisFerro/ha-reiseverlauf/issues",
-  "requirements": [],
+  "requirements": [
+    "staticmap==0.5.7"
+  ],
   "version": "0.1.0"
 }

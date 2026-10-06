@@ -11,9 +11,22 @@ custom_components/reiseverlauftracker/
 ├── const.py                 # Constants and configuration keys
 ├── coordinator/             # Data update coordinator package
 │   ├── __init__.py          # Exports ReiseverlaufDataUpdateCoordinator
-│   └── base.py              # Main coordinator class
+│   ├── base.py              # Main coordinator class
+│   └── trip_detector.py     # Trip state machine (D+, delay, merge window), no HA imports
 ├── data.py                  # Data classes and type definitions
 ├── diagnostics.py           # Diagnostic data for troubleshooting
+├── export/                  # Trip export library, no HA imports, blocking (run in executor)
+│   ├── __init__.py          # Public API: export_trip(), TrackPoint, StepSeries, ExportOptions
+│   ├── model.py             # Input data and options
+│   ├── track.py             # Accuracy filter, departure/arrival, thinning, speed decoding
+│   ├── stats.py             # Distance, driving time, elevation gain, statistics text
+│   ├── texts.py             # German and English labels and formatting
+│   ├── gpx.py               # GPX output
+│   ├── chart.py             # Elevation and speed profile (Pillow)
+│   ├── map.py               # Route map on OSM tiles (staticmap)
+│   ├── composite.py         # Composite image for the photo book
+│   ├── exporter.py          # Runs one export and writes the files
+│   └── fonts/               # Bundled DejaVu Sans and its license
 ├── entity/                  # Base entity package
 │   ├── __init__.py          # Exports ReiseverlaufEntity
 │   └── base.py              # Base entity class implementation
@@ -40,14 +53,18 @@ custom_components/reiseverlauftracker/
 │   └── refresh_data.py      # The refresh_data handler
 ├── translations/            # Localization files
 │   └── en.json              # English translations
+├── utils/                   # Integration-wide utilities
+│   └── geo.py               # Position and great-circle distance
 └── <platform>/              # Platform-specific implementations
     ├── __init__.py          # Platform setup and PARALLEL_UPDATES
     └── <entity>.py          # Entity descriptions and entity class
 ```
 
-`entity_utils/` and `utils/` are part of the permitted package set in
-[`AGENTS.md`](../../AGENTS.md) but do not exist until something needs them — an entity helper
-used by three or more entity classes, or an integration-wide utility.
+`entity_utils/` is part of the permitted package set in [`AGENTS.md`](../../AGENTS.md) but does
+not exist until an entity helper is used by three or more entity classes.
+
+`export/` is an approved exception to that package set: the export is the integration's core
+function and too large for `utils/`.
 
 ## Core Components
 
@@ -233,7 +250,8 @@ Tests mirror the source structure under `tests/`.
 
 Core dependencies (see `manifest.json`):
 
-- `aiohttp` - Async HTTP client
+- `staticmap` - Route map from OpenStreetMap tiles (pure Python; uses `requests` and Pillow)
+- `Pillow` - Charts and composite image (shipped with Home Assistant)
 - Home Assistant 2025.7.0+ - Platform requirements
 
 Development dependencies (see `requirements_dev.txt`, `requirements_test.txt`).
