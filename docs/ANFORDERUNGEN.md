@@ -1,7 +1,7 @@
 # Reiseverlauf – Anforderungen und Übergabe
 
 Stand: 05.10.2026. Dieses Dokument fasst zusammen, was bisher als Skripte und Dashboard umgesetzt
-wurde und was die Home-Assistant-Integration `reiseverlauf` daraus machen soll.
+wurde und was die Home-Assistant-Integration `reiseverlauftracker` daraus machen soll.
 
 ## 1. Ziel
 
@@ -22,7 +22,7 @@ keine Abhängigkeit von der SSH-App, Einstellungen in der Oberfläche statt im C
 - Home Assistant OS, Core 2026.9.x (Python 3.14, Alpine/musl).
 - Fahrzeug-Router: Teltonika RUTC50 (GPS-Daten per Modbus in HA; Höhe per Router-Skript, siehe 3).
 - Entwicklungsvorlage: `jpawlowski/hacs.integration_blueprint` (HA 2026.8+, Codespaces/Devcontainer).
-- Integrationsdomain: `reiseverlauf`. Code-Bezeichner englisch, Oberflächentexte deutsch (+ englisch).
+- Integrationsdomain: `reiseverlauftracker`. Code-Bezeichner englisch, Oberflächentexte deutsch (+ englisch).
 
 ## 3. Vorhandene Entitäten und Datenquellen (Ist-Zustand)
 
@@ -51,6 +51,12 @@ Standard `ON`/`on`).
 - **Ende:** D+ ist länger als die **Verzögerung** (Standard 60 min, einstellbar) durchgehend „Aus“.
   Als Endzeit gilt der Moment, in dem D+ ausging (nicht der Ablauf der Verzögerung).
 - Geht D+ vor Ablauf wieder an, gehört das zur selben Reise (Tankpause, Fähre unter der Verzögerung).
+- **Fähre/Autozug:** Ändert sich die Position bei ausgeschaltetem D+ um mehr als die Mindestbewegung, läuft
+  die Verzögerung ab der letzten Bewegung neu. Endet die Reise dabei, gilt die letzte Bewegung als Endzeit.
+- **Zusammenführung:** Nach dem Ende bleibt die Reise ein **Zusammenführungsfenster** lang (Standard 6 h ab
+  Endzeit, einstellbar, 0 = aus) wieder zu öffnen. Bewegung ohne D+ oder D+ „Ein“ in diesem Fenster setzt
+  dieselbe Reise fort (z. B. lange Wartezeit am Hafen). Bei ihrem neuen Ende ersetzt ein neuer Export den
+  alten und es gibt eine weitere Push-Nachricht. Erst nach Ablauf des Fensters ist die Reise endgültig.
 - **Mindestbewegung:** Hat sich das Fahrzeug während der Reise nie weiter als 100 m (einstellbar) vom
   Startpunkt entfernt, gilt es nicht als Reise (kein Export, keine Push-Nachricht).
 - **Persistenz:** Reisestart, letzter Aus-Zeitpunkt und laufender Countdown werden gespeichert (`Store`),
@@ -108,24 +114,24 @@ Entitäten (Vorschlag):
 
 Dienste (Vorschlag):
 
-- `reiseverlauf.exportieren` (von, bis, titel, skala, rand_min): manueller Export beliebiger Zeiträume
-- `reiseverlauf.aufraeumen` (export, dateitypen): löscht Dateien eines Exports; Auswahl „alle Exporte“;
+- `reiseverlauftracker.exportieren` (von, bis, titel, skala, rand_min): manueller Export beliebiger Zeiträume
+- `reiseverlauftracker.aufraeumen` (export, dateitypen): löscht Dateien eines Exports; Auswahl „alle Exporte“;
   nur im Ausgabeordner, nur bekannte Dateitypen (Gesamtbild, Karte, Profil, GPX, Statistik)
-- optional: `reiseverlauf.reise_beenden` / `reise_starten` (manuell)
+- optional: `reiseverlauftracker.reise_beenden` / `reise_starten` (manuell)
 
 Events:
 
-- `reiseverlauf_gestartet`
-- `reiseverlauf_beendet` mit Daten: Titel, Start, Ende, Strecke_km, Fahrzeit, Dateiliste (Name, URL),
+- `reiseverlauftracker_gestartet`
+- `reiseverlauftracker_beendet` mit Daten: Titel, Start, Ende, Strecke_km, Fahrzeit, Dateiliste (Name, URL),
   Statistiktext, Pfad des Gesamtbilds
 
-Push-Nachricht: **nicht** in der Integration, sondern als Automation auf `reiseverlauf_beendet`
+Push-Nachricht: **nicht** in der Integration, sondern als Automation auf `reiseverlauftracker_beendet`
 (Empfänger/Text frei änderbar). Ein Automations-Blueprint soll mitgeliefert werden. Hinweis: Bildanhänge
 in Push-Nachrichten brauchen eine vom Handy erreichbare URL.
 
 ## 7. Einstellungen (Config-/Options-Flow)
 
-D+-Entität und „Ein“-Wert, Verzögerung (min), Mindestbewegung (m), Positions-Tracker, Geschwindigkeits-
+D+-Entität und „Ein“-Wert, Verzögerung (min), Zusammenführungsfenster (h), Mindestbewegung (m), Positions-Tracker, Geschwindigkeits-
 und Höhensensor (Höhe optional), Ausgabeordner, Standard-Skala, Standard-Rand (min), Schwellen:
 Stillstand 3 km/h, GPS-Genauigkeit 50 m, Punktabstand 15 m, Höhen-Hysterese (5 m, ggf. 15 m).
 
@@ -152,7 +158,7 @@ Migration: Dashboard auf Dienste umstellen, Helfer und Hintergrunddienst entfern
 2. Ausgabeort: `/config/www` (offen abrufbar) oder `/media` (geschützt, Zugriff über Anmeldung)?
 3. Sprachen der Oberfläche: nur Deutsch oder Deutsch + Englisch?
 4. Höhen-Hysterese 5 m oder 15 m (mit echten Daten prüfen).
-5. Reise mit langen Pausen (Fähre über 60 min): Verzögerung höher stellen oder Reisen zusammenführen?
+5. ~~Reise mit langen Pausen~~ – entschieden (06.10.2026): automatische Zusammenführung, siehe 4.
 6. Soll die Integration später auch die Höhe selbst vom Router holen (statt Skript)?
 
 ## 10. Empfohlene Reihenfolge

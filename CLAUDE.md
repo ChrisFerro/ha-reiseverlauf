@@ -1,6 +1,6 @@
 # Reiseverlauf – Projektkontext für Claude Code
 
-Home-Assistant-Custom-Integration `reiseverlauf` (HACS, öffentliches Repository): erkennt Reisen eines
+Home-Assistant-Custom-Integration `reiseverlauftracker` (HACS, öffentliches Repository): erkennt Reisen eines
 Wohnmobils automatisch über das D+-Signal, erstellt danach Statistik, Karte, Höhen-/Geschwindigkeitsprofil,
 GPX und ein Gesamtbild und löst ein Event aus, auf das eine Automation eine Push-Nachricht sendet.
 
@@ -17,7 +17,7 @@ Ausführliche Anforderungen und der Ist-Zustand stehen in der importierten Datei
   Entwickelt und getestet wird in der Entwicklungsumgebung des Repositories (`script/develop`).
 - Keine Zugangsdaten, IP-Adressen, Tokens oder persönliche Angaben ins Repository (es ist öffentlich).
 - Vorlage des Repositories: `jpawlowski/hacs.integration_blueprint` (HA 2026.8+, Python 3.14).
-  Domain: `reiseverlauf`. Verzeichnis: `custom_components/reiseverlauf/`.
+  Domain: `reiseverlauftracker`. Verzeichnis: `custom_components/reiseverlauftracker/`.
 - Tests mit `pytest-homeassistant-custom-component`; Linting und Validierung (ruff, hassfest, HACS) laufen
   in den Workflows der Vorlage und müssen grün bleiben.
 - `reference/` enthält die bisherigen Skripte nur als **Vorlage** (nicht importieren, nicht ausliefern).
