@@ -101,9 +101,21 @@ def format_period(texts: Texts, start: datetime, end: datetime, tz: tzinfo) -> s
     )
 
 
-def default_title(texts: Texts, start: datetime, end: datetime, tz: tzinfo) -> str:
-    """Return the title used when the user gave none."""
+def format_dates(texts: Texts, start: datetime, end: datetime, tz: tzinfo) -> str:
+    """Return the local date of a trip, or the first and last date when it spans several days."""
     a, b = start.astimezone(tz), end.astimezone(tz)
     if a.date() == b.date():
-        return texts.default_title.format(a.strftime(texts.date_format))
-    return texts.default_title.format(f"{a.strftime(texts.date_format)} – {b.strftime(texts.date_format)}")
+        return a.strftime(texts.date_format)
+    return f"{a.strftime(texts.date_format)} – {b.strftime(texts.date_format)}"
+
+
+def default_title(texts: Texts, start: datetime, end: datetime, tz: tzinfo) -> str:
+    """Return the title used when the user gave none."""
+    return texts.default_title.format(format_dates(texts, start, end, tz))
+
+
+def format_places(start_place: str | None, end_place: str | None) -> str | None:
+    """Return both names joined by a dash, a single name for a round trip, or None if a name is missing."""
+    if not start_place or not end_place:
+        return None
+    return start_place if start_place == end_place else f"{start_place} – {end_place}"

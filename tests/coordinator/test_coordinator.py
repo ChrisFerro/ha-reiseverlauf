@@ -144,7 +144,9 @@ async def test_manual_start_and_end(
     set_position(hass, 3000)
     await hass.async_block_till_done()
     coordinator.async_end_trip()
+    assert coordinator.data.status is TripStatus.PROCESSING
 
+    await hass.async_block_till_done()
     assert coordinator.data.status is TripStatus.MERGEABLE
 
 

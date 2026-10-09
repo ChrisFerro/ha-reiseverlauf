@@ -1,6 +1,9 @@
 """Shared fixtures for the reiseverlauftracker tests."""
 
+from collections.abc import Generator
+from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -31,6 +34,36 @@ ENTRY_DATA: dict[str, Any] = {
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Load custom integrations in every test."""
+
+
+@pytest.fixture(autouse=True)
+def media_dir(hass: HomeAssistant, tmp_path: Path) -> Path:
+    """Point the local media directory at a temporary folder."""
+    hass.config.media_dirs = {"local": str(tmp_path)}
+    return tmp_path
+
+
+@pytest.fixture(autouse=True)
+def no_tiles() -> Generator[None]:
+    """Render maps from blank tiles instead of downloading them."""
+    with patch(
+        "custom_components.reiseverlauftracker.export.exporter.http_tile_fetcher",
+        return_value=lambda _url: None,
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def geocode() -> Generator[AsyncMock]:
+    """Answer place-name lookups with "Startort" and "Zielort" instead of asking Nominatim."""
+    with (
+        patch(
+            "custom_components.reiseverlauftracker.coordinator.export_runner.async_reverse_geocode",
+            side_effect=["Startort", "Zielort"] * 10,
+        ) as mock,
+        patch("custom_components.reiseverlauftracker.coordinator.export_runner.NOMINATIM_INTERVAL_S", 0),
+    ):
+        yield mock
 
 
 @pytest.fixture

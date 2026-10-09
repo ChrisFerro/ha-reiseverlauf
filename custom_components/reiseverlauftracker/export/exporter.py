@@ -36,6 +36,8 @@ class ExportFile(StrEnum):
     PROFILE = "profile"
     GPX = "gpx"
     STATS = "stats"
+    RAW = "raw"
+    """Recorded points of the trip; written by the integration, not by `export_trip()`."""
 
 
 FILE_SUFFIXES: dict[ExportFile, str] = {
@@ -44,6 +46,7 @@ FILE_SUFFIXES: dict[ExportFile, str] = {
     ExportFile.STATS: "_statistik.txt",
     ExportFile.GPX: ".gpx",
     ExportFile.MAP: ".png",
+    ExportFile.RAW: "_rohdaten.json",
 }
 
 

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 
+from .exports import ExportInfo
+
 
 class TripStatus(StrEnum):
     """Values of the status sensor; the UI shows their translations."""
@@ -26,3 +28,4 @@ class TripSnapshot:
     merge_until: datetime | None = None
     distance_km: float | None = None
     driving_time: timedelta | None = None
+    last_export: ExportInfo | None = None
