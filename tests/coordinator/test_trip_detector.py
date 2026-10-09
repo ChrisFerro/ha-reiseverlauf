@@ -276,3 +276,118 @@ def test_restore_replays_dplus_on_missed_during_downtime() -> None:
     assert detector.restore(True, minutes(90), minutes(100)) == []
     assert detector.phase is TripPhase.ACTIVE
     assert detector.next_deadline() is None
+
+
+def test_manual_end_while_driving_ends_at_call_time() -> None:
+    detector = TripDetector(SETTINGS)
+    detector.update_position(HOME, minutes(-1))
+    detector.update_dplus(True, T0)
+    detector.update_position(north(10_000), minutes(50))
+
+    assert detector.end_manually(minutes(55)) == [
+        TripEnded(start=T0, end=minutes(55), max_distance_m=pytest.approx(10_000), resumed=False)
+    ]
+    assert detector.phase is TripPhase.ENDED
+    assert detector.next_deadline() == minutes(55 + 360)
+
+
+def test_manual_end_during_countdown_skips_delay() -> None:
+    detector = TripDetector(SETTINGS)
+    drive(detector, 0, 60, 10_000)
+
+    assert detector.end_manually(minutes(70)) == [
+        TripEnded(start=T0, end=minutes(70), max_distance_m=pytest.approx(10_000), resumed=False)
+    ]
+
+
+def test_manual_end_without_movement_is_discarded() -> None:
+    detector = TripDetector(SETTINGS)
+    detector.update_position(HOME, minutes(-1))
+    detector.update_dplus(True, T0)
+    detector.update_position(north(50), minutes(10))
+
+    assert detector.end_manually(minutes(20)) == [
+        TripDiscarded(start=T0, end=minutes(20), max_distance_m=pytest.approx(50))
+    ]
+    assert detector.phase is TripPhase.IDLE
+
+
+def test_manual_end_without_trip_does_nothing() -> None:
+    detector = TripDetector(SETTINGS)
+
+    assert detector.end_manually(T0) == []
+    assert detector.phase is TripPhase.IDLE
+
+
+def test_dplus_still_on_after_manual_end_resumes_only_on_new_switch_on() -> None:
+    detector = TripDetector(SETTINGS)
+    detector.update_position(HOME, minutes(-1))
+    detector.update_dplus(True, T0)
+    detector.update_position(north(10_000), minutes(50))
+    detector.end_manually(minutes(55))
+
+    assert detector.update_dplus(True, minutes(56)) == []
+    assert detector.update_position(north(12_000), minutes(58)) == []
+    assert detector.update_dplus(False, minutes(60)) == []
+    assert detector.phase is TripPhase.ENDED
+    assert detector.update_dplus(True, minutes(120)) == [TripResumed(start=T0, resumed_at=minutes(120))]
+
+
+def test_movement_after_manual_end_with_dplus_off_resumes() -> None:
+    detector = TripDetector(SETTINGS)
+    drive(detector, 0, 60, 10_000)
+    detector.end_manually(minutes(70))
+
+    assert detector.update_position(north(11_000), minutes(100)) == [TripResumed(start=T0, resumed_at=minutes(100))]
+
+
+def test_manual_end_after_expired_countdown_keeps_automatic_end() -> None:
+    detector = TripDetector(SETTINGS)
+    drive(detector, 0, 60, 10_000)
+
+    assert detector.end_manually(minutes(200)) == [
+        TripEnded(start=T0, end=minutes(60), max_distance_m=pytest.approx(10_000), resumed=False)
+    ]
+
+
+def test_manual_start_without_dplus_runs_end_delay_from_start() -> None:
+    detector = TripDetector(SETTINGS)
+    detector.update_position(HOME, minutes(-1))
+
+    assert detector.start_manually(T0) == [TripStarted(start=T0)]
+    assert detector.phase is TripPhase.ACTIVE
+    assert detector.next_deadline() == minutes(60)
+
+    detector.update_position(north(5_000), minutes(40))
+    assert detector.next_deadline() == minutes(100)
+    assert detector.tick(minutes(100)) == [
+        TripEnded(start=T0, end=minutes(40), max_distance_m=pytest.approx(5_000), resumed=False)
+    ]
+
+
+def test_manual_start_with_dplus_on_has_no_countdown() -> None:
+    detector = TripDetector(SETTINGS)
+    detector.update_dplus(True, T0)
+    detector.end_manually(minutes(10))
+    detector.tick(minutes(10))
+
+    assert detector.phase is TripPhase.IDLE
+    assert detector.start_manually(minutes(20)) == [TripStarted(start=minutes(20))]
+    assert detector.next_deadline() is None
+
+
+def test_manual_start_resumes_ended_trip() -> None:
+    detector = TripDetector(SETTINGS)
+    drive(detector, 0, 60, 10_000)
+    detector.tick(minutes(120))
+
+    assert detector.start_manually(minutes(150)) == [TripResumed(start=T0, resumed_at=minutes(150))]
+    assert detector.next_deadline() == minutes(210)
+
+
+def test_manual_start_during_running_trip_does_nothing() -> None:
+    detector = TripDetector(SETTINGS)
+    drive(detector, 0, 60, 10_000)
+
+    assert detector.start_manually(minutes(70)) == []
+    assert detector.next_deadline() == minutes(120)

@@ -180,6 +180,43 @@ class TripDetector:
             self._max_distance_m = max(self._max_distance_m, distance_m(self._start_position, position))
         return events
 
+    def start_manually(self, at: datetime) -> list[TripEvent]:
+        """
+        Start a trip, or resume an ended one, regardless of D+.
+
+        With D+ off the end delay runs from `at`, so movement keeps the trip
+        alive just as on a ferry. A running trip is left unchanged.
+        """
+        events = self._advance(at)
+        if self._phase is TripPhase.ACTIVE:
+            return events
+        if self._phase is TripPhase.IDLE:
+            self._begin(at)
+            events.append(TripStarted(start=at))
+        else:
+            events.append(self._resume(at))
+        if not self._dplus_on:
+            self._dplus_off_at = at
+            self._last_motion_at = None
+            self._motion_anchor = self._last_position
+        return events
+
+    def end_manually(self, at: datetime) -> list[TripEvent]:
+        """
+        End the running trip at `at` without waiting for the end delay.
+
+        The merge window applies as after an automatic end. While D+ is still
+        on, only a new off-to-on change resumes the trip.
+        """
+        events = self._advance(at)
+        if self._phase is not TripPhase.ACTIVE:
+            return events
+        self._dplus_off_at = None
+        self._last_motion_at = None
+        self._motion_anchor = None if self._dplus_on else self._last_position
+        events.append(self._finish(at))
+        return events
+
     def restore(
         self,
         dplus_on: bool,
