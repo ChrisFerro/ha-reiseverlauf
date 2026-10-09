@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.1...v0.1.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* **entity:** ship the image platform ([46eb26a](https://github.com/ChrisFerro/ha-reiseverlauf/commit/46eb26a74523c6c2c30af6d5346016a572e5c6b2))
+
 ## [0.1.1](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.0...v0.1.1) (2026-10-09)
 
 
