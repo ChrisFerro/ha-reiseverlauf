@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.2...v0.1.3) (2026-10-09)
+
+
+### Features
+
+* **blueprint:** open a dashboard view on tap instead of the image ([41ef224](https://github.com/ChrisFerro/ha-reiseverlauf/commit/41ef224f4cb5c96e2059fa56a8f0031dc48eb754))
+* **coordinator:** report departure and arrival in export events ([4ab443a](https://github.com/ChrisFerro/ha-reiseverlauf/commit/4ab443a7a9e3179b0010d94e4bc465eb8f045fb9))
+
 ## [0.1.2](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.1...v0.1.2) (2026-10-09)
 
 
