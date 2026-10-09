@@ -116,6 +116,20 @@ async def test_start_notification_only_for_new_trips(
     assert notify_calls[0].data["message"] == "um 10:00 Uhr"
 
 
+async def test_start_notification_names_the_place(
+    hass: HomeAssistant, phone: str, notify_calls: list[ServiceCall]
+) -> None:
+    await setup_automation(hass, phone)
+
+    hass.bus.async_fire(
+        "reiseverlauftracker_gestartet",
+        {"entry_id": ENTRY_ID, "start": "2026-10-12T08:00:00+00:00", "resumed": False, "startort": "Kiel"},
+    )
+    await hass.async_block_till_done()
+
+    assert notify_calls[0].data["message"] == "in Kiel um 10:00 Uhr"
+
+
 async def test_switches_and_other_vehicles(hass: HomeAssistant, phone: str, notify_calls: list[ServiceCall]) -> None:
     await setup_automation(hass, phone, bei_start=False)
 

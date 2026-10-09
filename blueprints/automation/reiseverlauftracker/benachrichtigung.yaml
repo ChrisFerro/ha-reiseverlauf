@@ -117,6 +117,7 @@ variables:
     {% else %}{{ titel_ende }}: {{ daten.titel }}{% endif %}
   nachricht: >-
     {% if trigger.id == 'gestartet' %}
+      {% if daten.startort is defined and daten.startort %}in {{ daten.startort }} {% endif -%}
       um {{ as_local(as_datetime(daten.start)).strftime('%H:%M') }} Uhr
     {% else %}
       {% set start = as_local(as_datetime(daten.abfahrt | default(daten.start))) %}
