@@ -82,24 +82,26 @@ Unter **Konfigurieren**, in drei Bereichen:
 |                | Maximale GPS-Ungenauigkeit       | 50 m          |
 |                | Mindestabstand der Punkte        | 15 m          |
 |                | Höhen-Hysterese                  | 5 m           |
+|                | Mindestdauer eines Halts         | 5 min         |
 
 Eine Reise, die sich nie weiter als die Mindestbewegung vom Start entfernt, wird verworfen (kein Export, keine
-Nachricht).
+Nachricht). Ist D+ während einer Reise mindestens die Mindestdauer eines Halts aus, gilt das als Halt: Die
+Integration fragt den Ort ab und listet den Halt live und später in der Statistik.
 
 ## Entitäten
 
 Alle Entitäten gehören zu einem Gerät mit dem Namen des Eintrags. Die Entity-IDs beginnen mit diesem Namen,
 z. B. `sensor.wohnmobil_gps_reisestatus`.
 
-| Entität                                          | Inhalt                                                                                                              |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Reise aktiv                                      | An, solange eine Reise läuft (auch in Pausen)                                                                       |
-| Reisestatus                                      | Bereit, Unterwegs, Pause, Auswertung, Fortsetzbar, Fehler; Attribute „Voraussichtliches Ende“ und „Fortsetzbar bis“ |
-| Reisebeginn, Strecke und Fahrzeit laufende Reise | Werte der laufenden Reise                                                                                           |
-| Letzte Reise                                     | Titel; Attribute `dateien` (Typ, Name, URL), `statistik`, `ordner`, `start`                                         |
-| Letzte Reise Strecke, Fahrzeit, Dauer, Ende      | Kennzahlen der letzten automatisch erkannten Reise                                                                  |
-| Letzte Reise Gesamtbild                          | Bild-Entität, zeigt das Gesamtbild auf dem Dashboard                                                                |
-| Export-Auswahl                                   | Alle Exporte (neueste zuerst) und „Alle Exporte“; wird von „Exporte aufräumen“ genutzt                              |
+| Entität                                                                                                             | Inhalt                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Reise aktiv                                                                                                         | An, solange eine Reise läuft (auch in Pausen)                                                                       |
+| Reisestatus                                                                                                         | Bereit, Unterwegs, Pause, Auswertung, Fortsetzbar, Fehler; Attribute „Voraussichtliches Ende“ und „Fortsetzbar bis“ |
+| Reisebeginn (Attribut `startort`), Strecke, Fahrzeit, Pausenzeit (Attribut `halte`) und Durchschnitt laufende Reise | Werte der laufenden Reise; Durchschnitt = Ø in Bewegung, Pausenzeit = Zeit seit Start minus Fahrzeit                |
+| Letzte Reise                                                                                                        | Titel; Attribute `dateien` (Typ, Name, URL), `statistik`, `ordner`, `start`                                         |
+| Letzte Reise Strecke, Fahrzeit, Dauer, Ende                                                                         | Kennzahlen der letzten automatisch erkannten Reise                                                                  |
+| Letzte Reise Gesamtbild                                                                                             | Bild-Entität, zeigt das Gesamtbild auf dem Dashboard                                                                |
+| Export-Auswahl                                                                                                      | Alle Exporte (neueste zuerst) und „Alle Exporte“; wird von „Exporte aufräumen“ genutzt                              |
 
 ## Aktionen
 
@@ -174,11 +176,11 @@ nicht anzeigt.
 
 Für eigene Automationen:
 
-| Event                            | Wann                                    | Daten                                                                                                                                                                     |
-| -------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reiseverlauftracker_gestartet`  | Reise beginnt oder wird fortgesetzt     | `entry_id`, `start`, `resumed`                                                                                                                                            |
-| `reiseverlauftracker_beendet`    | Auswertung einer beendeten Reise fertig | `entry_id`, `titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `fortgesetzt` |
-| `reiseverlauftracker_exportiert` | Manueller Export fertig                 | wie `_beendet`, ohne `fortgesetzt`                                                                                                                                        |
+| Event                            | Wann                                    | Daten                                                                                                                                                                              |
+| -------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reiseverlauftracker_gestartet`  | Reise beginnt oder wird fortgesetzt     | `entry_id`, `start`, `resumed`, `startort`                                                                                                                                         |
+| `reiseverlauftracker_beendet`    | Auswertung einer beendeten Reise fertig | `entry_id`, `titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `halte`, `fortgesetzt` |
+| `reiseverlauftracker_exportiert` | Manueller Export fertig                 | wie `_beendet`, ohne `fortgesetzt`                                                                                                                                                 |
 
 ## Datenschutz
 

@@ -113,7 +113,8 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
 
 - `binary_sensor.…_reise_aktiv`
 - `sensor.…_reisestatus` (`bereit`, `unterwegs`, `pause`, `auswertung`, `zusammenfuehrbar`, `fehler`, siehe 9.10)
-- Laufende Reise: `sensor.…_reisebeginn`, `…_strecke_laufende_reise`, `…_fahrzeit_laufende_reise`
+- Laufende Reise: `sensor.…_reisebeginn` (Attribut `startort`), `…_strecke_laufende_reise`, `…_fahrzeit_laufende_reise`,
+  `…_pausenzeit_laufende_reise` (Attribut `halte`), `…_durchschnitt_laufende_reise` (siehe 9.19, 9.20)
 - Letzte Reise: `sensor.…_letzte_reise` (Titel; Attribute `dateien`, `statistik`, `ordner`, `start`),
   `…_letzte_reise_strecke`, `…_fahrzeit`, `…_dauer`, `…_ende`; `image.…_letzte_reise_gesamtbild` (siehe 9.11)
 - `select.…_export_auswahl` (siehe 9.12)
@@ -211,6 +212,18 @@ die 13 Helfer gelöscht, Skripte, Log und `/config/www/tracks` entfernt. Das Rou
 18. ~~Aufbau des Dashboards~~ – entschieden (09.10.2026): Ansichten „Letzte Reise“ (neu, erste, Ziel der
     Push-Nachricht), „Export“ (Skript + Exportliste), „Aufräumen“ (Export-Auswahl, Knöpfe „Export löschen“ und
     „Nur Rohdaten löschen“), „Tracker“ (unverändert). Downloads über den Medienbrowser statt direkter Links.
+19. ~~Live-Werte der laufenden Reise~~ – entschieden (09.10.2026): Startort (Nominatim, einmal bei Reisebeginn) als
+    Attribut `startort` am Reisebeginn und im Event `_gestartet`; neue Sensoren Pausenzeit (Zeit seit Start minus
+    Fahrzeit, minütlich aktualisiert) und Ø in Bewegung (in Bewegung gefahrene Strecke ÷ Fahrzeit).
+20. ~~Halte~~ – entschieden (09.10.2026): D+ während einer Reise mindestens die Mindestdauer aus (Option unter
+    Schwellenwerte, Standard 5 min) = Halt mit Ort (Nominatim), von, bis, Dauer. Live als Attribut der Pausenzeit,
+    nach der Reise in Statistik, `export.json` und Event `_beendet`. Ein Halt ist so aufgebaut, dass später
+    Fahrtenbuch-Daten daran hängen können.
+21. ~~Knöpfe im Dashboard~~ – entschieden (09.10.2026): „Reise jetzt beenden“ (während einer Reise) und „Reise
+    starten / fortsetzen“ (ohne laufende Reise) in der neuen Ansicht „Aktuelle Reise“.
+22. Fahrtenbuch (Etappe 6, offen): Kilometerstand, Tankfüllstand und zwei Gasflaschen (0–100 %) je Halt,
+    Tankstopps mit Litern und Betrag. Vor der Umsetzung klären: Quellen (Sensoren oder Handeingabe), Eingabe,
+    Auswertungen, Erkennung von Tankstopps.
 
 ## 10. Empfohlene Reihenfolge
 

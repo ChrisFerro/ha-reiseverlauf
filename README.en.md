@@ -56,13 +56,13 @@ output folder inside the media folder (default `reiseverlauf`). Everything can b
 
 **Configure** offers the options in three sections: trip detection (end delay, merge window, minimum movement),
 export (title format, place-name lookup, image scale, chart margin) and thresholds (standstill speed, maximum
-GPS inaccuracy, minimum point distance, elevation hysteresis). A trip that never got further from its start than
+GPS inaccuracy, minimum point distance, elevation hysteresis, minimum stop duration). A trip that never got further from its start than
 the minimum movement (default 100 m) is discarded.
 
 ## Entities
 
 All entities belong to one device named after the entry: trip active, trip status (ready, driving, stopped,
-processing, can continue, error), start, distance and driving time of the running trip, title, distance, driving
+processing, can continue, error), start (with the start place), distance, driving time, stop time (with the list of stops) and average speed while moving of the running trip, title, distance, driving
 time, duration and end of the last trip (the title carries the file list with URLs and the statistics as
 attributes), an image entity with the composite image, and an export selection used by the cleanup action.
 
