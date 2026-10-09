@@ -159,7 +159,10 @@ Stillstand 3 km/h, GPS-Genauigkeit 50 m, Punktabstand 15 m, Höhen-Hysterese (5 
   formatiert und per REST als `sensor.teltonika_gps_altitude` setzt. Bleibt zunächst extern bestehen.
 - Ausgaben liegen in `/config/www/tracks` (erreichbar unter `/local/tracks/...`, ohne Anmeldung abrufbar).
 
-Migration: Dashboard auf Dienste umstellen, Helfer und Hintergrunddienst entfernen.
+Migration: Dashboard auf Dienste umstellen, Helfer und Hintergrunddienst entfernen. **Erledigt am 09.10.2026**
+(v0.1.3): Dashboard mit vier Ansichten auf die Entitäten der Integration und das Skript `script.reise_exportieren`
+umgestellt, Push-Automation aus dem Blueprint eingerichtet, Startbefehle des Dienstes aus der SSH-App entfernt,
+die 13 Helfer gelöscht, Skripte, Log und `/config/www/tracks` entfernt. Das Router-Skript für die Höhe bleibt.
 
 ## 9. Offene Entscheidungen
 
@@ -215,4 +218,4 @@ Migration: Dashboard auf Dienste umstellen, Helfer und Hintergrunddienst entfern
 2. Exportbibliothek aus `reference/ha_track.py` (Statistik, GPX, Bilder) mit Tests auf Testdaten.
 3. Integrationsrahmen: Config-Flow, Koordinator, Entitäten, Dienste, Events, Übersetzungen.
 4. Automations-Blueprint für die Push-Nachricht, README (deutsch), HACS-Metadaten.
-5. Migration des Dashboards und Abbau der alten Helfer/des Dienstes (erst nach Freigabe).
+5. Migration des Dashboards und Abbau der alten Helfer/des Dienstes (erst nach Freigabe). – erledigt 09.10.2026
