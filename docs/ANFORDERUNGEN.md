@@ -194,6 +194,14 @@ Migration: Dashboard auf Dienste umstellen, Helfer und Hintergrunddienst entfern
 12. ~~Auswahl beim Aufräumen~~ – entschieden (09.10.2026): `select.export_auswahl` (alle Exporte +
     „Alle Exporte“, aktualisiert nach Export/Löschen) und Dienst `aufraeumen` (Export, Dateitypen als
     Mehrfachauswahl inkl. Rohdaten). Keine Schalter-Entitäten für Dateitypen.
+13. ~~Inhalt der Push-Nachricht~~ – entschieden (09.10.2026): Titel „Reise beendet: …“ mit dem Reisetitel (bei Fortsetzung
+    „Reise aktualisiert: …“), Text mit Strecke, Fahrzeit und Uhrzeit von–bis, Gesamtbild als Bild, Tippen
+    öffnet das Gesamtbild. Im Blueprint änderbar.
+14. ~~Empfänger~~ – entschieden (09.10.2026): Auswahl eines oder mehrerer Geräte der Companion-App im Blueprint
+    (keine freien Notify-Dienste), damit Bild und Tippen-Aktion sicher funktionieren.
+15. ~~Weitere Benachrichtigungen~~ – entschieden (09.10.2026): Schalter „Bei Reisebeginn“ (Standard an,
+    nicht bei Fortsetzung) und „Nach manuellem Export“ (Standard aus) im Blueprint.
+16. ~~Sprache der README~~ – entschieden (09.10.2026): `README.md` auf Deutsch und `README.en.md` auf Englisch.
 
 ## 10. Empfohlene Reihenfolge
 

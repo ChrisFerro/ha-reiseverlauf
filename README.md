@@ -3,428 +3,229 @@
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
-
 [![hacs][hacsbadge]][hacs]
-![Project Maintenance][maintenance-shield]
 
-<!--
-Uncomment and customize these badges if you want to use them:
+[English version](README.en.md)
 
-[![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
-[![Discord][discord-shield]][discord]
--->
+Die Integration erkennt Reisen eines Wohnmobils automatisch über das D+-Signal. Nach jeder Reise erstellt sie
+eine Karte, ein Höhen- und Geschwindigkeitsprofil, eine GPX-Datei, eine Statistik und ein Gesamtbild (z. B. für
+ein Fotobuch) und meldet das Ende per Event. Ein mitgelieferter Blueprint schickt daraufhin eine Push-Nachricht
+mit dem Gesamtbild aufs Handy.
 
-**✨ Develop in the cloud:** Want to contribute or customize this integration? Open it directly in GitHub Codespaces - no local setup required!
+## Funktionen
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ChrisFerro/ha-reiseverlauf?quickstart=1)
+- **Automatische Reiseerkennung:** Start, wenn D+ angeht; Ende, wenn D+ länger als eine einstellbare Verzögerung
+  (Standard 60 min) aus ist. Tankpausen gehören zur selben Reise.
+- **Fähre und Autozug:** Bewegt sich das Fahrzeug bei ausgeschaltetem D+, läuft die Reise weiter.
+- **Zusammenführung:** Geht es innerhalb eines Fensters (Standard 6 h) nach dem Ende weiter, z. B. nach langer
+  Wartezeit am Hafen, wird dieselbe Reise fortgesetzt und neu ausgewertet.
+- **Auswertung:** Strecke, Fahrzeit, Höchst- und Durchschnittsgeschwindigkeit, Höhe und Höhenmeter; Karte auf
+  OpenStreetMap-Kacheln, Profile, GPX mit Höhe und Geschwindigkeit, Gesamtbild.
+- **Titel mit Ortsnamen:** z. B. „Hamburg – Kiel, 12.10.2026“; wahlweise nur Datum oder nur Ort.
+- **Eigene Aufzeichnung:** Die Punkte jeder Reise werden gespeichert, unabhängig davon, wie lange der Recorder
+  Daten behält.
+- **Geschützte Ablage:** Alle Dateien liegen im Medienordner von Home Assistant und sind nur mit Anmeldung
+  abrufbar.
+- **Bedienung über die Oberfläche:** Einrichtung, Optionen, Entitäten und Aktionen; kein YAML nötig.
 
-## ✨ Features
+## Voraussetzungen
 
-- **Easy Setup**: Simple configuration through the UI - no YAML required
-- **Air Quality Monitoring**: Track AQI and PM2.5 levels in real-time
-- **Filter Management**: Monitor filter life and get replacement alerts
-- **Smart Control**: Adjust fan speed, target humidity, and operating modes
-- **Child Lock**: Safety feature to prevent accidental changes
-- **Diagnostic Info**: View filter life, runtime hours, and device statistics
-- **Reconfigurable**: Change credentials anytime without removing the integration
-- **Options Flow**: Adjust settings like update interval after setup
-- **Custom Services**: Advanced control with built-in service calls
+- Home Assistant 2026.8 oder neuer
+- [HACS](https://hacs.xyz/)
+- Entitäten für:
+  - **D+** – ein `sensor` (z. B. mit `ON`/`OFF`) oder `binary_sensor`, der bei laufendem Motor „Ein“ ist
+  - **Position** – ein `device_tracker` mit Breiten- und Längengrad
+  - **Geschwindigkeit** – ein Sensor in km/h
+  - **Höhe** (optional) – ein Sensor in Metern
+- Für die Push-Nachricht: die Home-Assistant-Companion-App auf dem Handy
 
-**This integration will set up the following platforms.**
+## Installation
 
-| Platform        | Description                                              |
-| --------------- | -------------------------------------------------------- |
-| `sensor`        | Air quality index (AQI), PM2.5, filter life, and runtime |
-| `binary_sensor` | API connection status and filter replacement alert       |
-| `switch`        | Child lock and LED display controls                      |
-| `select`        | Fan speed selection (Low/Medium/High/Auto)               |
-| `number`        | Target humidity setting (30-80%)                         |
-| `button`        | Reset filter timer after replacement                     |
-| `fan`           | Air purifier fan control with speed settings             |
+1. HACS öffnen, oben rechts **⋮ → Benutzerdefinierte Repositories**.
+2. `https://github.com/ChrisFerro/ha-reiseverlauf` mit dem Typ **Integration** hinzufügen.
+3. **Reiseverlauf Tracker für Wohnmobile** suchen und herunterladen.
+4. Home Assistant neu starten.
 
-> [!TIP]
-> **Interactive Demo:** The entities are interconnected for demonstration.
-> Press the **Reset Filter Timer** button to see **Filter Life Remaining** update to 100%.
-> Changing the **Air Purifier** fan speed syncs the **Fan Speed** select, and vice versa.
+[![Repository in HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ChrisFerro&repository=ha-reiseverlauf&category=integration)
 
-## 🚀 Quick Start
+## Einrichtung
 
-### Step 1: Install the Integration
+[![Integration einrichten](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=reiseverlauftracker)
 
-**Prerequisites:** This integration requires [HACS](https://hacs.xyz/) (Home Assistant Community Store) to be installed.
+**Einstellungen → Geräte & Dienste → Integration hinzufügen → „Reiseverlauf“** und auswählen:
 
-Click the button below to open the integration directly in HACS:
+| Feld              | Bedeutung                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------- |
+| D+-Signal         | Sensor oder Binärsensor für D+                                                         |
+| „Ein“-Wert von D+ | Zustand für „Ein“, z. B. `ON`; Groß-/Kleinschreibung egal                              |
+| Positions-Tracker | Device-Tracker des Fahrzeugs; kennzeichnet zugleich das Fahrzeug                       |
+| Geschwindigkeit   | Sensor in km/h                                                                         |
+| Höhe              | optionaler Sensor in Metern                                                            |
+| Ausgabeordner     | Ordner im Medienordner, Standard `reiseverlauf` (also `/media/reiseverlauf` auf HA OS) |
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jpawlowski&repository=ha-reiseverlauf&category=integration)
+Alles lässt sich später über **Neu konfigurieren** ändern.
 
-Then:
+### Optionen
 
-1. Click "Download" to install the integration
-2. **Restart Home Assistant** (required after installation)
+Unter **Konfigurieren**, in drei Bereichen:
 
-> [!NOTE]
-> The My Home Assistant redirect will first take you to a landing page. Click the button there to open your Home Assistant instance.
+| Bereich        | Option                           | Standard      |
+| -------------- | -------------------------------- | ------------- |
+| Reiseerkennung | Verzögerung bis Reiseende        | 60 min        |
+|                | Zusammenführungsfenster          | 6 h (0 = aus) |
+|                | Mindestbewegung                  | 100 m         |
+| Export         | Titel                            | Datum und Ort |
+|                | Ortsnamen abfragen               | an            |
+|                | Bildskalierung                   | 1 (bis 4)     |
+|                | Rand im Geschwindigkeitsdiagramm | 10 min        |
+| Schwellenwerte | Stillstand unter                 | 3 km/h        |
+|                | Maximale GPS-Ungenauigkeit       | 50 m          |
+|                | Mindestabstand der Punkte        | 15 m          |
+|                | Höhen-Hysterese                  | 5 m           |
 
-<details>
-<summary><strong>Manual Installation (Advanced)</strong></summary>
+Eine Reise, die sich nie weiter als die Mindestbewegung vom Start entfernt, wird verworfen (kein Export, keine
+Nachricht).
 
-If you prefer not to use HACS:
+## Entitäten
 
-1. Download the `custom_components/reiseverlauftracker/` folder from this repository
-2. Copy it to your Home Assistant's `custom_components/` directory
-3. Restart Home Assistant
+Alle Entitäten gehören zu einem Gerät mit dem Namen des Eintrags. Die Entity-IDs beginnen mit diesem Namen,
+z. B. `sensor.wohnmobil_gps_reisestatus`.
 
-</details>
+| Entität                                          | Inhalt                                                                                                              |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Reise aktiv                                      | An, solange eine Reise läuft (auch in Pausen)                                                                       |
+| Reisestatus                                      | Bereit, Unterwegs, Pause, Auswertung, Fortsetzbar, Fehler; Attribute „Voraussichtliches Ende“ und „Fortsetzbar bis“ |
+| Reisebeginn, Strecke und Fahrzeit laufende Reise | Werte der laufenden Reise                                                                                           |
+| Letzte Reise                                     | Titel; Attribute `dateien` (Typ, Name, URL), `statistik`, `ordner`, `start`                                         |
+| Letzte Reise Strecke, Fahrzeit, Dauer, Ende      | Kennzahlen der letzten automatisch erkannten Reise                                                                  |
+| Letzte Reise Gesamtbild                          | Bild-Entität, zeigt das Gesamtbild auf dem Dashboard                                                                |
+| Export-Auswahl                                   | Alle Exporte (neueste zuerst) und „Alle Exporte“; wird von „Exporte aufräumen“ genutzt                              |
 
-### Step 2: Add and Configure the Integration
+## Aktionen
 
-**Important:** You must have installed the integration first (see Step 1) and restarted Home Assistant!
+Alle Aktionen brauchen das Feld **Fahrzeug** (den Eintrag der Integration).
 
-#### Option 1: One-Click Setup (Quick)
+| Aktion                                                   | Zweck                                                                                                                                          |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zeitraum exportieren (`reiseverlauftracker.exportieren`) | Beliebigen Zeitraum aus dem Recorder auswerten; optional mit Titel, Skalierung und Rand; liefert das Ergebnis als Antwort                      |
+| Exporte aufräumen (`reiseverlauftracker.aufraeumen`)     | Dateitypen (Gesamtbild, Karte, Profil, GPX, Statistik, Rohdaten) eines Exports oder aller Exporte löschen; ohne Angabe gilt die Export-Auswahl |
+| Reise starten (`reiseverlauftracker.reise_starten`)      | Reise ohne D+ starten oder die letzte im Zusammenführungsfenster fortsetzen                                                                    |
+| Reise beenden (`reiseverlauftracker.reise_beenden`)      | Laufende Reise sofort beenden und auswerten                                                                                                    |
 
-Click the button below to open the configuration dialog:
-
-[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=reiseverlauftracker)
-
-Follow the setup wizard:
-
-1. Enter your username
-2. Enter your password
-3. Click Submit
-
-That's it! The integration will start loading your data.
-
-#### Option 2: Manual Configuration
-
-1. Go to **Settings** → **Devices & Services**
-2. Click **"+ Add Integration"**
-3. Search for "Reiseverlauf Tracker für Wohnmobile"
-4. Follow the same setup steps as Option 1
-
-### Step 3: Adjust Settings (Optional)
-
-After setup, you can adjust options:
-
-1. Go to **Settings** → **Devices & Services**
-2. Find **Reiseverlauf Tracker für Wohnmobile**
-3. Click **Configure** to adjust:
-   - Update interval (how often to refresh data)
-   - Enable debug logging
-
-You can also **Reconfigure** your credentials anytime without removing the integration.
-
-### Step 4: Start Using!
-
-The integration creates several entities for your air purifier:
-
-- **Sensors**: Air quality index, PM2.5 levels, filter life remaining, total runtime
-- **Binary Sensors**: API connection status, filter replacement alert
-- **Switches**: Child lock, LED display control
-- **Select**: Fan speed (Low/Medium/High/Auto)
-- **Number**: Target humidity (30-80%)
-- **Button**: Reset filter timer
-- **Fan**: Air purifier fan control
-
-Find all entities in **Settings** → **Devices & Services** → **Reiseverlauf Tracker für Wohnmobile** → click on the device.
-
-## Available Entities
-
-### Sensors
-
-- **Air Quality Index (AQI)**: Real-time air quality measurement (0-500 scale)
-  - Includes air quality category (Good/Moderate/Unhealthy/etc.)
-  - Health recommendations based on current AQI
-- **PM2.5**: Fine particulate matter concentration in µg/m³
-- **Filter Life Remaining** (Diagnostic): Shows remaining filter life as percentage
-- **Total Runtime** (Diagnostic): Total operating hours of the device
-
-### Binary Sensors
-
-- **API Connection**: Shows whether the connection to the API is active
-  - On: Connected and receiving data
-  - Off: Connection lost or authentication failed
-  - Shows update interval and API endpoint information
-- **Filter Replacement Needed**: Alerts when filter needs replacement
-  - Shows estimated days remaining
-  - Turns on when filter life is low
-
-### Switches
-
-- **Child Lock**: Prevents accidental button presses on the device
-  - Icon changes based on state (locked/unlocked)
-- **LED Display**: Enable/disable the LED display
-  - Disabled by default - enable in entity settings if needed
-
-### Select
-
-- **Fan Speed**: Choose from Low, Medium, High, or Auto
-  - Icon changes dynamically based on selected speed
-  - Auto mode adjusts speed based on air quality
-  - Syncs bidirectionally with the Air Purifier fan entity
-
-### Number
-
-- **Target Humidity**: Set desired humidity level (30-80%)
-  - Adjustable in 5% increments
-  - Displayed as a slider in the UI
-
-### Button
-
-- **Reset Filter Timer**: Reset the filter life to 100%
-  - Press to reset after replacing the filter
-  - Instantly updates the Filter Life Remaining sensor
-
-### Fan
-
-- **Air Purifier**: Control the air purifier fan speed and power
-  - Three speed levels: Low, Medium, High
-  - Syncs bidirectionally with the Fan Speed select entity
-  - Turn on/off functionality
-
-## Custom Services
-
-The integration provides services for advanced automation:
-
-### `reiseverlauftracker.example_action`
-
-Perform a custom action (customize this for your needs).
-
-**Example:**
+Beispiel für einen Dashboard-Knopf, der den in der Export-Auswahl gewählten Export komplett löscht:
 
 ```yaml
-service: reiseverlauftracker.example_action
-data:
-  # Add your parameters here
+type: button
+name: Export löschen
+icon: mdi:delete
+tap_action:
+  action: perform-action
+  perform_action: reiseverlauftracker.aufraeumen
+  data:
+    config_entry_id: <ID des Eintrags>
+  confirmation:
+    text: Den gewählten Export wirklich löschen?
 ```
 
-### `reiseverlauftracker.reload_data`
+## Ablage
 
-Manually refresh data from the API without waiting for the update interval.
+Jede Reise bekommt einen eigenen Ordner im Ausgabeordner, benannt nach der Startzeit (z. B. `2026-10-12_1000`;
+manuelle Exporte `2026-10-12_1000-1130`). Darin liegen:
 
-**Example:**
+| Datei                   | Inhalt                                       |
+| ----------------------- | -------------------------------------------- |
+| `<titel>_gesamt.png`    | Gesamtbild mit Kopfzeile, Karte und Profilen |
+| `<titel>.png`           | Karte                                        |
+| `<titel>_profil.png`    | Höhen- und Geschwindigkeitsprofil            |
+| `<titel>.gpx`           | Track mit Höhe und Geschwindigkeit           |
+| `<titel>_statistik.txt` | Statistik als Text                           |
+| `<titel>_rohdaten.json` | Aufgezeichnete Punkte                        |
+| `export.json`           | Verwaltungsdaten der Integration             |
 
-```yaml
-service: reiseverlauftracker.reload_data
+Die Dateien sind im Medienbrowser unter **Medien → Lokale Medien** zu finden. Die Integration löscht nur Dateien,
+die in `export.json` stehen; eigene Dateien im Ordner bleiben erhalten.
+
+## Push-Nachricht (Blueprint)
+
+[![Blueprint importieren](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FChrisFerro%2Fha-reiseverlauf%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freiseverlauftracker%2Fbenachrichtigung.yaml)
+
+1. Blueprint über den Knopf importieren.
+2. **Einstellungen → Automationen & Szenen → Blueprints → „Reiseverlauf – Push-Nachricht“ → Automation
+   erstellen**.
+3. Fahrzeug und Empfänger (Handys mit der Companion-App) wählen, speichern.
+
+Nach dem Reiseende kommt eine Nachricht wie:
+
+```text
+Reise beendet: Hamburg – Kiel, 12.10.2026
+96,4 km · 1 h 12 min Fahrzeit · 10:00–11:30 Uhr
+[Gesamtbild]
 ```
 
-Use these services in automations or scripts for more control.
+Tippen öffnet das Gesamtbild. Wird die Reise fortgesetzt, ersetzt „Reise aktualisiert: …“ die alte Nachricht.
+Optional meldet der Blueprint auch den Reisebeginn (Standard an) und manuelle Exporte (Standard aus); die
+Überschriften sind änderbar.
 
-## Configuration Options
+Das Handy lädt das Bild über seine Verbindung zu Home Assistant. Unterwegs braucht es dafür Fernzugriff (z. B.
+Home Assistant Cloud); ohne Verbindung kommt die Nachricht ohne Bild.
 
-### During Setup
+## Events
 
-| Name     | Required | Description           |
-| -------- | -------- | --------------------- |
-| Username | Yes      | Your account username |
-| Password | Yes      | Your account password |
+Für eigene Automationen:
 
-### After Setup (Options)
+| Event                            | Wann                                    | Daten                                                                                                                                               |
+| -------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reiseverlauftracker_gestartet`  | Reise beginnt oder wird fortgesetzt     | `entry_id`, `start`, `resumed`                                                                                                                      |
+| `reiseverlauftracker_beendet`    | Auswertung einer beendeten Reise fertig | `entry_id`, `titel`, `start`, `ende`, `strecke_km`, `fahrzeit_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `fortgesetzt` |
+| `reiseverlauftracker_exportiert` | Manueller Export fertig                 | wie `_beendet`, ohne `fortgesetzt`                                                                                                                  |
 
-You can change these anytime by clicking **Configure**:
+## Datenschutz
 
-| Name             | Default | Description                |
-| ---------------- | ------- | -------------------------- |
-| Update Interval  | 1 hour  | How often to refresh data  |
-| Enable Debugging | Off     | Enable extra debug logging |
+- Für die Karte lädt die Integration Kacheln von OpenStreetMap; für die Ortsnamen schickt sie Start- und
+  Endposition an Nominatim (OpenStreetMap). Beides nur einmal pro Reise. Die Ortsabfrage lässt sich in den
+  Optionen abschalten.
+- Die Diagnose der Integration enthält keine Positionen.
 
-## Troubleshooting
+## Fehlersuche
 
-### Authentication Issues
+Debug-Protokoll einschalten: **Einstellungen → Geräte & Dienste → Reiseverlauf → ⋮ → Debug-Protokoll
+aktivieren**. Steht der Reisestatus auf „Fehler“, ist die letzte Auswertung fehlgeschlagen; der Grund steht im
+Protokoll.
 
-#### Reauthentication
+## Entwicklung
 
-If your credentials expire or change, Home Assistant will automatically prompt you to reauthenticate:
+Die Integration basiert auf [jpawlowski/hacs.integration_blueprint](https://github.com/jpawlowski/hacs.integration_blueprint)
+und lässt sich in GitHub Codespaces oder einem lokalen Devcontainer entwickeln. Die Entwicklungsinstanz bringt
+simulierte Fahrzeugsensoren mit (`config/packages/simulation.yaml`). Siehe [CONTRIBUTING.md](CONTRIBUTING.md),
+[docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md) und
+[docs/development/CODESPACES.md](docs/development/CODESPACES.md).
 
-1. Go to **Settings** → **Devices & Services**
-2. Look for **"Action Required"** or **"Configuration Required"** message on the integration
-3. Click **"Reconfigure"** or follow the prompt
-4. Enter your updated credentials
-5. Click Submit
+[![In GitHub Codespaces öffnen](https://github.com/codespaces/badge.svg)](https://codespaces.new/ChrisFerro/ha-reiseverlauf?quickstart=1)
 
-The integration will automatically resume normal operation with the new credentials.
-
-#### Manual Credential Update
-
-You can also update credentials at any time without waiting for an error:
-
-1. Go to **Settings** → **Devices & Services**
-2. Find **Reiseverlauf Tracker für Wohnmobile**
-3. Click the **3 dots menu** → **Reconfigure**
-4. Enter new username/password
-5. Click Submit
-
-#### Connection Status
-
-Monitor your connection status with the **API Connection** binary sensor:
-
-- **On** (Connected): Integration is receiving data normally
-- **Off** (Disconnected): Connection lost or authentication failed
-  - Check the binary sensor attributes for diagnostic information
-  - Verify credentials if authentication failed
-  - Check network connectivity
-
-### Enable Debug Logging
-
-To enable debug logging for this integration, add the following to your `configuration.yaml`:
-
-```yaml
-logger:
-  default: info
-  logs:
-    custom_components.reiseverlauftracker: debug
-```
-
-### Common Issues
-
-#### Authentication Errors
-
-If you receive authentication errors:
-
-1. Verify your username and password are correct
-2. Check that your account has the necessary permissions
-3. Wait for the automatic reauthentication prompt, or manually reconfigure
-4. Check the API Connection binary sensor for status
-
-#### Device Not Responding
-
-If your device is not responding:
-
-1. Check the **API Connection** binary sensor - it should be "On"
-2. Check your network connection
-3. Verify the device is powered on
-4. Check the integration diagnostics (Settings → Devices & Services → Reiseverlauf Tracker für Wohnmobile → 3 dots → Download diagnostics)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please open an issue or pull request if you have suggestions or improvements.
-
-You have two options to set up a development environment — expand below for full details.
-
-<details>
-<summary><strong>Development Setup</strong></summary>
-
-Both options provide the same fully-configured environment with Home Assistant, Python 3.14, Node.js LTS, and all necessary tools.
-
-### Option 1: GitHub Codespaces (Recommended) ☁️
-
-Develop directly in your browser without installing anything locally!
-
-1. Click the green **"Code"** button in this repository
-2. Switch to the **"Codespaces"** tab
-3. Click **"Create codespace on main"**
-4. **Wait for setup** (2-3 minutes first time) — everything installs automatically
-5. **Review and commit** your changes in the Source Control panel (`Ctrl+Shift+G`)
-
-> [!TIP]
-> Codespaces gives you **60 hours/month free** for personal accounts. When you start Home Assistant (`script/develop`), port 8123 forwards automatically.
-
-### Option 2: Local Development with VS Code 💻
-
-#### Prerequisites
-
-You'll need these installed locally:
-
-- **A Docker-compatible container engine** — see options by platform:
-
-  | Option                                                                                                                   | 🍎 macOS | 🐧 Linux | 🪟 Windows | Notes                                                                                                                                                                                                                                     |
-  | ------------------------------------------------------------------------------------------------------------------------ | :------: | :------: | :--------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | [Docker Desktop](https://www.docker.com/products/docker-desktop/)                                                        |    ✅    |    ✅    |     ✅     | **Easiest starting point for all platforms.** GUI-based, well-documented, one installer. Uses WSL2 as default backend on Windows (Hyper-V also available). Installation requires admin rights; daily use does not. Free for personal use. |
-  | [OrbStack](https://orbstack.dev/) ⭐                                                                                     |    ✅    |    —     |     —      | **Recommended for macOS** once Docker Desktop feels slow. Starts in ~2s, much lighter on RAM/CPU, full Docker API compatibility. Free for personal use.                                                                                   |
-  | [Docker CE](https://docs.docker.com/engine/install/) (native) ⭐                                                         |    —     |    ✅    |     —      | **Recommended for Linux.** Install directly via your package manager — no VM, no GUI, no overhead. Free.                                                                                                                                  |
-  | [WSL2](https://learn.microsoft.com/windows/wsl/install) + [Docker CE](https://docs.docker.com/engine/install/ubuntu/) ⭐ |    —     |    —     |     ✅     | **Recommended for Windows** once you're comfortable with WSL2. Docker runs natively inside WSL2 — no GUI overhead. Requires one-time WSL2 setup. Free.                                                                                    |
-  | [Rancher Desktop](https://rancherdesktop.io/)                                                                            |    ✅    |    ✅    |     ✅     | Open source by SUSE. GUI-based, uses WSL2 on Windows. Good alternative to Docker Desktop. Free.                                                                                                                                           |
-  | [Colima](https://github.com/abiosoft/colima)                                                                             |    ✅    |    ✅    |     —      | CLI-only, very lightweight. Good for terminal-focused workflows. Free.                                                                                                                                                                    |
-
-- **VS Code** with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-- **Git** — macOS and Linux usually have it already; see below if not, or to get a newer version:
-  - **🍎 macOS:** The system Git (`xcode-select --install`) works fine. Recommended: `brew install git` ([Homebrew](https://brew.sh/)) for a current version.
-  - **🐧 Linux:** Usually pre-installed. If not: `sudo apt install git` (or your distro's equivalent).
-  - **🪟 Windows + WSL2 ⭐:** Install Git _inside WSL2_ with `sudo apt install git`. Git on Windows itself is not needed — VS Code clones and operates entirely within WSL2.
-  - **🪟 Windows + Docker Desktop:** Install via `winget install Git.Git` or download [Git for Windows](https://git-scm.com/download/win).
-- **Hardware** — the devcontainer runs a full Home Assistant instance including Python tooling:
-
-  |          | Minimum    | Recommended                           |
-  | -------- | ---------- | ------------------------------------- |
-  | **RAM**  | 8 GB       | 16 GB or more                         |
-  | **CPU**  | 4 cores    | 8 cores or more                       |
-  | **Disk** | 10 GB free | 20 GB free (SSD strongly recommended) |
-
-> [!TIP]
-> **Not sure which Docker option to pick?** Start with [Docker Desktop](https://www.docker.com/products/docker-desktop/) — it works on all platforms, has a GUI, and needs no extra setup. The ⭐ options are faster alternatives once you're comfortable. macOS and Linux offer the best devcontainer experience — containers run with no extra VM layer and file I/O is fast. Windows works well too; this integration uses named container volumes (files live inside WSL2, not on the Windows drive) to keep performance acceptable.
+## KI-gestützte Entwicklung
 
 > [!NOTE]
-> **New to Dev Containers?** See the [VS Code Dev Containers documentation](https://code.visualstudio.com/docs/devcontainers/containers#_system-requirements) for system requirements and how to install the extension. **Once the extension is installed, you're done** — this repository already ships a complete devcontainer configuration. You don't need to follow the rest of the VS Code guide; the setup steps below are all that's needed.
-
-#### Setup Steps
-
-1. **Clone in a Dev Container:**
-
-   **🍎 macOS / 🐧 Linux:** Clone the repository and open the folder in VS Code → click **"Reopen in Container"** when prompted (or `F1` → **"Dev Containers: Reopen in Container"**).
-
-   **🪟 Windows:** In VS Code, press `F1` → **"Dev Containers: Clone Repository in Named Container Volume..."** and enter the repository URL. This keeps files inside WSL2 for best I/O performance.
-
-2. Wait for the container to build (2-3 minutes first time)
-
-3. **Review and commit** changes in Source Control (`Ctrl+Shift+G`)
-
-4. **Start developing**:
-
-   ```bash
-   script/develop  # Home Assistant runs at http://localhost:8123
-   ```
-
-> [!NOTE]
-> Both Codespaces and local DevContainer provide the exact same experience. The only difference is where the container runs (GitHub's cloud vs. your machine).
-
-</details>
-
----
-
-## 🤖 AI-Assisted Development
-
-> [!NOTE]
-> **Transparency Notice:** This integration was developed with assistance from AI coding agents (GitHub Copilot,
-> Claude, and others). AI assistance by itself neither guarantees nor rules out software quality. To make an informed
-> installation decision, review the project's stated maturity, known limitations, automated test coverage, real-device
-> testing, and the extent of human review. The maintainer should replace the fields below with accurate project-specific
-> details rather than implying checks that were not performed. See the blueprint's [`AI_POLICY.md`](AI_POLICY.md) for
-> guidance.
+> Diese Integration wurde mit Unterstützung von KI-Programmierassistenten (Claude) entwickelt.
 >
-> - **AI assistance:** limited / substantial / predominant
-> - **Human review:** complete / partial / spot-checked / not performed
-> - **Automated tests:** [describe or state "not performed"]
-> - **Real-device or service testing:** [describe or state "not performed"]
-> - **Maturity and known limitations:** [describe]
+> - **KI-Anteil:** überwiegend
+> - **Prüfung durch Menschen:** Anforderungen und Entscheidungen vom Maintainer; jede Ausbaustufe in einer
+>   Entwicklungsinstanz geprüft
+> - **Automatische Tests:** rund 200 Tests (Reiseerkennung, Auswertung, Einrichtung, Entitäten, Aktionen,
+>   Blueprint)
+> - **Test mit echtem Fahrzeug:** noch nicht erfolgt, bisher nur mit simulierten Sensoren
+> - **Reifegrad:** frühe Version (0.x); Einstellungen und Entitäten können sich noch ändern
 >
-> If you encounter unexpected behavior, please [open an issue](../../issues) on GitHub.
->
-> _This section can be removed or modified if AI assistance was not used in your integration's development._
+> Bei unerwartetem Verhalten bitte ein [Issue](https://github.com/ChrisFerro/ha-reiseverlauf/issues) anlegen.
 
----
+## Lizenz
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-**Made with ❤️ by [@ChrisFerro][user_profile]**
-
----
+MIT, siehe [LICENSE](LICENSE). Die mitgelieferte Schrift DejaVu Sans steht unter ihrer eigenen Lizenz
+(`custom_components/reiseverlauftracker/export/fonts/LICENSE`). Kartendaten © OpenStreetMap-Mitwirkende.
 
 [commits-shield]: https://img.shields.io/github/commit-activity/y/ChrisFerro/ha-reiseverlauf.svg?style=for-the-badge
 [commits]: https://github.com/ChrisFerro/ha-reiseverlauf/commits/main
 [hacs]: https://github.com/hacs/integration
-[hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
+[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/github/license/ChrisFerro/ha-reiseverlauf.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-%40ChrisFerro-blue.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/ChrisFerro/ha-reiseverlauf.svg?style=for-the-badge
 [releases]: https://github.com/ChrisFerro/ha-reiseverlauf/releases
-[user_profile]: https://github.com/jpawlowski
-
-<!-- Optional badge definitions - uncomment if needed:
-[buymecoffee]: https://www.buymeacoffee.com/jpawlowski
-[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
-[discord]: https://discord.gg/Qa5fW2R
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
--->

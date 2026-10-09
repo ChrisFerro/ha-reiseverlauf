@@ -47,7 +47,10 @@ requirements.txt
 # ── User-specific project files ──────────────────────────────
 # These are customized for your integration during initialization
 README.md
+README.en.md
 README.template.md
+blueprints/
+.codespell-ignore-words.txt
 LICENSE
 initialize.sh
 hacs.json
