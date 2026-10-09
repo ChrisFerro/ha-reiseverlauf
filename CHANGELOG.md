@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.4](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.3...v0.1.4) (2026-10-09)
+
+
+### Features
+
+* **blueprint:** name the start place in the start notification ([3a76844](https://github.com/ChrisFerro/ha-reiseverlauf/commit/3a76844f64c977b26ecb4c4c010b58ecb038dd3e))
+* **coordinator:** track start place, stops, stop time and average ([e3717b1](https://github.com/ChrisFerro/ha-reiseverlauf/commit/e3717b1fa46f9a093033575f12fa1fdcf4e8ddd0))
+
 ## [0.1.3](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.2...v0.1.3) (2026-10-09)
 
 
