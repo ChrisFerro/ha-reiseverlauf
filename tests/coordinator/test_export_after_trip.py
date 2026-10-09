@@ -176,3 +176,56 @@ async def test_last_export_is_loaded_after_restart(
     await hass.async_block_till_done()
 
     assert config_entry.runtime_data.coordinator.data.last_export == exported
+
+
+async def test_stops_are_tracked_live_and_listed_in_the_export(
+    hass: HomeAssistant, config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    hass.config.language = "de"
+    events = async_capture_events(hass, EVENT_TRIP_ENDED)
+    coordinator = await setup(hass, config_entry)
+    await drive(hass, freezer, 0, 5000)
+
+    await advance(hass, freezer, timedelta(minutes=2))
+    assert coordinator.data.stops == ()
+    await advance(hass, freezer, timedelta(minutes=4))
+    assert [(s.place, s.end) for s in coordinator.data.stops] == [("Zielort", None)]
+
+    await advance(hass, freezer, timedelta(minutes=4))
+    await drive(hass, freezer, 5000, 5000)
+    await advance(hass, freezer, timedelta(minutes=60))
+
+    stops = events[0].data["halte"]
+    assert [(s["ort"], s["dauer_min"]) for s in stops] == [("Zielort", 10)]
+    assert "Halte:\n  Zielort" in events[0].data["statistik"]
+    assert coordinator.data.last_export is not None
+    assert len(coordinator.data.last_export.stops) == 1
+
+
+async def test_short_stops_are_not_listed(
+    hass: HomeAssistant, config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    events = async_capture_events(hass, EVENT_TRIP_ENDED)
+    await setup(hass, config_entry)
+    await drive(hass, freezer, 0, 5000)
+    await advance(hass, freezer, timedelta(minutes=2))
+    await drive(hass, freezer, 5000, 5000)
+    await advance(hass, freezer, timedelta(minutes=60))
+
+    assert events[0].data["halte"] == []
+
+
+async def test_pause_time_and_average_update_while_standing(
+    hass: HomeAssistant, config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    coordinator = await setup(hass, config_entry)
+    await drive(hass, freezer, 0, 5000)
+    data = coordinator.data
+    assert data.average_kmh == pytest.approx(30.0, rel=0.01)
+    assert data.driving_time == timedelta(minutes=10)
+    pause = data.pause_time
+    assert pause is not None
+
+    await advance(hass, freezer, timedelta(minutes=5))
+
+    assert coordinator.data.pause_time == pause + timedelta(minutes=5)

@@ -26,6 +26,8 @@ class Texts:
     altitude_axis: str
     distance_axis: str
     time_axis: str
+    stops: str
+    unknown_place: str
 
 
 TEXTS: dict[str, Texts] = {
@@ -48,6 +50,8 @@ TEXTS: dict[str, Texts] = {
         altitude_axis="Höhe (m)",
         distance_axis="Strecke (km)",
         time_axis="Uhrzeit",
+        stops="Halte",
+        unknown_place="Unbekannter Ort",
     ),
     "en": Texts(
         decimal_separator=".",
@@ -68,6 +72,8 @@ TEXTS: dict[str, Texts] = {
         altitude_axis="Altitude (m)",
         distance_axis="Distance (km)",
         time_axis="Time",
+        stops="Stops",
+        unknown_place="Unknown place",
     ),
 }
 

@@ -89,13 +89,15 @@
               "standstill_speed": "Stillstand unter",
               "max_accuracy": "Maximale GPS-Ungenauigkeit",
               "min_point_distance": "Mindestabstand der Punkte",
-              "elevation_hysteresis": "Höhen-Hysterese"
+              "elevation_hysteresis": "Höhen-Hysterese",
+              "min_stop_duration": "Mindestdauer eines Halts"
             },
             "data_description": {
               "standstill_speed": "Unter dieser Geschwindigkeit gilt das Fahrzeug als stehend.",
               "max_accuracy": "Positionen mit größerer GPS-Ungenauigkeit werden verworfen.",
               "min_point_distance": "Dichter liegende Punkte werden für Karte und GPX ausgedünnt.",
-              "elevation_hysteresis": "Kleinere Höhenänderungen zählen nicht zu den Höhenmetern."
+              "elevation_hysteresis": "Kleinere Höhenänderungen zählen nicht zu den Höhenmetern.",
+              "min_stop_duration": "So lange muss D+ während einer Reise aus sein, damit der Stopp als Halt mit Ort gezählt wird."
             }
           }
         }
@@ -161,7 +163,12 @@
         }
       },
       "trip_start": {
-        "name": "Reisebeginn"
+        "name": "Reisebeginn",
+        "state_attributes": {
+          "startort": {
+            "name": "Startort"
+          }
+        }
       },
       "trip_distance": {
         "name": "Strecke laufende Reise"
@@ -197,6 +204,17 @@
       },
       "last_trip_end": {
         "name": "Letzte Reise Ende"
+      },
+      "trip_pause_time": {
+        "name": "Pausenzeit laufende Reise",
+        "state_attributes": {
+          "halte": {
+            "name": "Halte"
+          }
+        }
+      },
+      "trip_average_speed": {
+        "name": "Durchschnitt laufende Reise"
       }
     }
   },

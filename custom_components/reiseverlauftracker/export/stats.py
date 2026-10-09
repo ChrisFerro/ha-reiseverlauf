@@ -7,7 +7,7 @@ from itertools import pairwise
 
 from custom_components.reiseverlauftracker.utils.geo import distance_m
 
-from .model import ExportOptions, StepSeries, TrackPoint
+from .model import ExportOptions, StepSeries, Stop, TrackPoint
 from .texts import Texts, format_duration, format_number, format_period
 
 
@@ -112,8 +112,21 @@ def stats_rows(stats: TripStats, texts: Texts, tz: tzinfo) -> list[tuple[str, st
     return rows
 
 
-def stats_text(title: str, rows: Sequence[tuple[str, str]]) -> str:
-    """Return the statistics as plain text with an underlined title."""
+def stats_text(title: str, rows: Sequence[tuple[str, str]], stop_lines: Sequence[str] = ()) -> str:
+    """Return the statistics as plain text with an underlined title, followed by the stops if there are any."""
     lines = [title, "=" * len(title)]
     lines += [f"{label + ':':<17}{value}" for label, value in rows]
+    lines += stop_lines
     return "\n".join(lines) + "\n"
+
+
+def stop_lines(stops: Sequence[Stop], texts: Texts, tz: tzinfo) -> list[str]:
+    """Return one line per stop with place, local time span and duration, under a heading."""
+    if not stops:
+        return []
+    lines = ["", f"{texts.stops}:"]
+    for stop in stops:
+        a, b = stop.start.astimezone(tz), stop.end.astimezone(tz)
+        span = f"{a:%H:%M}–{b:%H:%M}" if a.date() == b.date() else f"{a:%d.%m. %H:%M}–{b:%d.%m. %H:%M}"
+        lines.append(f"  {stop.place or texts.unknown_place}  {span} ({format_duration(stop.duration)})")
+    return lines

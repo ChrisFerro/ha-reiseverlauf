@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 
 from .exports import ExportInfo
+from .trip_log import TripStop
 
 
 class TripStatus(StrEnum):
@@ -29,5 +30,9 @@ class TripSnapshot:
     merge_until: datetime | None = None
     distance_km: float | None = None
     driving_time: timedelta | None = None
+    start_place: str | None = None
+    pause_time: timedelta | None = None
+    average_kmh: float | None = None
+    stops: tuple[TripStop, ...] = ()
     last_export: ExportInfo | None = None
     exports: tuple[ExportInfo, ...] = ()

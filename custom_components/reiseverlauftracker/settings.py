@@ -16,6 +16,7 @@ from .const import (
     CONF_MERGE_WINDOW,
     CONF_MIN_MOVEMENT,
     CONF_MIN_POINT_DISTANCE,
+    CONF_MIN_STOP_DURATION,
     CONF_OUTPUT_DIR,
     CONF_PLACE_NAMES,
     CONF_SCALE,
@@ -31,6 +32,7 @@ from .const import (
     DEFAULT_MERGE_WINDOW_H,
     DEFAULT_MIN_MOVEMENT_M,
     DEFAULT_MIN_POINT_DISTANCE_M,
+    DEFAULT_MIN_STOP_DURATION_MIN,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_PLACE_NAMES,
     DEFAULT_SCALE,
@@ -63,6 +65,7 @@ class ReiseverlaufSettings:
     max_accuracy_m: float
     min_point_distance_m: float
     elevation_hysteresis_m: float
+    min_stop_duration: timedelta
 
     @classmethod
     def from_entry(cls, data: Mapping[str, Any], options: Mapping[str, Any]) -> ReiseverlaufSettings:
@@ -88,6 +91,7 @@ class ReiseverlaufSettings:
             max_accuracy_m=thresholds.get(CONF_MAX_ACCURACY, DEFAULT_MAX_ACCURACY_M),
             min_point_distance_m=thresholds.get(CONF_MIN_POINT_DISTANCE, DEFAULT_MIN_POINT_DISTANCE_M),
             elevation_hysteresis_m=thresholds.get(CONF_ELEVATION_HYSTERESIS, DEFAULT_ELEVATION_HYSTERESIS_M),
+            min_stop_duration=timedelta(minutes=thresholds.get(CONF_MIN_STOP_DURATION, DEFAULT_MIN_STOP_DURATION_MIN)),
         )
 
     def is_dplus_on(self, state: str) -> bool:

@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from custom_components.reiseverlauftracker.export import ExportFile
+from custom_components.reiseverlauftracker.export import ExportFile, Stop
 
 METADATA_FILE = "export.json"
 METADATA_VERSION = 1
@@ -33,6 +33,7 @@ class ExportInfo:
     automatic: bool
     departure: datetime | None = None
     arrival: datetime | None = None
+    stops: tuple[Stop, ...] = ()
 
     def label(self, tz: tzinfo) -> str:
         """Return the short unique name shown in the export selection: start time and shortened title."""
@@ -58,6 +59,7 @@ class ExportInfo:
             "automatic": self.automatic,
             "departure": self.departure.isoformat() if self.departure else None,
             "arrival": self.arrival.isoformat() if self.arrival else None,
+            "stops": [{"start": s.start.isoformat(), "end": s.end.isoformat(), "place": s.place} for s in self.stops],
         }
 
     @classmethod
@@ -75,6 +77,14 @@ class ExportInfo:
             automatic=data.get("automatic", False),
             departure=_optional_datetime(data.get("departure")),
             arrival=_optional_datetime(data.get("arrival")),
+            stops=tuple(
+                Stop(
+                    start=datetime.fromisoformat(s["start"]),
+                    end=datetime.fromisoformat(s["end"]),
+                    place=s.get("place"),
+                )
+                for s in data.get("stops", [])
+            ),
         )
 
 

@@ -89,13 +89,15 @@
               "standstill_speed": "Standstill below",
               "max_accuracy": "Maximum GPS inaccuracy",
               "min_point_distance": "Minimum point distance",
-              "elevation_hysteresis": "Elevation hysteresis"
+              "elevation_hysteresis": "Elevation hysteresis",
+              "min_stop_duration": "Minimum stop duration"
             },
             "data_description": {
               "standstill_speed": "Below this speed the vehicle counts as standing still.",
               "max_accuracy": "Positions with a larger GPS inaccuracy are dropped.",
               "min_point_distance": "Closer points are thinned out for the map and GPX.",
-              "elevation_hysteresis": "Altitude changes smaller than this do not count towards the elevation gain."
+              "elevation_hysteresis": "Altitude changes smaller than this do not count towards the elevation gain.",
+              "min_stop_duration": "How long D+ must be off during a trip for the stop to be listed with its place."
             }
           }
         }
@@ -161,7 +163,12 @@
         }
       },
       "trip_start": {
-        "name": "Trip start"
+        "name": "Trip start",
+        "state_attributes": {
+          "startort": {
+            "name": "Start place"
+          }
+        }
       },
       "trip_distance": {
         "name": "Trip distance"
@@ -197,6 +204,17 @@
       },
       "last_trip_end": {
         "name": "Last trip end"
+      },
+      "trip_pause_time": {
+        "name": "Trip stop time",
+        "state_attributes": {
+          "halte": {
+            "name": "Stops"
+          }
+        }
+      },
+      "trip_average_speed": {
+        "name": "Trip average speed"
       }
     }
   },

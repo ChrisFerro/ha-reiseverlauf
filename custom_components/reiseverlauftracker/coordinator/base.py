@@ -2,8 +2,7 @@
 
 import asyncio
 from collections.abc import Callable
-from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from custom_components.reiseverlauftracker.const import (
@@ -19,12 +18,18 @@ from custom_components.reiseverlauftracker.export import (
     NoMovementError,
     NotEnoughPointsError,
     StepSeries,
+    Stop,
     TrackPoint,
 )
 from custom_components.reiseverlauftracker.utils.geo import Position
 from homeassistant.const import ATTR_GPS_ACCURACY, ATTR_LATITUDE, ATTR_LONGITUDE, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State, callback
-from homeassistant.helpers.event import async_track_point_in_utc_time, async_track_state_change_event
+from homeassistant.helpers.event import (
+    async_call_later,
+    async_track_point_in_utc_time,
+    async_track_state_change_event,
+    async_track_time_interval,
+)
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.loader import async_get_loaded_integration
@@ -32,7 +37,9 @@ from homeassistant.util import dt as dt_util
 
 from .export_runner import async_export, event_data, media_base
 from .exports import ExportInfo, list_exports, remove_files
-from .models import TripSnapshot, TripStatus
+from .models import TripSnapshot
+from .places import async_place_name
+from .snapshot import ExportState, build_snapshot
 from .trip_detector import (
     DetectorSettings,
     TripClosed,
@@ -54,6 +61,7 @@ STORAGE_VERSION = 1
 DETECTOR_SAVE_DELAY_S = 10
 LOG_SAVE_DELAY_S = 60
 INVALID_STATES = {STATE_UNAVAILABLE, STATE_UNKNOWN}
+REFRESH_INTERVAL = timedelta(minutes=1)
 
 
 class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
@@ -73,6 +81,8 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self._log_store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}.trip_log")
         self._unsub_deadline: Callable[[], None] | None = None
         self._unsub_states: Callable[[], None] | None = None
+        self._unsub_refresh: Callable[[], None] | None = None
+        self._unsub_stop_check: Callable[[], None] | None = None
         self._export_lock = asyncio.Lock()
         self._exporting = False
         self._export_failed = False
@@ -110,16 +120,16 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         if self.settings.altitude_entity:
             entities.append(self.settings.altitude_entity)
         self._unsub_states = async_track_state_change_event(self.hass, entities, self._on_state_change)
+        self._unsub_refresh = async_track_time_interval(self.hass, self._on_refresh, REFRESH_INTERVAL)
+        self._schedule_stop_check()
         self._publish()
 
     async def async_stop(self) -> None:
         """Unsubscribe and write pending state immediately."""
-        if self._unsub_states is not None:
-            self._unsub_states()
-            self._unsub_states = None
-        if self._unsub_deadline is not None:
-            self._unsub_deadline()
-            self._unsub_deadline = None
+        for unsub in (self._unsub_states, self._unsub_deadline, self._unsub_refresh, self._unsub_stop_check):
+            if unsub is not None:
+                unsub()
+        self._unsub_states = self._unsub_deadline = self._unsub_refresh = self._unsub_stop_check = None
         await self._detector_store.async_save(self.detector.as_dict())
         if self.log is not None:
             await self._log_store.async_save(self.log.as_dict())
@@ -229,7 +239,9 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             return
         entity_id = event.data["entity_id"]
         if entity_id == self.settings.dplus_entity:
-            self._handle(self.detector.update_dplus(self.settings.is_dplus_on(state.state), state.last_changed))
+            dplus_on = self.settings.is_dplus_on(state.state)
+            self._handle(self.detector.update_dplus(dplus_on, state.last_changed))
+            self._on_dplus_for_stops(dplus_on, state.last_changed)
         elif entity_id == self.settings.tracker_entity:
             self._on_position(state)
         elif (value := _float(state.state)) is not None and self.log is not None:
@@ -255,6 +267,49 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             self.log.add_position(at, lat, lon, accuracy)
             self._save_log()
 
+    def _on_dplus_for_stops(self, dplus_on: bool, at: datetime) -> None:
+        if self.log is None:
+            return
+        if not dplus_on:
+            self.log.begin_stop(at)
+            self._schedule_stop_check()
+        elif (stop := self.log.end_stop(at, self.settings.min_stop_duration)) is not None and stop.place is None:
+            self._lookup_stop_place(stop.start, stop.lat, stop.lon)
+        self._save_log()
+
+    def _schedule_stop_check(self) -> None:
+        if self._unsub_stop_check is not None:
+            self._unsub_stop_check()
+            self._unsub_stop_check = None
+        stop = self.log.open_stop if self.log is not None else None
+        if stop is None or stop.place is not None:
+            return
+        remaining = stop.start + self.settings.min_stop_duration - dt_util.utcnow()
+        self._unsub_stop_check = async_call_later(self.hass, max(remaining.total_seconds(), 0), self._on_stop_check)
+
+    @callback
+    def _on_stop_check(self, _now: datetime) -> None:
+        self._unsub_stop_check = None
+        stop = self.log.open_stop if self.log is not None else None
+        if stop is not None and stop.place is None:
+            self._lookup_stop_place(stop.start, stop.lat, stop.lon)
+        self._publish()
+
+    def _lookup_stop_place(self, start: datetime, lat: float | None, lon: float | None) -> None:
+        async def lookup() -> None:
+            place = await async_place_name(self.hass, self.settings, lat, lon)
+            if self.log is not None and place is not None:
+                self.log.set_stop_place(start, place)
+                self._save_log()
+                self._publish()
+
+        self.config_entry.async_create_task(self.hass, lookup(), "reiseverlauftracker stop place")
+
+    @callback
+    def _on_refresh(self, _now: datetime) -> None:
+        if self.detector.phase is TripPhase.ACTIVE:
+            self._publish()
+
     @callback
     def _on_deadline(self, now: datetime) -> None:
         self._unsub_deadline = None
@@ -268,7 +323,9 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 case TripStarted(start=start):
                     self._export_failed = False
                     self._begin_log(start)
-                    self._fire_started(start, resumed=False)
+                    self.config_entry.async_create_task(
+                        self.hass, self._async_announce_start(start), "reiseverlauftracker start place"
+                    )
                 case TripResumed(start=start):
                     self._export_failed = False
                     if self.log is None:
@@ -289,12 +346,17 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             return
         positions, speed, altitude = self.log.export_inputs()
         data = ([p for p in positions if p.time <= trip_event.end], speed, altitude)
+        stops = self.log.export_stops(trip_event.end)
         self._exporting = True
         self.config_entry.async_create_task(
-            self.hass, self._async_export_ended(trip_event, data, self.log.as_dict()), "reiseverlauftracker export"
+            self.hass,
+            self._async_export_ended(trip_event, data, self.log.as_dict(), stops),
+            "reiseverlauftracker export",
         )
 
-    async def _async_export_ended(self, trip_event: TripEnded, data: Any, raw: dict[str, Any]) -> None:
+    async def _async_export_ended(
+        self, trip_event: TripEnded, data: Any, raw: dict[str, Any], stops: tuple[Stop, ...]
+    ) -> None:
         async with self._export_lock:
             try:
                 info = await async_export(
@@ -305,6 +367,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                     trip_event.end,
                     version=async_get_loaded_integration(self.hass, DOMAIN).version,
                     raw=raw,
+                    stops=stops,
                 )
             except NotEnoughPointsError, NoMovementError:
                 LOGGER.warning("Trip from %s has no usable movement to export", trip_event.start)
@@ -349,10 +412,27 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         if self.log is not None:
             self._log_store.async_delay_save(self.log.as_dict, LOG_SAVE_DELAY_S)
 
+    async def _async_announce_start(self, start: datetime) -> None:
+        log = self.log
+        first = log.positions[0] if log and log.positions else None
+        place = await async_place_name(
+            self.hass, self.settings, first.lat if first else None, first.lon if first else None
+        )
+        if log is not None and log is self.log:
+            log.start_place = place
+            self._save_log()
+            self._publish()
+        self._fire_started(start, resumed=False)
+
     def _fire_started(self, start: datetime, *, resumed: bool) -> None:
         self.hass.bus.async_fire(
             EVENT_TRIP_STARTED,
-            {"entry_id": self.config_entry.entry_id, "start": start.isoformat(), "resumed": resumed},
+            {
+                "entry_id": self.config_entry.entry_id,
+                "start": start.isoformat(),
+                "resumed": resumed,
+                "startort": self.log.start_place if self.log else None,
+            },
         )
 
     def _schedule_deadline(self) -> None:
@@ -366,31 +446,8 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.async_set_updated_data(self._snapshot())
 
     def _snapshot(self) -> TripSnapshot:
-        phase = self.detector.phase
-        deadline = self.detector.next_deadline()
-        if phase is TripPhase.IDLE:
-            snapshot = TripSnapshot(status=TripStatus.READY, last_export=self.last_export)
-        elif phase is TripPhase.ENDED:
-            snapshot = TripSnapshot(status=TripStatus.MERGEABLE, merge_until=deadline, **self._running())
-        elif deadline is None:
-            snapshot = TripSnapshot(status=TripStatus.DRIVING, **self._running())
-        else:
-            snapshot = TripSnapshot(status=TripStatus.PAUSED, expected_end=deadline, **self._running())
-        snapshot = replace(snapshot, active=phase is TripPhase.ACTIVE, exports=self.exports)
-        if self._exporting:
-            return replace(snapshot, status=TripStatus.PROCESSING)
-        if self._export_failed and phase is not TripPhase.ACTIVE:
-            return replace(snapshot, status=TripStatus.ERROR)
-        return snapshot
-
-    def _running(self) -> dict[str, Any]:
-        log = self.log
-        return {
-            "trip_start": self.detector.start,
-            "distance_km": log.distance_km if log else None,
-            "driving_time": log.driving_time if log else None,
-            "last_export": self.last_export,
-        }
+        exports = ExportState(self.last_export, self.exports, self._exporting, self._export_failed)
+        return build_snapshot(self.detector, self.log, exports, dt_util.utcnow(), self.settings.min_stop_duration)
 
     def _log_settings(self) -> RunningStatsSettings:
         return RunningStatsSettings(

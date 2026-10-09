@@ -21,6 +21,8 @@ custom_components/reiseverlauftracker/
 │   ├── trip_detector.py     # Trip state machine (D+, delay, merge window), no HA imports
 │   ├── trip_log.py          # Points of one trip with running distance and driving time, no HA imports
 │   ├── models.py            # TripStatus and the TripSnapshot entities read
+│   ├── snapshot.py          # Builds the snapshot: status, pause time, average, stops
+│   ├── places.py            # Place names from Nominatim for start, stops and titles
 │   ├── title.py             # Title of an automatic trip (date, place or both)
 │   ├── export_runner.py     # Runs export_trip() in the executor, place names, event payload
 │   └── exports.py           # Export folders, export.json, listing and cleanup (blocking)
@@ -137,7 +139,7 @@ Registered in `async_setup()`, each with a required `config_entry_id`:
 | `reiseverlauftracker_exportiert` | A manual export is written             |
 
 The keys of the payload are German (`titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `ordner`,
-`dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`), because users write automations against them.
+`dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `halte`, `startort`), because users write automations against them.
 
 ## Data Flow
 

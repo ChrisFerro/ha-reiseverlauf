@@ -27,6 +27,9 @@ LAST_TITLE = "sensor.camper_gps_letzte_reise"
 LAST_DISTANCE = "sensor.camper_gps_letzte_reise_strecke"
 IMAGE = "image.camper_gps_letzte_reise_gesamtbild"
 CHOICE = "select.camper_gps_export_auswahl"
+TRIP_START = "sensor.camper_gps_reisebeginn"
+PAUSE = "sensor.camper_gps_pausenzeit_laufende_reise"
+AVERAGE = "sensor.camper_gps_durchschnitt_laufende_reise"
 
 
 def set_position(hass: HomeAssistant, metres_north: float) -> None:
@@ -76,7 +79,7 @@ async def test_entities_belong_to_one_service_device(hass: HomeAssistant, loaded
     entities = er.async_entries_for_config_entry(er.async_get(hass), loaded.entry_id)
     devices = dr.async_entries_for_config_entry(dr.async_get(hass), loaded.entry_id)
 
-    assert len(entities) == 12
+    assert len(entities) == 14
     assert len(devices) == 1
     assert devices[0].entry_type is dr.DeviceEntryType.SERVICE
     assert {e.device_id for e in entities} == {devices[0].id}
@@ -102,15 +105,21 @@ async def test_states_follow_the_trip(
     assert hass.states.get(STATUS).state == "unterwegs"
     assert hass.states.get(ACTIVE).state == "on"
     assert float(hass.states.get(TRIP_DISTANCE).state) == pytest.approx(2.0, rel=1e-3)
+    assert hass.states.get(TRIP_START).attributes["startort"] == "Startort"
+    assert float(hass.states.get(AVERAGE).state) == pytest.approx(120.0, rel=0.01)
 
     hass.states.async_set(DPLUS, "OFF")
     await hass.async_block_till_done()
+    await advance(hass, freezer, timedelta(minutes=6))
+    pause = hass.states.get(PAUSE)
+    assert float(pause.state) == pytest.approx(6.0, abs=0.1)
+    assert [h["ort"] for h in pause.attributes["halte"]] == ["Zielort"]
     status = hass.states.get(STATUS)
     assert status.state == "pause"
     assert status.attributes["voraussichtliches_ende"] is not None
     assert hass.states.get(ACTIVE).state == "on"
 
-    await advance(hass, freezer, timedelta(minutes=60))
+    await advance(hass, freezer, timedelta(minutes=54))
     status = hass.states.get(STATUS)
     assert status.state == "zusammenfuehrbar"
     assert status.attributes["fortsetzbar_bis"] is not None

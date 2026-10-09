@@ -17,7 +17,7 @@ from .composite import render_composite
 from .gpx import build_gpx
 from .map import TileFetcher, http_tile_fetcher, render_map
 from .model import ExportOptions, StepSeries, TrackPoint
-from .stats import TripStats, compute_stats, stats_rows, stats_text
+from .stats import TripStats, compute_stats, stats_rows, stats_text, stop_lines
 from .texts import default_title, texts_for
 from .track import prepare_track
 
@@ -99,7 +99,7 @@ def export_trip(
     )
     stats = compute_stats(track.points, track.speed, options)
     rows = stats_rows(stats, texts, tz)
-    text = stats_text(title, rows)
+    text = stats_text(title, rows, stop_lines(options.stops, texts, tz))
 
     out_dir.mkdir(parents=True, exist_ok=True)
     files: dict[ExportFile, Path] = {}

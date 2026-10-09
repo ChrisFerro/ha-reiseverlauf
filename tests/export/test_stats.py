@@ -5,13 +5,14 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from custom_components.reiseverlauftracker.export import ExportOptions, StepSeries, TrackPoint
+from custom_components.reiseverlauftracker.export import ExportOptions, StepSeries, Stop, TrackPoint
 from custom_components.reiseverlauftracker.export.stats import (
     compute_stats,
     elevation_change,
     moving_time,
     stats_rows,
     stats_text,
+    stop_lines,
 )
 from custom_components.reiseverlauftracker.export.texts import default_title, format_period, texts_for
 from custom_components.reiseverlauftracker.export.track import prepare_track
@@ -106,3 +107,16 @@ def test_period_and_title_across_days() -> None:
     assert format_period(texts, START, end, BERLIN) == "Abfahrt 01.10.2026 10:00 Uhr · Ankunft 03.10.2026 10:00 Uhr"
     assert default_title(texts, START, end, BERLIN) == "Wohnmobil 01.10.2026 – 03.10.2026"
     assert default_title(texts_for("en"), START, START, BERLIN) == "Motorhome 2026-10-01"
+
+
+def test_stats_text_lists_stops() -> None:
+    texts = texts_for("de")
+    stops = [
+        Stop(start=START, end=START + timedelta(minutes=20), place="Brenner"),
+        Stop(start=START + timedelta(hours=2), end=START + timedelta(hours=3, minutes=10)),
+    ]
+
+    text = stats_text("Titel", [("Strecke", "1 km")], stop_lines(stops, texts, BERLIN))
+
+    assert text.endswith("\nHalte:\n  Brenner  10:00–10:20 (0 h 20 min)\n  Unbekannter Ort  12:00–13:10 (1 h 10 min)\n")
+    assert stop_lines([], texts, BERLIN) == []

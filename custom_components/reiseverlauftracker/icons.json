@@ -64,6 +64,12 @@
       },
       "last_trip_end": {
         "default": "mdi:flag-checkered"
+      },
+      "trip_pause_time": {
+        "default": "mdi:coffee"
+      },
+      "trip_average_speed": {
+        "default": "mdi:speedometer-medium"
       }
     }
   },

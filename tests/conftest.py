@@ -53,13 +53,18 @@ def no_tiles() -> Generator[None]:
         yield
 
 
+def _fake_place(_session: Any, lat: float, _lon: float, _language: str, _user_agent: str) -> str:
+    """Name the start point of the test tracks "Startort" and every other place "Zielort"."""
+    return "Startort" if lat < 50.0001 else "Zielort"
+
+
 @pytest.fixture(autouse=True)
 def geocode() -> Generator[AsyncMock]:
-    """Answer place-name lookups with "Startort" and "Zielort" instead of asking Nominatim."""
+    """Answer place-name lookups by position instead of asking Nominatim."""
     with (
         patch(
-            "custom_components.reiseverlauftracker.coordinator.export_runner.async_reverse_geocode",
-            side_effect=["Startort", "Zielort"] * 10,
+            "custom_components.reiseverlauftracker.coordinator.places.async_reverse_geocode",
+            side_effect=_fake_place,
         ) as mock,
         patch("custom_components.reiseverlauftracker.coordinator.export_runner.NOMINATIM_INTERVAL_S", 0),
     ):

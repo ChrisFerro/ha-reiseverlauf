@@ -103,3 +103,72 @@ def test_from_export_inputs_matches_a_recorded_log() -> None:
 
     assert rebuilt.as_dict() == log.as_dict()
     assert rebuilt.distance_km == pytest.approx(log.distance_km)
+
+
+def test_average_counts_only_moving_sections() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.add_position(at(0), lat(0), 8.0, 10)
+    log.add_position(at(60), lat(1000), 8.0, 10)
+    log.add_position(at(1200), lat(1001), 8.0, 10)
+
+    assert log.driving_time == timedelta(minutes=1)
+    assert log.average_moving_kmh == pytest.approx(60.0, rel=1e-3)
+    assert TripLog(T0, SETTINGS).average_moving_kmh is None
+
+
+def test_stops_shorter_than_minimum_are_dropped() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.add_position(at(0), lat(0), 8.0, 10)
+    log.begin_stop(at(60))
+    assert log.end_stop(at(120), timedelta(minutes=5)) is None
+    assert log.stops == []
+
+    log.begin_stop(at(200))
+    stop = log.end_stop(at(900), timedelta(minutes=5))
+    assert stop is not None
+    assert (stop.start, stop.end, stop.lat) == (at(200), at(900), pytest.approx(50.0))
+
+
+def test_open_stop_counts_once_it_reaches_the_minimum() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.begin_stop(at(0))
+    log.begin_stop(at(30))
+
+    assert len(log.stops) == 1
+    assert log.confirmed_stops(at(120), timedelta(minutes=5)) == []
+    assert len(log.confirmed_stops(at(400), timedelta(minutes=5))) == 1
+
+
+def test_export_stops_leave_out_the_arrival() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.begin_stop(at(0))
+    log.end_stop(at(600), timedelta(minutes=5))
+    log.set_stop_place(at(0), "Brenner")
+    log.begin_stop(at(3600))
+
+    stops = log.export_stops(at(3600))
+
+    assert len(stops) == 1
+    assert (stops[0].place, stops[0].duration) == ("Brenner", timedelta(minutes=10))
+
+
+def test_start_place_and_stops_survive_a_restart() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.add_position(at(0), lat(0), 8.0, 10)
+    log.start_place = "Kiel"
+    log.begin_stop(at(60))
+    log.set_stop_place(at(60), "Laboe")
+
+    restored = TripLog.from_dict(json.loads(json.dumps(log.as_dict())), SETTINGS)
+
+    assert restored.start_place == "Kiel"
+    assert restored.stops == log.stops
+
+
+def test_logs_stored_by_older_versions_still_load() -> None:
+    old = {"version": 1, "start": T0.isoformat(), "positions": [], "speed": [], "altitude": []}
+
+    log = TripLog.from_dict(old, SETTINGS)
+
+    assert log.start_place is None
+    assert log.stops == []

@@ -10,6 +10,7 @@ from custom_components.reiseverlauftracker.const import (
     CONF_MERGE_WINDOW,
     CONF_MIN_MOVEMENT,
     CONF_MIN_POINT_DISTANCE,
+    CONF_MIN_STOP_DURATION,
     CONF_PLACE_NAMES,
     CONF_SCALE,
     CONF_STANDSTILL_SPEED,
@@ -21,6 +22,7 @@ from custom_components.reiseverlauftracker.const import (
     DEFAULT_MERGE_WINDOW_H,
     DEFAULT_MIN_MOVEMENT_M,
     DEFAULT_MIN_POINT_DISTANCE_M,
+    DEFAULT_MIN_STOP_DURATION_MIN,
     DEFAULT_PLACE_NAMES,
     DEFAULT_SCALE,
     DEFAULT_STANDSTILL_SPEED_KMH,
@@ -72,6 +74,7 @@ def get_options_schema() -> vol.Schema:
             vol.Required(CONF_MAX_ACCURACY, default=DEFAULT_MAX_ACCURACY_M): _number(5, 1000, 5, "m"),
             vol.Required(CONF_MIN_POINT_DISTANCE, default=DEFAULT_MIN_POINT_DISTANCE_M): _number(0, 500, 1, "m"),
             vol.Required(CONF_ELEVATION_HYSTERESIS, default=DEFAULT_ELEVATION_HYSTERESIS_M): _number(0, 50, 0.5, "m"),
+            vol.Required(CONF_MIN_STOP_DURATION, default=DEFAULT_MIN_STOP_DURATION_MIN): _number(1, 120, 1, "min"),
         },
     )
     return vol.Schema(

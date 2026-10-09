@@ -82,7 +82,13 @@ async def test_dplus_on_starts_trip_and_fires_event(
     assert data.status is TripStatus.DRIVING
     assert data.trip_start is not None
     assert len(events) == 1
-    assert events[0].data == {"entry_id": ready.entry_id, "start": data.trip_start.isoformat(), "resumed": False}
+    assert events[0].data == {
+        "entry_id": ready.entry_id,
+        "start": data.trip_start.isoformat(),
+        "resumed": False,
+        "startort": "Startort",
+    }
+    assert data.start_place == "Startort"
 
 
 async def test_full_trip_runs_through_pause_and_merge_window(

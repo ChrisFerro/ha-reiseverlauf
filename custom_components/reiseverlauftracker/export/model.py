@@ -62,6 +62,20 @@ class StepSeries:
 
 
 @dataclass(frozen=True, slots=True)
+class Stop:
+    """A stop during the trip; listed in the statistics."""
+
+    start: datetime
+    end: datetime
+    place: str | None = None
+
+    @property
+    def duration(self) -> timedelta:
+        """Return how long the stop lasted."""
+        return self.end - self.start
+
+
+@dataclass(frozen=True, slots=True)
 class ExportOptions:
     """Settings of one export run."""
 
@@ -80,3 +94,4 @@ class ExportOptions:
     map_line_width: int = 6
     user_agent: str = "reiseverlauftracker"
     with_map: bool = True
+    stops: tuple[Stop, ...] = ()

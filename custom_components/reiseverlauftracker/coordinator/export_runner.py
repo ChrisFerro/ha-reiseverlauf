@@ -12,15 +12,15 @@ from custom_components.reiseverlauftracker.export import (
     ExportFile,
     ExportOptions,
     StepSeries,
+    Stop,
     TrackPoint,
     export_trip,
 )
 from custom_components.reiseverlauftracker.export.texts import texts_for
-from custom_components.reiseverlauftracker.utils.geocode import async_reverse_geocode
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import dt as dt_util
 
 from .exports import ExportInfo, remove_files, write_metadata
+from .places import async_place_name, user_agent
 from .title import trip_title
 
 if TYPE_CHECKING:
@@ -29,7 +29,6 @@ if TYPE_CHECKING:
 
 MEDIA_SOURCE_DIR = "local"
 NOMINATIM_INTERVAL_S = 1.1
-PROJECT_URL = "https://github.com/ChrisFerro/ha-reiseverlauf"
 
 
 def media_base(hass: HomeAssistant, settings: ReiseverlaufSettings) -> Path:
@@ -40,11 +39,6 @@ def media_base(hass: HomeAssistant, settings: ReiseverlaufSettings) -> Path:
 def media_url(settings: ReiseverlaufSettings, folder: str, name: str) -> str:
     """Return the authenticated media URL of an export file, as the companion app expects it."""
     return f"/media/{MEDIA_SOURCE_DIR}/{settings.output_dir}/{folder}/{name}"
-
-
-def user_agent(version: str | None) -> str:
-    """Return the User-Agent sent to OpenStreetMap services."""
-    return f"reiseverlauftracker/{version or 'dev'} (+{PROJECT_URL})"
 
 
 async def async_export(
@@ -59,6 +53,7 @@ async def async_export(
     title: str | None = None,
     automatic: bool = True,
     folder: str | None = None,
+    stops: tuple[Stop, ...] = (),
 ) -> ExportInfo:
     """
     Export one trip; an earlier export in the same folder is replaced.
@@ -76,7 +71,7 @@ async def async_export(
     tz = dt_util.get_default_time_zone()
     agent = user_agent(version)
     if title is None:
-        start_place, end_place = await _async_places(hass, settings, positions, agent)
+        start_place, end_place = await _async_places(hass, settings, positions)
         texts = texts_for(hass.config.language)
         title = trip_title(settings.title_format, texts, start, end, tz, start_place, end_place)
     options = ExportOptions(
@@ -91,6 +86,7 @@ async def async_export(
         min_movement_m=settings.min_movement_m,
         elevation_hysteresis_m=settings.elevation_hysteresis_m,
         user_agent=agent,
+        stops=stops,
     )
     folder = folder or f"{start.astimezone(tz):%Y-%m-%d_%H%M}"
     return await hass.async_add_executor_job(
@@ -117,6 +113,17 @@ def event_data(settings: ReiseverlaufSettings, info: ExportInfo, base: Path) -> 
         "statistik": info.stats_text,
         "gesamtbild": str(base / info.folder / composite) if composite else None,
         "gesamtbild_url": media_url(settings, info.folder, composite) if composite else None,
+        "halte": [stop_data(s.place, s.start, s.end) for s in info.stops],
+    }
+
+
+def stop_data(place: str | None, start: datetime, end: datetime | None) -> dict[str, Any]:
+    """Return one stop as it appears in events and attributes."""
+    return {
+        "ort": place,
+        "von": start.isoformat(),
+        "bis": end.isoformat() if end else None,
+        "dauer_min": round(((end or dt_util.utcnow()) - start).total_seconds() / 60),
     }
 
 
@@ -124,16 +131,14 @@ async def _async_places(
     hass: HomeAssistant,
     settings: ReiseverlaufSettings,
     positions: list[TrackPoint],
-    agent: str,
 ) -> tuple[str | None, str | None]:
     usable = [p for p in positions if p.accuracy is None or p.accuracy <= settings.max_accuracy_m]
-    if not settings.place_names or settings.title_format == TITLE_FORMAT_DATE or not usable:
+    if settings.title_format == TITLE_FORMAT_DATE or not usable:
         return None, None
-    session = async_get_clientsession(hass)
     first, last = usable[0], usable[-1]
-    start_place = await async_reverse_geocode(session, first.lat, first.lon, hass.config.language, agent)
+    start_place = await async_place_name(hass, settings, first.lat, first.lon)
     await asyncio.sleep(NOMINATIM_INTERVAL_S)
-    end_place = await async_reverse_geocode(session, last.lat, last.lon, hass.config.language, agent)
+    end_place = await async_place_name(hass, settings, last.lat, last.lon)
     return start_place, end_place
 
 
@@ -167,6 +172,7 @@ def _export_sync(
         automatic=automatic,
         departure=result.stats.departure,
         arrival=result.stats.arrival,
+        stops=options.stops,
     )
     write_metadata(base, info)
     return info
