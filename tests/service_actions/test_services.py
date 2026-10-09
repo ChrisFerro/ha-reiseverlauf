@@ -88,6 +88,7 @@ async def test_export_period_from_history(
 
     assert result is not None
     assert result["titel"] == "Testfahrt"
+    assert start.isoformat() < result["abfahrt"] < result["ankunft"] < result["ende"]
     assert result["strecke_km"] == pytest.approx(5.0, abs=0.1)
     assert re.fullmatch(r"\d{4}-\d\d-\d\d_\d{4}-\d{4}", result["ordner"])
     assert (media_dir / "reiseverlauf" / result["ordner"] / "export.json").exists()

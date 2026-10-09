@@ -136,7 +136,7 @@ Registered in `async_setup()`, each with a required `config_entry_id`:
 | `reiseverlauftracker_beendet`    | The export of an ended trip is written |
 | `reiseverlauftracker_exportiert` | A manual export is written             |
 
-The keys of the payload are German (`titel`, `start`, `ende`, `strecke_km`, `fahrzeit_min`, `ordner`,
+The keys of the payload are German (`titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `ordner`,
 `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`), because users write automations against them.
 
 ## Data Flow

@@ -31,6 +31,8 @@ class ExportInfo:
     files: dict[ExportFile, str]
     stats_text: str
     automatic: bool
+    departure: datetime | None = None
+    arrival: datetime | None = None
 
     def label(self, tz: tzinfo) -> str:
         """Return the short unique name shown in the export selection: start time and shortened title."""
@@ -54,6 +56,8 @@ class ExportInfo:
             "files": {kind.value: name for kind, name in self.files.items()},
             "stats_text": self.stats_text,
             "automatic": self.automatic,
+            "departure": self.departure.isoformat() if self.departure else None,
+            "arrival": self.arrival.isoformat() if self.arrival else None,
         }
 
     @classmethod
@@ -69,7 +73,13 @@ class ExportInfo:
             files={ExportFile(kind): name for kind, name in data["files"].items() if kind in set(ExportFile)},
             stats_text=data["stats_text"],
             automatic=data.get("automatic", False),
+            departure=_optional_datetime(data.get("departure")),
+            arrival=_optional_datetime(data.get("arrival")),
         )
+
+
+def _optional_datetime(value: str | None) -> datetime | None:
+    return datetime.fromisoformat(value) if value else None
 
 
 def write_metadata(base: Path, info: ExportInfo) -> None:

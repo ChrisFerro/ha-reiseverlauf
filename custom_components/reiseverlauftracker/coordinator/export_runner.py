@@ -105,6 +105,8 @@ def event_data(settings: ReiseverlaufSettings, info: ExportInfo, base: Path) -> 
         "titel": info.title,
         "start": info.start.isoformat(),
         "ende": info.end.isoformat(),
+        "abfahrt": (info.departure or info.start).isoformat(),
+        "ankunft": (info.arrival or info.end).isoformat(),
         "strecke_km": round(info.distance_km, 1),
         "fahrzeit_min": round(info.driving_time.total_seconds() / 60),
         "ordner": info.folder,
@@ -163,6 +165,8 @@ def _export_sync(
         files=files,
         stats_text=result.stats_text,
         automatic=automatic,
+        departure=result.stats.departure,
+        arrival=result.stats.arrival,
     )
     write_metadata(base, info)
     return info
