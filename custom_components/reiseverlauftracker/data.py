@@ -1,7 +1,7 @@
 """
 Runtime data types for reiseverlauftracker.
 
-Access pattern: entry.runtime_data.client / entry.runtime_data.coordinator
+Access pattern: entry.runtime_data.settings
 """
 
 from dataclasses import dataclass
@@ -11,8 +11,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.loader import Integration
 
-    from .api import ReiseverlaufApiClient
-    from .coordinator import ReiseverlaufDataUpdateCoordinator
+    from .settings import ReiseverlaufSettings
 
 
 type ReiseverlaufConfigEntry = ConfigEntry[ReiseverlaufData]
@@ -22,6 +21,5 @@ type ReiseverlaufConfigEntry = ConfigEntry[ReiseverlaufData]
 class ReiseverlaufData:
     """Runtime data stored on the config entry after a successful setup."""
 
-    client: ReiseverlaufApiClient
-    coordinator: ReiseverlaufDataUpdateCoordinator
+    settings: ReiseverlaufSettings
     integration: Integration

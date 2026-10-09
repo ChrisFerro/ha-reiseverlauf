@@ -5,8 +5,45 @@ from logging import Logger, getLogger
 LOGGER: Logger = getLogger(__package__)
 
 DOMAIN = "reiseverlauftracker"
-ATTRIBUTION = "Data provided by http://jsonplaceholder.typicode.com/"
 
-CONF_UPDATE_INTERVAL_HOURS = "update_interval_hours"
+CONF_ALTITUDE_ENTITY = "altitude_entity"
+CONF_DPLUS_ENTITY = "dplus_entity"
+CONF_DPLUS_ON_VALUE = "dplus_on_value"
+CONF_OUTPUT_DIR = "output_dir"
+CONF_SPEED_ENTITY = "speed_entity"
+CONF_TRACKER_ENTITY = "tracker_entity"
 
-DEFAULT_UPDATE_INTERVAL_HOURS = 1.0
+SECTION_DETECTION = "detection"
+SECTION_EXPORT = "export"
+SECTION_THRESHOLDS = "thresholds"
+
+CONF_ELEVATION_HYSTERESIS = "elevation_hysteresis"
+CONF_END_DELAY = "end_delay"
+CONF_MARGIN = "margin"
+CONF_MAX_ACCURACY = "max_accuracy"
+CONF_MERGE_WINDOW = "merge_window"
+CONF_MIN_MOVEMENT = "min_movement"
+CONF_MIN_POINT_DISTANCE = "min_point_distance"
+CONF_PLACE_NAMES = "place_names"
+CONF_SCALE = "scale"
+CONF_STANDSTILL_SPEED = "standstill_speed"
+CONF_TITLE_FORMAT = "title_format"
+
+TITLE_FORMAT_DATE = "date"
+TITLE_FORMAT_DATE_PLACE = "date_place"
+TITLE_FORMAT_PLACE = "place"
+TITLE_FORMATS = [TITLE_FORMAT_DATE_PLACE, TITLE_FORMAT_DATE, TITLE_FORMAT_PLACE]
+
+DEFAULT_DPLUS_ON_VALUE = "on"
+DEFAULT_ELEVATION_HYSTERESIS_M = 5.0
+DEFAULT_END_DELAY_MIN = 60
+DEFAULT_MARGIN_MIN = 10
+DEFAULT_MAX_ACCURACY_M = 50.0
+DEFAULT_MERGE_WINDOW_H = 6.0
+DEFAULT_MIN_MOVEMENT_M = 100.0
+DEFAULT_MIN_POINT_DISTANCE_M = 15.0
+DEFAULT_OUTPUT_DIR = "reiseverlauf"
+DEFAULT_PLACE_NAMES = True
+DEFAULT_SCALE = 1.0
+DEFAULT_STANDSTILL_SPEED_KMH = 3.0
+DEFAULT_TITLE_FORMAT = TITLE_FORMAT_DATE_PLACE

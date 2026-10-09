@@ -2,150 +2,112 @@
   "config": {
     "step": {
       "user": {
-        "description": "If you need help with the configuration have a look at the [documentation]({documentation_url}).",
+        "title": "Set up trip recording",
+        "description": "Choose the sensors of your vehicle. Trips are detected from the D+ signal and exported to the media folder.",
         "data": {
-          "username": "Username",
-          "password": "Password"
+          "dplus_entity": "D+ signal",
+          "dplus_on_value": "D+ on value",
+          "tracker_entity": "Position tracker",
+          "speed_entity": "Speed sensor",
+          "altitude_entity": "Altitude sensor",
+          "output_dir": "Output folder"
         },
         "data_description": {
-          "username": "The account name you use to sign in to the device.",
-          "password": "The password for that account. It is stored encrypted and never written to the log."
+          "dplus_entity": "Sensor or binary sensor that is on while the engine runs.",
+          "dplus_on_value": "State that means \"on\", for example ON. Upper and lower case do not matter.",
+          "tracker_entity": "Device tracker with the vehicle position. It also identifies the vehicle.",
+          "speed_entity": "Sensor with the speed in km/h.",
+          "altitude_entity": "Optional sensor with the altitude in metres.",
+          "output_dir": "Folder inside the local media folder (/media) where exports are stored."
         }
       },
       "reconfigure": {
-        "description": "Update the credentials for this integration.",
+        "title": "Change data sources",
+        "description": "Change the sensors or the output folder. Existing exports stay where they are.",
         "data": {
-          "username": "Username",
-          "password": "Password"
+          "dplus_entity": "D+ signal",
+          "dplus_on_value": "D+ on value",
+          "tracker_entity": "Position tracker",
+          "speed_entity": "Speed sensor",
+          "altitude_entity": "Altitude sensor",
+          "output_dir": "Output folder"
         },
         "data_description": {
-          "username": "The account name you use to sign in to the device.",
-          "password": "The password for that account."
-        }
-      },
-      "reauth_confirm": {
-        "title": "Reauthenticate integration",
-        "description": "The credentials for {username} are no longer valid. Provide updated credentials to restore access.",
-        "data": {
-          "username": "Username",
-          "password": "Password"
-        },
-        "data_description": {
-          "username": "The account name you use to sign in to the device.",
-          "password": "The current password for that account."
+          "dplus_entity": "Sensor or binary sensor that is on while the engine runs.",
+          "dplus_on_value": "State that means \"on\", for example ON. Upper and lower case do not matter.",
+          "tracker_entity": "Device tracker with the vehicle position. It also identifies the vehicle.",
+          "speed_entity": "Sensor with the speed in km/h.",
+          "altitude_entity": "Optional sensor with the altitude in metres.",
+          "output_dir": "Folder inside the local media folder (/media) where exports are stored."
         }
       }
     },
     "error": {
-      "cannot_connect": "Unable to connect to the server.",
-      "invalid_auth": "The username or password is wrong.",
-      "unknown": "An unknown error occurred."
+      "invalid_output_dir": "Enter a folder inside the media folder, without \"..\"."
     },
     "abort": {
-      "already_configured": "This entry is already configured.",
-      "reauth_successful": "Reauthentication was successful.",
-      "reconfigure_successful": "Reconfiguration was successful."
+      "already_configured": "This position tracker is already set up.",
+      "reconfigure_successful": "The settings were changed."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Configure integration options",
-        "description": "Customize how this integration operates.",
-        "data": {
-          "update_interval_hours": "Update interval (hours)"
-        },
-        "data_description": {
-          "update_interval_hours": "How often to fetch the device state, between 0.25 and 24 hours."
+        "title": "Trip recording options",
+        "sections": {
+          "detection": {
+            "name": "Trip detection",
+            "data": {
+              "end_delay": "End delay",
+              "merge_window": "Merge window",
+              "min_movement": "Minimum movement"
+            },
+            "data_description": {
+              "end_delay": "How long D+ must stay off before the trip ends.",
+              "merge_window": "How long after its end a trip can still continue, for example after a long wait at the port. 0 turns merging off.",
+              "min_movement": "A trip that never got further than this from its start is ignored."
+            }
+          },
+          "export": {
+            "name": "Export",
+            "data": {
+              "title_format": "Title",
+              "place_names": "Look up place names",
+              "scale": "Image scale",
+              "margin": "Margin of the speed chart"
+            },
+            "data_description": {
+              "title_format": "What the title of an automatically detected trip contains.",
+              "place_names": "Sends the start and end position to OpenStreetMap (Nominatim) to name the places. Without it, the title only contains the date.",
+              "scale": "Size factor for all images. Whole numbers fit the map tiles best.",
+              "margin": "Minutes shown before departure and after arrival in the speed chart."
+            }
+          },
+          "thresholds": {
+            "name": "Thresholds",
+            "data": {
+              "standstill_speed": "Standstill below",
+              "max_accuracy": "Maximum GPS inaccuracy",
+              "min_point_distance": "Minimum point distance",
+              "elevation_hysteresis": "Elevation hysteresis"
+            },
+            "data_description": {
+              "standstill_speed": "Below this speed the vehicle counts as standing still.",
+              "max_accuracy": "Positions with a larger GPS inaccuracy are dropped.",
+              "min_point_distance": "Closer points are thinned out for the map and GPX.",
+              "elevation_hysteresis": "Altitude changes smaller than this do not count towards the elevation gain."
+            }
+          }
         }
       }
     }
   },
-  "exceptions": {
-    "authentication_failed": {
-      "message": "Authentication failed during the data update."
-    },
-    "update_failed": {
-      "message": "Failed to fetch data from the device."
-    },
-    "switch_set_failed": {
-      "message": "Failed to change the {name} setting on the device."
-    },
-    "number_set_failed": {
-      "message": "Failed to set the target humidity on the device."
-    },
-    "reset_filter_failed": {
-      "message": "Failed to reset the filter timer on the device."
-    },
-    "fan_speed_set_failed": {
-      "message": "Failed to change the fan speed on the device."
-    },
-    "fan_state_set_failed": {
-      "message": "Failed to turn the fan on or off."
-    },
-    "invalid_fan_speed": {
-      "message": "{speed} is not a fan speed this device supports."
-    },
-    "entry_not_found": {
-      "message": "No configuration entry of this integration matches {target}."
-    },
-    "entry_not_loaded": {
-      "message": "The configuration entry {target} is not loaded, so it cannot be refreshed."
-    }
-  },
-  "entity": {
-    "sensor": {
-      "filter_life": {
-        "name": "Filter life remaining"
-      },
-      "runtime": {
-        "name": "Total runtime"
-      }
-    },
-    "binary_sensor": {
-      "filter_replacement": {
-        "name": "Filter replacement needed"
-      }
-    },
-    "switch": {
-      "child_lock": {
-        "name": "Child lock"
-      },
-      "led_display": {
-        "name": "LED display"
-      }
-    },
-    "select": {
-      "fan_speed": {
-        "name": "Fan speed",
-        "state": {
-          "low": "Low",
-          "medium": "Medium",
-          "high": "High",
-          "auto": "Auto"
-        }
-      }
-    },
-    "number": {
-      "target_humidity": {
-        "name": "Target humidity"
-      }
-    },
-    "button": {
-      "reset_filter": {
-        "name": "Reset filter timer"
-      }
-    }
-  },
-  "services": {
-    "refresh_data": {
-      "name": "Refresh data",
-      "description": "Fetches the current device state immediately instead of waiting for the next poll.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Integration entry",
-          "description": "The configuration entry to refresh."
-        }
+  "selector": {
+    "title_format": {
+      "options": {
+        "date_place": "Date and place",
+        "date": "Date only",
+        "place": "Place only"
       }
     }
   }

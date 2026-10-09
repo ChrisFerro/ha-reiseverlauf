@@ -1,0 +1,114 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Reiseaufzeichnung einrichten",
+        "description": "Wähle die Sensoren deines Fahrzeugs. Reisen werden über das D+-Signal erkannt und in den Medienordner exportiert.",
+        "data": {
+          "dplus_entity": "D+-Signal",
+          "dplus_on_value": "„Ein“-Wert von D+",
+          "tracker_entity": "Positions-Tracker",
+          "speed_entity": "Geschwindigkeitssensor",
+          "altitude_entity": "Höhensensor",
+          "output_dir": "Ausgabeordner"
+        },
+        "data_description": {
+          "dplus_entity": "Sensor oder Binärsensor, der bei laufendem Motor eingeschaltet ist.",
+          "dplus_on_value": "Zustand, der „Ein“ bedeutet, z. B. ON. Groß- und Kleinschreibung spielt keine Rolle.",
+          "tracker_entity": "Device-Tracker mit der Fahrzeugposition. Er kennzeichnet auch das Fahrzeug.",
+          "speed_entity": "Sensor mit der Geschwindigkeit in km/h.",
+          "altitude_entity": "Optionaler Sensor mit der Höhe in Metern.",
+          "output_dir": "Ordner im lokalen Medienordner (/media), in dem die Exporte abgelegt werden."
+        }
+      },
+      "reconfigure": {
+        "title": "Datenquellen ändern",
+        "description": "Sensoren oder Ausgabeordner ändern. Vorhandene Exporte bleiben, wo sie sind.",
+        "data": {
+          "dplus_entity": "D+-Signal",
+          "dplus_on_value": "„Ein“-Wert von D+",
+          "tracker_entity": "Positions-Tracker",
+          "speed_entity": "Geschwindigkeitssensor",
+          "altitude_entity": "Höhensensor",
+          "output_dir": "Ausgabeordner"
+        },
+        "data_description": {
+          "dplus_entity": "Sensor oder Binärsensor, der bei laufendem Motor eingeschaltet ist.",
+          "dplus_on_value": "Zustand, der „Ein“ bedeutet, z. B. ON. Groß- und Kleinschreibung spielt keine Rolle.",
+          "tracker_entity": "Device-Tracker mit der Fahrzeugposition. Er kennzeichnet auch das Fahrzeug.",
+          "speed_entity": "Sensor mit der Geschwindigkeit in km/h.",
+          "altitude_entity": "Optionaler Sensor mit der Höhe in Metern.",
+          "output_dir": "Ordner im lokalen Medienordner (/media), in dem die Exporte abgelegt werden."
+        }
+      }
+    },
+    "error": {
+      "invalid_output_dir": "Bitte einen Ordner innerhalb des Medienordners angeben, ohne „..“."
+    },
+    "abort": {
+      "already_configured": "Dieser Positions-Tracker ist bereits eingerichtet.",
+      "reconfigure_successful": "Die Einstellungen wurden geändert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen der Reiseaufzeichnung",
+        "sections": {
+          "detection": {
+            "name": "Reiseerkennung",
+            "data": {
+              "end_delay": "Verzögerung bis Reiseende",
+              "merge_window": "Zusammenführungsfenster",
+              "min_movement": "Mindestbewegung"
+            },
+            "data_description": {
+              "end_delay": "So lange muss D+ aus sein, bis die Reise endet.",
+              "merge_window": "So lange nach dem Ende kann die Reise noch fortgesetzt werden, z. B. nach langer Wartezeit am Hafen. 0 schaltet die Zusammenführung aus.",
+              "min_movement": "Eine Reise, die nie weiter als diese Strecke vom Start wegführte, wird ignoriert."
+            }
+          },
+          "export": {
+            "name": "Export",
+            "data": {
+              "title_format": "Titel",
+              "place_names": "Ortsnamen abfragen",
+              "scale": "Bildskalierung",
+              "margin": "Rand im Geschwindigkeitsdiagramm"
+            },
+            "data_description": {
+              "title_format": "Was der Titel einer automatisch erkannten Reise enthält.",
+              "place_names": "Sendet Start- und Endposition an OpenStreetMap (Nominatim), um die Orte zu benennen. Ohne Abfrage enthält der Titel nur das Datum.",
+              "scale": "Größenfaktor für alle Bilder. Ganze Zahlen passen am besten zu den Kartenkacheln.",
+              "margin": "Minuten vor Abfahrt und nach Ankunft, die das Geschwindigkeitsdiagramm zusätzlich zeigt."
+            }
+          },
+          "thresholds": {
+            "name": "Schwellenwerte",
+            "data": {
+              "standstill_speed": "Stillstand unter",
+              "max_accuracy": "Maximale GPS-Ungenauigkeit",
+              "min_point_distance": "Mindestabstand der Punkte",
+              "elevation_hysteresis": "Höhen-Hysterese"
+            },
+            "data_description": {
+              "standstill_speed": "Unter dieser Geschwindigkeit gilt das Fahrzeug als stehend.",
+              "max_accuracy": "Positionen mit größerer GPS-Ungenauigkeit werden verworfen.",
+              "min_point_distance": "Dichter liegende Punkte werden für Karte und GPX ausgedünnt.",
+              "elevation_hysteresis": "Kleinere Höhenänderungen zählen nicht zu den Höhenmetern."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "title_format": {
+      "options": {
+        "date_place": "Datum und Ort",
+        "date": "Nur Datum",
+        "place": "Nur Ort"
+      }
+    }
+  }
+}

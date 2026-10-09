@@ -1,90 +1,46 @@
-"""Config flow schemas for the user, reconfigure and reauth steps."""
-
-from collections.abc import Mapping
-from typing import Any
+"""Config flow schema for the user and reconfigure steps."""
 
 import voluptuous as vol
 
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from custom_components.reiseverlauftracker.const import (
+    CONF_ALTITUDE_ENTITY,
+    CONF_DPLUS_ENTITY,
+    CONF_DPLUS_ON_VALUE,
+    CONF_OUTPUT_DIR,
+    CONF_SPEED_ENTITY,
+    CONF_TRACKER_ENTITY,
+    DEFAULT_DPLUS_ON_VALUE,
+    DEFAULT_OUTPUT_DIR,
+)
 from homeassistant.helpers import selector
 
-_USERNAME_SELECTOR = selector.TextSelector(
-    selector.TextSelectorConfig(
-        type=selector.TextSelectorType.TEXT,
-        autocomplete="username",
-    ),
-)
-_PASSWORD_SELECTOR = selector.TextSelector(
-    selector.TextSelectorConfig(
-        type=selector.TextSelectorType.PASSWORD,
-        autocomplete="current-password",
-    ),
-)
 
-
-def get_user_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
+def get_user_schema() -> vol.Schema:
     """
-    Build the schema for the user step.
-
-    Args:
-        defaults: Previously submitted values, used to pre-fill the form.
+    Build the schema for the user and reconfigure steps.
 
     Returns:
-        The voluptuous schema for the credentials form.
-
-    """
-    defaults = defaults or {}
-    return vol.Schema(
-        {
-            vol.Required(
-                CONF_USERNAME,
-                default=defaults.get(CONF_USERNAME, vol.UNDEFINED),
-            ): _USERNAME_SELECTOR,
-            vol.Required(CONF_PASSWORD): _PASSWORD_SELECTOR,
-        },
-    )
-
-
-def get_reconfigure_schema(username: str) -> vol.Schema:
-    """
-    Build the schema for the reconfigure step.
-
-    Args:
-        username: The entry's current username, used to pre-fill the form.
-
-    Returns:
-        The voluptuous schema for the reconfigure form.
+        The voluptuous schema for the data sources and the output folder.
 
     """
     return vol.Schema(
         {
-            vol.Required(CONF_USERNAME, default=username): _USERNAME_SELECTOR,
-            vol.Required(CONF_PASSWORD): _PASSWORD_SELECTOR,
+            vol.Required(CONF_DPLUS_ENTITY): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain=["binary_sensor", "sensor"]),
+            ),
+            vol.Required(CONF_DPLUS_ON_VALUE, default=DEFAULT_DPLUS_ON_VALUE): selector.TextSelector(),
+            vol.Required(CONF_TRACKER_ENTITY): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="device_tracker"),
+            ),
+            vol.Required(CONF_SPEED_ENTITY): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor"),
+            ),
+            vol.Optional(CONF_ALTITUDE_ENTITY): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor"),
+            ),
+            vol.Required(CONF_OUTPUT_DIR, default=DEFAULT_OUTPUT_DIR): selector.TextSelector(),
         },
     )
 
 
-def get_reauth_schema(username: str) -> vol.Schema:
-    """
-    Build the schema for the reauth step.
-
-    Args:
-        username: The entry's current username, used to pre-fill the form.
-
-    Returns:
-        The voluptuous schema for the reauth form.
-
-    """
-    return vol.Schema(
-        {
-            vol.Required(CONF_USERNAME, default=username): _USERNAME_SELECTOR,
-            vol.Required(CONF_PASSWORD): _PASSWORD_SELECTOR,
-        },
-    )
-
-
-__all__ = [
-    "get_reauth_schema",
-    "get_reconfigure_schema",
-    "get_user_schema",
-]
+__all__ = ["get_user_schema"]

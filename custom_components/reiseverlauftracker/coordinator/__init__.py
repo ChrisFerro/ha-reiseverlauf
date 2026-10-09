@@ -1,5 +1,1 @@
-"""Data update coordinator package for reiseverlauftracker."""
-
-from .base import ReiseverlaufDataUpdateCoordinator
-
-__all__ = ["ReiseverlaufDataUpdateCoordinator"]
+"""Trip detection and coordination package for reiseverlauftracker."""

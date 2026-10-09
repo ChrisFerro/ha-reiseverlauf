@@ -1,18 +1,31 @@
 """Shared fixtures for the reiseverlauftracker tests."""
 
-from collections.abc import Generator
 from typing import Any
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.reiseverlauftracker.const import DOMAIN
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from custom_components.reiseverlauftracker.const import (
+    CONF_ALTITUDE_ENTITY,
+    CONF_DPLUS_ENTITY,
+    CONF_DPLUS_ON_VALUE,
+    CONF_OUTPUT_DIR,
+    CONF_SPEED_ENTITY,
+    CONF_TRACKER_ENTITY,
+    DOMAIN,
+)
 from homeassistant.core import HomeAssistant
 
-# The response the demo endpoint returns; the client turns it into the device payload.
-API_RESPONSE: dict[str, Any] = {"userId": 1, "id": 1, "title": "demo", "body": "demo"}
+TRACKER = "device_tracker.camper_gps"
+
+ENTRY_DATA: dict[str, Any] = {
+    CONF_DPLUS_ENTITY: "sensor.camper_dplus",
+    CONF_DPLUS_ON_VALUE: "ON",
+    CONF_TRACKER_ENTITY: TRACKER,
+    CONF_SPEED_ENTITY: "sensor.camper_speed",
+    CONF_ALTITUDE_ENTITY: "sensor.camper_altitude",
+    CONF_OUTPUT_DIR: "reiseverlauf",
+}
 
 
 @pytest.fixture(autouse=True)
@@ -21,33 +34,19 @@ def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
 
 
 @pytest.fixture
-def mock_api() -> Generator[AsyncMock]:
-    """Replace the client's HTTP layer, keeping its payload logic under test."""
-    with patch(
-        "custom_components.reiseverlauftracker.api.client.ReiseverlaufApiClient._api_wrapper",
-        new_callable=AsyncMock,
-        return_value=API_RESPONSE,
-    ) as api_wrapper:
-        yield api_wrapper
+def entry_data() -> dict[str, Any]:
+    """Return the data a set-up entry holds."""
+    return dict(ENTRY_DATA)
 
 
 @pytest.fixture
 def config_entry() -> MockConfigEntry:
     """Return a config entry for this integration."""
-    return MockConfigEntry(
-        domain=DOMAIN,
-        title="demo",
-        unique_id="demo",
-        data={CONF_USERNAME: "demo", CONF_PASSWORD: "secret"},
-    )
+    return MockConfigEntry(domain=DOMAIN, title="Camper GPS", unique_id=TRACKER, data=ENTRY_DATA)
 
 
 @pytest.fixture
-async def init_integration(
-    hass: HomeAssistant,
-    mock_api: AsyncMock,
-    config_entry: MockConfigEntry,
-) -> MockConfigEntry:
+async def init_integration(hass: HomeAssistant, config_entry: MockConfigEntry) -> MockConfigEntry:
     """
     Set up the integration from a config entry.
 
