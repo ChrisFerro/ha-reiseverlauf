@@ -102,12 +102,12 @@ def event_data(settings: ReiseverlaufSettings, info: ExportInfo, base: Path) -> 
     """Return the payload of the "ended" and "exported" events."""
     composite = info.files.get(ExportFile.COMPOSITE)
     return {
-        "titel": info.title,  # codespell:ignore titel
+        "titel": info.title,
         "start": info.start.isoformat(),
-        "ende": info.end.isoformat(),  # codespell:ignore ende
+        "ende": info.end.isoformat(),
         "strecke_km": round(info.distance_km, 1),
         "fahrzeit_min": round(info.driving_time.total_seconds() / 60),
-        "ordner": info.folder,  # codespell:ignore ordner
+        "ordner": info.folder,
         "dateien": [
             {"typ": kind.value, "name": name, "url": media_url(settings, info.folder, name)}
             for kind, name in info.files.items()

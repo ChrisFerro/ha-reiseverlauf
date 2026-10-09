@@ -17,7 +17,7 @@ def _title_attributes(data: TripSnapshot, settings: ReiseverlaufSettings) -> Map
     if info is None:
         return {}
     return {
-        "ordner": info.folder,  # codespell:ignore ordner
+        "ordner": info.folder,
         "start": info.start.isoformat(),
         "dateien": [
             {"typ": kind.value, "name": name, "url": media_url(settings, info.folder, name)}

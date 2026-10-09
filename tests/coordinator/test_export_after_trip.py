@@ -89,7 +89,7 @@ async def test_ended_trip_is_exported_and_announced(
     assert len(events) == 1
     data = events[0].data
     assert data["entry_id"] == config_entry.entry_id
-    assert data["titel"] == info.title  # codespell:ignore titel
+    assert data["titel"] == info.title
     assert data["fortgesetzt"] is False
     assert data["strecke_km"] == pytest.approx(5.0, abs=0.1)
     assert data["gesamtbild"] == str(folder / info.files[next(k for k in info.files if k.value == "composite")])

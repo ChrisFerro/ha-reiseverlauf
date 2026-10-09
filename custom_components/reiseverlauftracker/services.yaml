@@ -19,7 +19,7 @@ exportieren:
       example: "2026-10-09 18:00:00"
       selector:
         datetime:
-    titel:  # codespell:ignore titel
+    titel:
       example: Ostsee 2026
       selector:
         text:

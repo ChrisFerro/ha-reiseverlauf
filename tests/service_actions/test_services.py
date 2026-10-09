@@ -80,20 +80,20 @@ async def test_export_period_from_history(
             "config_entry_id": entry.entry_id,
             "von": start.isoformat(),
             "bis": (dt_util.utcnow() + timedelta(minutes=1)).isoformat(),
-            "titel": "Testfahrt",  # codespell:ignore titel
+            "titel": "Testfahrt",
             "skala": 1,
         },
         response=True,
     )
 
     assert result is not None
-    assert result["titel"] == "Testfahrt"  # codespell:ignore titel
+    assert result["titel"] == "Testfahrt"
     assert result["strecke_km"] == pytest.approx(5.0, abs=0.1)
-    assert re.fullmatch(r"\d{4}-\d\d-\d\d_\d{4}-\d{4}", result["ordner"])  # codespell:ignore ordner
-    assert (media_dir / "reiseverlauf" / result["ordner"] / "export.json").exists()  # codespell:ignore ordner
+    assert re.fullmatch(r"\d{4}-\d\d-\d\d_\d{4}-\d{4}", result["ordner"])
+    assert (media_dir / "reiseverlauf" / result["ordner"] / "export.json").exists()
     assert {f["typ"] for f in result["dateien"]} == {"composite", "map", "profile", "gpx", "stats", "raw"}
     assert len(events) == 1
-    assert events[0].data["titel"] == "Testfahrt"  # codespell:ignore titel
+    assert events[0].data["titel"] == "Testfahrt"
     exports = entry.runtime_data.coordinator.data.exports
     assert [info.automatic for info in exports] == [False]
     assert entry.runtime_data.coordinator.data.last_export is None
@@ -158,7 +158,7 @@ async def test_cleanup_removes_chosen_types_and_then_folder(
         {"config_entry_id": entry.entry_id, "export": label, "dateitypen": ["raw", "gpx"]},
         response=True,
     )
-    assert result == {"ordner": [info.folder], "dateitypen": ["gpx", "raw"]}  # codespell:ignore ordner
+    assert result == {"ordner": [info.folder], "dateitypen": ["gpx", "raw"]}
     remaining = coordinator.data.last_export
     assert remaining is not None
     assert {kind.value for kind in remaining.files} == {"composite", "map", "profile", "stats"}
@@ -246,6 +246,6 @@ async def test_cleanup_without_export_uses_the_selection(
     result = await call(hass, "aufraeumen", {"config_entry_id": entry.entry_id}, response=True)
 
     assert result is not None
-    assert result["ordner"] == [oldest.folder]  # codespell:ignore ordner
+    assert result["ordner"] == [oldest.folder]
     assert [info.folder for info in coordinator.data.exports] == [newest.folder]
     assert hass.states.get(choice).state == newest.label(dt_util.get_default_time_zone())

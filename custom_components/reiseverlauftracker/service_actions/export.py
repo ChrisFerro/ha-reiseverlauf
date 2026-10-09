@@ -22,7 +22,7 @@ ATTR_FILE_TYPES = "dateitypen"
 ATTR_MARGIN = "rand_min"
 ATTR_SCALE = "skala"
 ATTR_START = "von"
-ATTR_TITLE = "titel"  # codespell:ignore titel
+ATTR_TITLE = "titel"
 
 
 async def async_handle_export(hass: HomeAssistant, call: ServiceCall) -> ServiceResponse:
@@ -102,4 +102,4 @@ async def async_handle_cleanup(hass: HomeAssistant, call: ServiceCall) -> Servic
         ) from err
     folders: list[JsonValueType] = [info.folder for info in exports]
     file_types: list[JsonValueType] = [kind.value for kind in sorted(kinds)]
-    return {"ordner": folders, "dateitypen": file_types}  # codespell:ignore ordner
+    return {"ordner": folders, "dateitypen": file_types}
