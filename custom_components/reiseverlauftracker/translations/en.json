@@ -110,5 +110,84 @@
         "place": "Place only"
       }
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "trip_active": {
+        "name": "Trip active"
+      }
+    },
+    "image": {
+      "last_trip_composite": {
+        "name": "Last trip image"
+      }
+    },
+    "select": {
+      "export_choice": {
+        "name": "Export selection",
+        "state": {
+          "all": "All exports"
+        }
+      }
+    },
+    "sensor": {
+      "trip_status": {
+        "name": "Trip status",
+        "state": {
+          "bereit": "Ready",
+          "unterwegs": "Driving",
+          "pause": "Stopped",
+          "auswertung": "Processing",
+          "zusammenfuehrbar": "Can continue",
+          "fehler": "Error"
+        },
+        "state_attributes": {
+          "voraussichtliches_ende": {
+            "name": "Expected end"
+          },
+          "fortsetzbar_bis": {
+            "name": "Can continue until"
+          }
+        }
+      },
+      "trip_start": {
+        "name": "Trip start"
+      },
+      "trip_distance": {
+        "name": "Trip distance"
+      },
+      "trip_driving_time": {
+        "name": "Trip driving time"
+      },
+      "last_trip_title": {
+        "name": "Last trip",
+        "state_attributes": {
+          "ordner": {
+            "name": "Folder"
+          },
+          "start": {
+            "name": "Start"
+          },
+          "dateien": {
+            "name": "Files"
+          },
+          "statistik": {
+            "name": "Statistics"
+          }
+        }
+      },
+      "last_trip_distance": {
+        "name": "Last trip distance"
+      },
+      "last_trip_driving_time": {
+        "name": "Last trip driving time"
+      },
+      "last_trip_duration": {
+        "name": "Last trip duration"
+      },
+      "last_trip_end": {
+        "name": "Last trip end"
+      }
+    }
   }
 }

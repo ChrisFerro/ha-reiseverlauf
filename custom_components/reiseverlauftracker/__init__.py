@@ -21,7 +21,12 @@ if TYPE_CHECKING:
 
     from .data import ReiseverlaufConfigEntry
 
-PLATFORMS: list[Platform] = []
+PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
+    Platform.IMAGE,
+    Platform.SELECT,
+    Platform.SENSOR,
+]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 

@@ -1,7 +1,9 @@
 """Tests for export folders and their metadata."""
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -90,3 +92,11 @@ def test_folder_with_foreign_files_survives_full_removal(tmp_path: Path) -> None
 
     assert remove_files(tmp_path, "a", set(ExportFile)) is None
     assert [p.name for p in (tmp_path / "a").iterdir()] == ["notes.txt"]
+
+
+def test_label_is_short_and_starts_with_local_time(tmp_path: Path) -> None:
+    info = make_export(tmp_path, "a", datetime(2026, 10, 9, 8, 40, tzinfo=UTC))
+    long_title = replace(info, title="Frankfurt am Main – Assenheim, 09.10.2026")
+
+    assert info.label(ZoneInfo("Europe/Berlin")) == "09.10.26 10:40 · Trip"
+    assert long_title.label(ZoneInfo("Europe/Berlin")) == "09.10.26 10:40 · Frankfurt am Main…"

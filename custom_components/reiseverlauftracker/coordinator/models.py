@@ -23,9 +23,11 @@ class TripSnapshot:
     """State of the current trip at one moment."""
 
     status: TripStatus
+    active: bool = False
     trip_start: datetime | None = None
     expected_end: datetime | None = None
     merge_until: datetime | None = None
     distance_km: float | None = None
     driving_time: timedelta | None = None
     last_export: ExportInfo | None = None
+    exports: tuple[ExportInfo, ...] = ()

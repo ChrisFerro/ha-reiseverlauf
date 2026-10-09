@@ -9,5 +9,62 @@
         }
       }
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "trip_active": {
+        "default": "mdi:rv-truck",
+        "state": {
+          "off": "mdi:parking"
+        }
+      }
+    },
+    "image": {
+      "last_trip_composite": {
+        "default": "mdi:map-marker-path"
+      }
+    },
+    "select": {
+      "export_choice": {
+        "default": "mdi:folder-multiple-image"
+      }
+    },
+    "sensor": {
+      "trip_status": {
+        "default": "mdi:map-clock",
+        "state": {
+          "bereit": "mdi:parking",
+          "unterwegs": "mdi:rv-truck",
+          "pause": "mdi:pause-circle",
+          "auswertung": "mdi:cog-sync",
+          "zusammenfuehrbar": "mdi:timer-sand",
+          "fehler": "mdi:alert-circle"
+        }
+      },
+      "trip_start": {
+        "default": "mdi:flag-variant"
+      },
+      "trip_distance": {
+        "default": "mdi:map-marker-distance"
+      },
+      "trip_driving_time": {
+        "default": "mdi:steering"
+      },
+      "last_trip_title": {
+        "default": "mdi:map-legend"
+      },
+      "last_trip_distance": {
+        "default": "mdi:map-marker-distance"
+      },
+      "last_trip_driving_time": {
+        "default": "mdi:steering"
+      },
+      "last_trip_duration": {
+        "default": "mdi:timer-outline"
+      },
+      "last_trip_end": {
+        "default": "mdi:flag-checkered"
+      }
+    }
   }
 }

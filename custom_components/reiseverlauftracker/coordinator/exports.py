@@ -6,7 +6,7 @@ All functions here do blocking file I/O and must run in the executor.
 """
 
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 import json
 from pathlib import Path
 from typing import Any
@@ -15,6 +15,7 @@ from custom_components.reiseverlauftracker.export import ExportFile
 
 METADATA_FILE = "export.json"
 METADATA_VERSION = 1
+LABEL_TITLE_LENGTH = 18
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +31,11 @@ class ExportInfo:
     files: dict[ExportFile, str]
     stats_text: str
     automatic: bool
+
+    def label(self, tz: tzinfo) -> str:
+        """Return the short unique name shown in the export selection: start time and shortened title."""
+        title = self.title if len(self.title) <= LABEL_TITLE_LENGTH else f"{self.title[: LABEL_TITLE_LENGTH - 1]}…"
+        return f"{self.start.astimezone(tz):%d.%m.%y %H:%M} · {title}"
 
     @property
     def duration(self) -> timedelta:

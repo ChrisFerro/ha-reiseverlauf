@@ -110,5 +110,84 @@
         "place": "Nur Ort"
       }
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "trip_active": {
+        "name": "Reise aktiv"
+      }
+    },
+    "image": {
+      "last_trip_composite": {
+        "name": "Letzte Reise Gesamtbild"
+      }
+    },
+    "select": {
+      "export_choice": {
+        "name": "Export-Auswahl",
+        "state": {
+          "all": "Alle Exporte"
+        }
+      }
+    },
+    "sensor": {
+      "trip_status": {
+        "name": "Reisestatus",
+        "state": {
+          "bereit": "Bereit",
+          "unterwegs": "Unterwegs",
+          "pause": "Pause",
+          "auswertung": "Auswertung",
+          "zusammenfuehrbar": "Fortsetzbar",
+          "fehler": "Fehler"
+        },
+        "state_attributes": {
+          "voraussichtliches_ende": {
+            "name": "Voraussichtliches Ende"
+          },
+          "fortsetzbar_bis": {
+            "name": "Fortsetzbar bis"
+          }
+        }
+      },
+      "trip_start": {
+        "name": "Reisebeginn"
+      },
+      "trip_distance": {
+        "name": "Strecke laufende Reise"
+      },
+      "trip_driving_time": {
+        "name": "Fahrzeit laufende Reise"
+      },
+      "last_trip_title": {
+        "name": "Letzte Reise",
+        "state_attributes": {
+          "ordner": {
+            "name": "Ordner"
+          },
+          "start": {
+            "name": "Start"
+          },
+          "dateien": {
+            "name": "Dateien"
+          },
+          "statistik": {
+            "name": "Statistik"
+          }
+        }
+      },
+      "last_trip_distance": {
+        "name": "Letzte Reise Strecke"
+      },
+      "last_trip_driving_time": {
+        "name": "Letzte Reise Fahrzeit"
+      },
+      "last_trip_duration": {
+        "name": "Letzte Reise Dauer"
+      },
+      "last_trip_end": {
+        "name": "Letzte Reise Ende"
+      }
+    }
   }
 }

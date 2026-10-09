@@ -64,6 +64,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self._exporting = False
         self._export_failed = False
         self.last_export: ExportInfo | None = None
+        self.exports: tuple[ExportInfo, ...] = ()
 
     async def async_start(self) -> None:
         """Restore detector and trip log, reconcile with the current D+ state and subscribe."""
@@ -78,8 +79,8 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             except KeyError, ValueError, TypeError:
                 LOGGER.warning("Stored trip points are unreadable, recording continues without them")
 
-        exports = await self.hass.async_add_executor_job(list_exports, media_base(self.hass, self.settings))
-        self.last_export = exports[0] if exports else None
+        await self._async_load_exports()
+        self.last_export = next((info for info in self.exports if info.automatic), None)
 
         now = dt_util.utcnow()
         dplus = self.hass.states.get(self.settings.dplus_entity)
@@ -108,6 +109,17 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         await self._detector_store.async_save(self.detector.as_dict())
         if self.log is not None:
             await self._log_store.async_save(self.log.as_dict())
+
+    async def async_refresh_exports(self) -> None:
+        """Re-read the export folders, for example after files were deleted."""
+        await self._async_load_exports()
+        if self.last_export is not None:
+            self.last_export = next((i for i in self.exports if i.folder == self.last_export.folder), None)
+        self._publish()
+
+    async def _async_load_exports(self) -> None:
+        exports = await self.hass.async_add_executor_job(list_exports, media_base(self.hass, self.settings))
+        self.exports = tuple(exports)
 
     @callback
     def async_start_trip(self) -> None:
@@ -218,6 +230,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             else:
                 self.last_export = info
                 self._export_failed = False
+                await self._async_load_exports()
                 payload = event_data(self.settings, info, media_base(self.hass, self.settings))
                 self.hass.bus.async_fire(
                     EVENT_TRIP_ENDED,
@@ -278,6 +291,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             snapshot = TripSnapshot(status=TripStatus.DRIVING, **self._running())
         else:
             snapshot = TripSnapshot(status=TripStatus.PAUSED, expected_end=deadline, **self._running())
+        snapshot = replace(snapshot, active=phase is TripPhase.ACTIVE, exports=self.exports)
         if self._exporting:
             return replace(snapshot, status=TripStatus.PROCESSING)
         if self._export_failed and phase is not TripPhase.ACTIVE:

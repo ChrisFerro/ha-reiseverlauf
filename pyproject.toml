@@ -54,6 +54,7 @@ filterwarnings = [
     # never from this integration, so they would only mask Core's upstream work.
     "ignore:Setting custom ClientSession\\..* attribute is discouraged:DeprecationWarning",
     "ignore:Inheritance class .* from web\\.Application is discouraged:DeprecationWarning",
+    "ignore:It is recommended to use web\\.(AppKey|RequestKey) instances for keys",
 ]
 
 [tool.coverage.run]
