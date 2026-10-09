@@ -1,6 +1,9 @@
 {
   "domain": "reiseverlauftracker",
   "name": "Reiseverlauf Tracker für Wohnmobile",
+  "after_dependencies": [
+    "recorder"
+  ],
   "codeowners": [
     "@ChrisFerro"
   ],

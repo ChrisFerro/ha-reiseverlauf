@@ -6,8 +6,21 @@ from dataclasses import replace
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from custom_components.reiseverlauftracker.const import DOMAIN, EVENT_TRIP_ENDED, EVENT_TRIP_STARTED, LOGGER
-from custom_components.reiseverlauftracker.export import NoMovementError, NotEnoughPointsError
+from custom_components.reiseverlauftracker.const import (
+    DOMAIN,
+    EVENT_TRIP_ENDED,
+    EVENT_TRIP_EXPORTED,
+    EVENT_TRIP_STARTED,
+    EXPORT_CHOICE_ALL,
+    LOGGER,
+)
+from custom_components.reiseverlauftracker.export import (
+    ExportFile,
+    NoMovementError,
+    NotEnoughPointsError,
+    StepSeries,
+    TrackPoint,
+)
 from custom_components.reiseverlauftracker.utils.geo import Position
 from homeassistant.const import ATTR_GPS_ACCURACY, ATTR_LATITUDE, ATTR_LONGITUDE, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State, callback
@@ -18,7 +31,7 @@ from homeassistant.loader import async_get_loaded_integration
 from homeassistant.util import dt as dt_util
 
 from .export_runner import async_export, event_data, media_base
-from .exports import ExportInfo, list_exports
+from .exports import ExportInfo, list_exports, remove_files
 from .models import TripSnapshot, TripStatus
 from .trip_detector import (
     DetectorSettings,
@@ -65,6 +78,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self._export_failed = False
         self.last_export: ExportInfo | None = None
         self.exports: tuple[ExportInfo, ...] = ()
+        self.export_choice: str | None = None
 
     async def async_start(self) -> None:
         """Restore detector and trip log, reconcile with the current D+ state and subscribe."""
@@ -116,6 +130,77 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         if self.last_export is not None:
             self.last_export = next((i for i in self.exports if i.folder == self.last_export.folder), None)
         self._publish()
+
+    async def async_export_period(
+        self,
+        data: tuple[list[TrackPoint], StepSeries | None, StepSeries | None],
+        start: datetime,
+        end: datetime,
+        settings: ReiseverlaufSettings,
+        title: str | None,
+    ) -> dict[str, Any]:
+        """
+        Export any period on request, announce it and return the event payload.
+
+        The folder name holds start and end, so a manual export never replaces an automatic one.
+
+        Raises:
+            NotEnoughPointsError: Fewer than two usable positions.
+            NoMovementError: The vehicle never left the minimum movement radius.
+
+        """
+        tz = dt_util.get_default_time_zone()
+        local_start, local_end = start.astimezone(tz), end.astimezone(tz)
+        end_format = "%H%M" if local_start.date() == local_end.date() else "%Y-%m-%d_%H%M"
+        folder = f"{local_start:%Y-%m-%d_%H%M}-{local_end.strftime(end_format)}"
+        async with self._export_lock:
+            info = await async_export(
+                self.hass,
+                settings,
+                data,
+                start,
+                end,
+                version=async_get_loaded_integration(self.hass, DOMAIN).version,
+                raw=TripLog.from_export_inputs(start, data, self._log_settings()).as_dict(),
+                title=title,
+                automatic=False,
+                folder=folder,
+            )
+        await self._async_load_exports()
+        self._publish()
+        payload = event_data(self.settings, info, media_base(self.hass, self.settings))
+        self.hass.bus.async_fire(EVENT_TRIP_EXPORTED, {"entry_id": self.config_entry.entry_id, **payload})
+        return payload
+
+    def export_choice_options(self) -> list[str]:
+        """Return the labels of all exports, newest first, and the "all" choice at the end."""
+        tz = dt_util.get_default_time_zone()
+        return [*(info.label(tz) for info in self.exports), EXPORT_CHOICE_ALL]
+
+    def current_export_choice(self) -> str | None:
+        """
+        Return the chosen export, or the newest one if the choice is gone.
+
+        It never falls back to "all" on its own, so a dashboard button cannot delete everything by accident.
+        """
+        options = self.export_choice_options()
+        if self.export_choice in options:
+            return self.export_choice
+        return options[0] if len(options) > 1 else None
+
+    def find_exports(self, choice: str) -> list[ExportInfo]:
+        """Return the exports a selection label, a folder name or "all" refers to."""
+        if choice == EXPORT_CHOICE_ALL:
+            return list(self.exports)
+        tz = dt_util.get_default_time_zone()
+        return [info for info in self.exports if choice in {info.folder, info.label(tz)}]
+
+    async def async_remove_files(self, exports: list[ExportInfo], kinds: set[ExportFile]) -> None:
+        """Delete the given file kinds of the given exports and refresh the list."""
+        base = media_base(self.hass, self.settings)
+        for info in exports:
+            await self.hass.async_add_executor_job(remove_files, base, info.folder, kinds)
+        await self.async_refresh_exports()
 
     async def _async_load_exports(self) -> None:
         exports = await self.hass.async_add_executor_job(list_exports, media_base(self.hass, self.settings))

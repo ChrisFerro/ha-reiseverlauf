@@ -109,6 +109,16 @@
         "date": "Date only",
         "place": "Place only"
       }
+    },
+    "file_types": {
+      "options": {
+        "composite": "Composite image",
+        "map": "Map",
+        "profile": "Profile",
+        "gpx": "GPX",
+        "stats": "Statistics",
+        "raw": "Raw data"
+      }
     }
   },
   "entity": {
@@ -188,6 +198,111 @@
       "last_trip_end": {
         "name": "Last trip end"
       }
+    }
+  },
+  "services": {
+    "exportieren": {
+      "name": "Export period",
+      "description": "Creates map, profile, GPX, statistics and composite image for any period from the recorded history.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "von": {
+          "name": "From",
+          "description": "Start of the period."
+        },
+        "bis": {
+          "name": "To",
+          "description": "End of the period."
+        },
+        "titel": {
+          "name": "Title",
+          "description": "Title of the export. Without one, the title follows the options."
+        },
+        "skala": {
+          "name": "Scale",
+          "description": "Size factor for the images. Without one, the option applies."
+        },
+        "rand_min": {
+          "name": "Chart margin",
+          "description": "Minutes shown before departure and after arrival in the speed chart."
+        }
+      }
+    },
+    "aufraeumen": {
+      "name": "Clean up exports",
+      "description": "Deletes chosen file types of one export or of all exports in the output folder.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "export": {
+          "name": "Export",
+          "description": "Leave empty for the export chosen in the export selection. Otherwise an entry of the export selection, the folder name, or all."
+        },
+        "dateitypen": {
+          "name": "File types",
+          "description": "Which files to delete. The folder goes once nothing is left."
+        }
+      }
+    },
+    "reise_starten": {
+      "name": "Start trip",
+      "description": "Starts a trip without D+, or continues the last one within the merge window.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        }
+      }
+    },
+    "reise_beenden": {
+      "name": "End trip",
+      "description": "Ends the running trip now instead of waiting for the end delay, and exports it.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "No entry of this integration matches {target}."
+    },
+    "entry_not_loaded": {
+      "message": "The entry {target} is not loaded."
+    },
+    "invalid_period": {
+      "message": "The end of the period must be after its start."
+    },
+    "recorder_missing": {
+      "message": "Exporting a period needs the recorder, which is not running."
+    },
+    "no_movement": {
+      "message": "The vehicle did not move in this period, or there are too few positions."
+    },
+    "export_failed": {
+      "message": "The export could not be written: {error}"
+    },
+    "export_not_found": {
+      "message": "There is no export {export}."
+    },
+    "cleanup_failed": {
+      "message": "The files could not be deleted: {error}"
+    },
+    "trip_running": {
+      "message": "A trip is already running."
+    },
+    "no_export_chosen": {
+      "message": "No export is chosen."
+    },
+    "no_trip": {
+      "message": "No trip is running."
     }
   }
 }

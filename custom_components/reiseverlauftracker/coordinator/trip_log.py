@@ -94,6 +94,22 @@ class TripLog:
         }
 
     @classmethod
+    def from_export_inputs(
+        cls,
+        start: datetime,
+        data: tuple[list[TrackPoint], StepSeries | None, StepSeries | None],
+        settings: RunningStatsSettings,
+    ) -> TripLog:
+        """Build a log from history data, so a manual export stores its points like a trip does."""
+        positions, speed, altitude = data
+        log = cls(start, settings)
+        for point in sorted(positions, key=lambda p: p.time):
+            log.add_position(point.time, point.lat, point.lon, point.accuracy)
+        log.speed = list(zip(speed.times, speed.values, strict=True)) if speed else []
+        log.altitude = list(zip(altitude.times, altitude.values, strict=True)) if altitude else []
+        return log
+
+    @classmethod
     def from_dict(cls, data: dict[str, Any], settings: RunningStatsSettings) -> TripLog:
         """Rebuild a log, including its running statistics, from `as_dict()` output."""
         log = cls(datetime.fromisoformat(data["start"]), settings)

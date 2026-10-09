@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=../../schemas/yaml/services_schema.yaml
+# The names and descriptions here are only the fallback shown when a translation is
+# missing; users see services.<action>.* from the translations.
+
+exportieren:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    von:
+      required: true
+      example: "2026-10-09 08:00:00"
+      selector:
+        datetime:
+    bis:
+      required: true
+      example: "2026-10-09 18:00:00"
+      selector:
+        datetime:
+    titel:  # codespell:ignore titel
+      example: Ostsee 2026
+      selector:
+        text:
+    skala:
+      selector:
+        number:
+          min: 1
+          max: 4
+          step: 0.5
+          mode: box
+    rand_min:
+      selector:
+        number:
+          min: 0
+          max: 120
+          step: 1
+          mode: box
+          unit_of_measurement: min
+
+aufraeumen:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    export:
+      example: "{{ states('select.wohnmobil_export_auswahl') }}"
+      selector:
+        text:
+    dateitypen:
+      required: true
+      default:
+        - composite
+        - map
+        - profile
+        - gpx
+        - stats
+        - raw
+      selector:
+        select:
+          multiple: true
+          translation_key: file_types
+          options:
+            - composite
+            - map
+            - profile
+            - gpx
+            - stats
+            - raw
+
+reise_starten:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+
+reise_beenden:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker

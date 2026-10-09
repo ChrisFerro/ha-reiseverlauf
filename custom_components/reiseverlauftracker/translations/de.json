@@ -109,6 +109,16 @@
         "date": "Nur Datum",
         "place": "Nur Ort"
       }
+    },
+    "file_types": {
+      "options": {
+        "composite": "Gesamtbild",
+        "map": "Karte",
+        "profile": "Profil",
+        "gpx": "GPX",
+        "stats": "Statistik",
+        "raw": "Rohdaten"
+      }
     }
   },
   "entity": {
@@ -188,6 +198,111 @@
       "last_trip_end": {
         "name": "Letzte Reise Ende"
       }
+    }
+  },
+  "services": {
+    "exportieren": {
+      "name": "Zeitraum exportieren",
+      "description": "Erstellt Karte, Profil, GPX, Statistik und Gesamtbild für einen beliebigen Zeitraum aus der aufgezeichneten History.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "von": {
+          "name": "Von",
+          "description": "Beginn des Zeitraums."
+        },
+        "bis": {
+          "name": "Bis",
+          "description": "Ende des Zeitraums."
+        },
+        "titel": {
+          "name": "Titel",
+          "description": "Titel des Exports. Ohne Angabe richtet sich der Titel nach den Optionen."
+        },
+        "skala": {
+          "name": "Skalierung",
+          "description": "Größenfaktor der Bilder. Ohne Angabe gilt die Option."
+        },
+        "rand_min": {
+          "name": "Rand im Diagramm",
+          "description": "Minuten vor Abfahrt und nach Ankunft im Geschwindigkeitsdiagramm."
+        }
+      }
+    },
+    "aufraeumen": {
+      "name": "Exporte aufräumen",
+      "description": "Löscht gewählte Dateitypen eines Exports oder aller Exporte im Ausgabeordner.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "export": {
+          "name": "Export",
+          "description": "Leer lassen für den Export, der in der Export-Auswahl gewählt ist. Sonst ein Eintrag der Export-Auswahl, der Ordnername oder all."
+        },
+        "dateitypen": {
+          "name": "Dateitypen",
+          "description": "Welche Dateien gelöscht werden. Ist nichts mehr übrig, verschwindet der Ordner."
+        }
+      }
+    },
+    "reise_starten": {
+      "name": "Reise starten",
+      "description": "Startet eine Reise ohne D+ oder setzt die letzte im Zusammenführungsfenster fort.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        }
+      }
+    },
+    "reise_beenden": {
+      "name": "Reise beenden",
+      "description": "Beendet die laufende Reise sofort statt nach der Verzögerung und exportiert sie.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "Kein Eintrag dieser Integration passt zu {target}."
+    },
+    "entry_not_loaded": {
+      "message": "Der Eintrag {target} ist nicht geladen."
+    },
+    "invalid_period": {
+      "message": "Das Ende des Zeitraums muss nach dem Beginn liegen."
+    },
+    "recorder_missing": {
+      "message": "Für den Export eines Zeitraums wird der Recorder benötigt, er läuft aber nicht."
+    },
+    "no_movement": {
+      "message": "Das Fahrzeug hat sich in diesem Zeitraum nicht bewegt, oder es gibt zu wenige Positionen."
+    },
+    "export_failed": {
+      "message": "Der Export konnte nicht geschrieben werden: {error}"
+    },
+    "export_not_found": {
+      "message": "Es gibt keinen Export {export}."
+    },
+    "cleanup_failed": {
+      "message": "Die Dateien konnten nicht gelöscht werden: {error}"
+    },
+    "trip_running": {
+      "message": "Es läuft bereits eine Reise."
+    },
+    "no_export_chosen": {
+      "message": "Es ist kein Export gewählt."
+    },
+    "no_trip": {
+      "message": "Es läuft keine Reise."
     }
   }
 }

@@ -90,3 +90,16 @@ def test_round_trip_through_json_rebuilds_statistics() -> None:
     assert restored.as_dict() == log.as_dict()
     assert restored.distance_km == pytest.approx(log.distance_km)
     assert restored.driving_time == log.driving_time
+
+
+def test_from_export_inputs_matches_a_recorded_log() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.add_position(at(0), lat(0), 8.0, 10)
+    log.add_position(at(60), lat(1000), 8.0, 10)
+    log.add_speed(at(0), 60)
+    log.add_altitude(at(30), 100)
+
+    rebuilt = TripLog.from_export_inputs(T0, log.export_inputs(), SETTINGS)
+
+    assert rebuilt.as_dict() == log.as_dict()
+    assert rebuilt.distance_km == pytest.approx(log.distance_km)

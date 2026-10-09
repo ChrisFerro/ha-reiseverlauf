@@ -58,11 +58,13 @@ async def async_export(
     raw: dict[str, Any] | None = None,
     title: str | None = None,
     automatic: bool = True,
+    folder: str | None = None,
 ) -> ExportInfo:
     """
-    Export one trip; an earlier export of the same start is replaced.
+    Export one trip; an earlier export in the same folder is replaced.
 
     Without `title`, the title follows the configured format and place names.
+    Without `folder`, the folder is named after the local start time.
 
     Raises:
         NotEnoughPointsError: Fewer than two usable positions.
@@ -90,7 +92,7 @@ async def async_export(
         elevation_hysteresis_m=settings.elevation_hysteresis_m,
         user_agent=agent,
     )
-    folder = f"{start.astimezone(tz):%Y-%m-%d_%H%M}"
+    folder = folder or f"{start.astimezone(tz):%Y-%m-%d_%H%M}"
     return await hass.async_add_executor_job(
         _export_sync, media_base(hass, settings), folder, data, options, raw, start, end, automatic
     )

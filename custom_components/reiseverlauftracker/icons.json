@@ -66,5 +66,19 @@
         "default": "mdi:flag-checkered"
       }
     }
+  },
+  "services": {
+    "exportieren": {
+      "service": "mdi:export"
+    },
+    "aufraeumen": {
+      "service": "mdi:delete-sweep"
+    },
+    "reise_starten": {
+      "service": "mdi:play"
+    },
+    "reise_beenden": {
+      "service": "mdi:stop"
+    }
   }
 }
