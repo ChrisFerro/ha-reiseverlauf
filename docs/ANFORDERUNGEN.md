@@ -109,22 +109,25 @@ Dateinamen: `<slug des Titels>` oder `track_<von>_<bis>`.
 
 ## 6. Entitäten, Dienste, Events der Integration
 
-Entitäten (Vorschlag):
+Entitäten:
 
 - `binary_sensor.reise_aktiv`
-- `sensor.reise_status` (`bereit`, `unterwegs`, `auswertung`, `fertig`, `fehler`) mit Attributen
-- Laufende Reise: Start, Strecke, Fahrzeit; letzte Reise: Titel, Strecke, Dauer, Dateien (Attribute)
+- `sensor.reise_status` (`bereit`, `unterwegs`, `pause`, `auswertung`, `zusammenfuehrbar`, `fehler`, siehe 9.10)
+- Laufende Reise: `sensor.reise_start`, `sensor.reise_strecke`, `sensor.reise_fahrzeit`
+- Letzte Reise: `sensor.letzte_reise_titel` (Attribute: Dateiliste, Statistiktext), `_strecke`, `_fahrzeit`,
+  `_dauer`, `_ende`; `image.letzte_reise_gesamtbild` (siehe 9.11)
 
 Dienste (Vorschlag):
 
 - `reiseverlauftracker.exportieren` (von, bis, titel, skala, rand_min): manueller Export beliebiger Zeiträume
 - `reiseverlauftracker.aufraeumen` (export, dateitypen): löscht Dateien eines Exports; Auswahl „alle Exporte“;
   nur im Ausgabeordner, nur bekannte Dateitypen (Gesamtbild, Karte, Profil, GPX, Statistik)
-- optional: `reiseverlauftracker.reise_beenden` / `reise_starten` (manuell)
+- `reiseverlauftracker.reise_starten` / `reise_beenden` (manuell, siehe 9.8)
 
 Events:
 
 - `reiseverlauftracker_gestartet`
+- `reiseverlauftracker_exportiert` nach manuellem Export (Daten wie `_beendet`, siehe 9.9)
 - `reiseverlauftracker_beendet` mit Daten: Titel, Start, Ende, Strecke_km, Fahrzeit, Dateiliste (Name, URL),
   Statistiktext, Pfad des Gesamtbilds
 
@@ -159,12 +162,35 @@ Migration: Dashboard auf Dienste umstellen, Helfer und Hintergrunddienst entfern
 
 1. ~~Datenhaltung~~ – entschieden (06.10.2026): eigene Speicherung der Reisepunkte (Position, Genauigkeit,
    Geschwindigkeit, Höhe) pro Reise, aufbewahrt bis zum Löschen über `aufraeumen` (Dateityp „Rohdaten“).
-2. Ausgabeort: `/config/www` (offen abrufbar) oder `/media` (geschützt, Zugriff über Anmeldung)?
+2. ~~Ausgabeort~~ – entschieden (09.10.2026): `/media` (geschützt, Zugriff nur mit Anmeldung über die
+   Medienquelle `/media/local/...`). Standard-Ausgabeordner `reiseverlauf` im lokalen Medienordner von HA,
+   in der Einrichtung änderbar. `/config/www` wird nicht mehr verwendet.
 3. ~~Sprachen~~ – entschieden (06.10.2026): Deutsch + Englisch für Oberfläche und Exporte (Sprache der HA-Instanz).
 4. ~~Höhen-Hysterese~~ – vorläufig 5 m (06.10.2026): im Stand driftet die Höhe über 48 h um knapp 4 m.
    Nach der ersten echten Fahrt erneut prüfen.
 5. ~~Reise mit langen Pausen~~ – entschieden (06.10.2026): automatische Zusammenführung, siehe 4.
 6. Soll die Integration später auch die Höhe selbst vom Router holen (statt Skript)?
+7. ~~Titel automatisch erkannter Reisen~~ – entschieden (09.10.2026): einstellbar „nur Datum“,
+   „nur Ort“ oder „Datum und Ort“ (Standard). Ortsnamen für Start und Ende per Nominatim (OpenStreetMap,
+   eigener User-Agent, Sprache der HA-Instanz, Ebene Stadt/Ort/Dorf), keine HA-Zonen. Ohne Ortsname:
+   nur Datum (auch bei „nur Ort“, damit der Titel nie leer ist).
+8. ~~Manueller Start/Ende~~ – entschieden (09.10.2026): beide Dienste. `reise_beenden` beendet sofort
+   (Endzeit = Aufruf, Mindestbewegung gilt weiter), danach Export und Zusammenführungsfenster wie beim
+   automatischen Ende. Geht D+ im Fenster wieder auf „Ein“ (Wechsel Aus → Ein), wird zusammengeführt.
+   `reise_starten` startet ohne D+; ohne D+ läuft die Verzögerung ab Start bzw. letzter Bewegung.
+9. ~~Event bei manuellem Export~~ – entschieden (09.10.2026): `exportieren` löst
+   `reiseverlauftracker_exportiert` aus (Daten wie `_beendet`), nicht `_beendet`. Der Push-Blueprint
+   reagiert standardmäßig nur auf `_beendet`.
+10. ~~Statuswerte~~ – entschieden (09.10.2026): `bereit`, `unterwegs`, `pause` (D+ aus, Verzögerung
+    läuft; Attribut voraussichtliches Ende), `auswertung`, `zusammenfuehrbar` (Attribut Fensterende),
+    `fehler`. Nach Fensterablauf (oder Fenster 0) wieder `bereit`; letzte Reise bleibt in eigenen
+    Entitäten/Attributen. Anzeige über Übersetzungen (z. B. „Pause“, „Fortsetzbar“).
+11. ~~Entitäten~~ – entschieden (09.10.2026): eigene Entitäten je Wert (siehe 6) statt Attribute,
+    dazu eine Bild-Entität für das Gesamtbild (geschützte Dashboard-Vorschau trotz `/media`).
+    Strecke ohne Langzeitstatistik (Wert pro Reise); Gesamtkilometer ggf. später.
+12. ~~Auswahl beim Aufräumen~~ – entschieden (09.10.2026): `select.export_auswahl` (alle Exporte +
+    „Alle Exporte“, aktualisiert nach Export/Löschen) und Dienst `aufraeumen` (Export, Dateitypen als
+    Mehrfachauswahl inkl. Rohdaten). Keine Schalter-Entitäten für Dateitypen.
 
 ## 10. Empfohlene Reihenfolge
 
