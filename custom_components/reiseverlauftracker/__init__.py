@@ -12,6 +12,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
 from .const import DOMAIN
+from .coordinator import ReiseverlaufDataUpdateCoordinator
 from .data import ReiseverlaufData
 from .settings import ReiseverlaufSettings
 
@@ -33,13 +34,17 @@ async def async_setup_entry(
     Set up a config entry.
 
     Returns:
-        True once every platform is forwarded.
+        True once trip detection runs and every platform is forwarded.
 
     """
+    settings = ReiseverlaufSettings.from_entry(entry.data, entry.options)
+    coordinator = ReiseverlaufDataUpdateCoordinator(hass, entry, settings)
     entry.runtime_data = ReiseverlaufData(
-        settings=ReiseverlaufSettings.from_entry(entry.data, entry.options),
+        settings=settings,
+        coordinator=coordinator,
         integration=async_get_loaded_integration(hass, entry.domain),
     )
+    await coordinator.async_start()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
@@ -58,7 +63,10 @@ async def async_unload_entry(
         True if every platform unloaded cleanly.
 
     """
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        await entry.runtime_data.coordinator.async_stop()
+    return unloaded
 
 
 async def async_reload_entry(
