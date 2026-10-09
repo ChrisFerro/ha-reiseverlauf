@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=../../schemas/yaml/configuration_schema.yaml
+# Simulated motorhome sensors for development. Change the input helpers in the UI
+# to drive trip detection; the automation feeds the tracker from latitude/longitude.
+
+input_boolean:
+  sim_dplus:
+    name: Sim D+
+
+input_number:
+  sim_latitude:
+    name: Sim latitude
+    min: -90
+    max: 90
+    step: 0.0001
+    initial: 50.1109
+    mode: box
+  sim_longitude:
+    name: Sim longitude
+    min: -180
+    max: 180
+    step: 0.0001
+    initial: 8.6821
+    mode: box
+  sim_speed:
+    name: Sim speed
+    min: 0
+    max: 150
+    step: 1
+    initial: 0
+    unit_of_measurement: km/h
+  sim_altitude:
+    name: Sim altitude
+    min: -100
+    max: 3000
+    step: 0.1
+    initial: 100
+    mode: box
+    unit_of_measurement: m
+
+template:
+  - sensor:
+      - name: Sim D+ text
+        unique_id: sim_dplus_text
+        state: "{{ 'ON' if is_state('input_boolean.sim_dplus', 'on') else 'OFF' }}"
+      - name: Sim GPS speed
+        unique_id: sim_gps_speed
+        unit_of_measurement: km/h
+        device_class: speed
+        state: "{{ states('input_number.sim_speed') }}"
+      - name: Sim GPS altitude
+        unique_id: sim_gps_altitude
+        unit_of_measurement: m
+        device_class: distance
+        state: "{{ states('input_number.sim_altitude') }}"
+
+device_tracker:
+
+automation:
+  - id: sim_gps_tracker
+    alias: Sim GPS tracker
+    mode: queued
+    triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: state
+        entity_id:
+          - input_number.sim_latitude
+          - input_number.sim_longitude
+    actions:
+      - action: device_tracker.see
+        data:
+          dev_id: sim_gps
+          gps:
+            - "{{ states('input_number.sim_latitude') | float }}"
+            - "{{ states('input_number.sim_longitude') | float }}"
+          gps_accuracy: 10
