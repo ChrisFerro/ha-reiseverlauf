@@ -221,9 +221,7 @@ die 13 Helfer gelöscht, Skripte, Log und `/config/www/tracks` entfernt. Das Rou
     Fahrtenbuch-Daten daran hängen können.
 21. ~~Knöpfe im Dashboard~~ – entschieden (09.10.2026): „Reise jetzt beenden“ (während einer Reise) und „Reise
     starten / fortsetzen“ (ohne laufende Reise) in der neuen Ansicht „Aktuelle Reise“.
-22. Fahrtenbuch (Etappe 6, offen): Kilometerstand, Tankfüllstand und zwei Gasflaschen (0–100 %) je Halt,
-    Tankstopps mit Litern und Betrag. Vor der Umsetzung klären: Quellen (Sensoren oder Handeingabe), Eingabe,
-    Auswertungen, Erkennung von Tankstopps.
+22. Fahrtenbuch – offen, siehe Abschnitt 11 (Etappe 6).
 
 ## 10. Empfohlene Reihenfolge
 
@@ -232,3 +230,37 @@ die 13 Helfer gelöscht, Skripte, Log und `/config/www/tracks` entfernt. Das Rou
 3. Integrationsrahmen: Config-Flow, Koordinator, Entitäten, Dienste, Events, Übersetzungen.
 4. Automations-Blueprint für die Push-Nachricht, README (deutsch), HACS-Metadaten.
 5. Migration des Dashboards und Abbau der alten Helfer/des Dienstes (erst nach Freigabe). – erledigt 09.10.2026
+6. Fahrtenbuch (siehe 11), erst nach der ersten echten Fahrt und nach Klärung der offenen Fragen.
+
+## 11. Fahrtenbuch (Etappe 6)
+
+Stand: 09.10.2026, nur Anforderungen, noch keine Umsetzung.
+
+### 11.1 Ziel
+
+Die Integration wird zu einem Fahrtenbuch erweitert. Zu jedem Halt einer Reise (siehe 9.20) werden Fahrzeug- und
+Vorratsdaten festgehalten, Tank- und Gasstopps mit Menge und Kosten. Daraus entstehen Verbrauchs- und
+Kostenauswertungen.
+
+### 11.2 Bekannte Anforderungen
+
+- **Je Halt:** Kilometerstand und Füllstand des Kraftstofftanks (0–100 %).
+- **Zwei Gasflaschen/-tanks:** jeweils Füllstand 0–100 %, ebenfalls je Halt protokolliert.
+- **Tankstopp:** Der Kraftstofftank geht wieder auf 100 %; erfasst werden getankte Liter und der Betrag in €.
+- **Gasstopp:** analog für jede der beiden Gasflaschen (Menge und Betrag).
+- **Anknüpfung:** Die Daten hängen am Halt-Datensatz der Reise (`TripStop` mit Zeit, Position, Ort, Dauer).
+  Er ist dafür ausgelegt, um weitere Felder ergänzt zu werden, ohne bestehende Reisen umzubauen.
+
+### 11.3 Offene Fragen (vor der Umsetzung einzeln klären)
+
+1. **Quellen:** Gibt es Kilometerstand, Tankfüllstand und Gasfüllstände schon als Sensoren in Home Assistant
+   (z. B. CAN-Bus-Adapter, Victron, Füllstandssensor an der Gasflasche), oder werden sie von Hand eingegeben?
+2. **Eingabe:** Bei Handeingabe ein Formular (z. B. Skript mit Feldern wie beim Export). Wann erscheint es: bei
+   jedem Halt, nur bei Tankstopps, per Push-Erinnerung?
+3. **Tankstopp erkennen:** automatisch über einen Sprung im Füllstand oder ausdrücklich per Knopf/Aktion?
+4. **Auswertungen:** Verbrauch je 100 km, Kosten je Reise/Monat, Gasverbrauch je Tag, Export als CSV, Darstellung
+   im Dashboard, Aufnahme in die Statistik eines Exports?
+5. **Halte ohne Reise:** Sollen auch Einträge außerhalb einer Reise möglich sein (z. B. Gasflasche auf dem
+   Campingplatz getauscht)?
+6. **Aufbewahrung:** Wo liegen die Fahrtenbuch-Daten dauerhaft (eigener Speicher, Datei im Medienordner) und wie
+   werden sie gesichert bzw. gelöscht?
