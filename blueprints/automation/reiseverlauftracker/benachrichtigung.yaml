@@ -1,0 +1,150 @@
+blueprint:
+  name: Reiseverlauf – Push-Nachricht
+  description: >-
+    Schickt eine Push-Nachricht an die Companion-App, wenn eine Reise endet: mit Titel, Strecke, Fahrzeit,
+    Uhrzeit und dem Gesamtbild. Tippen auf die Nachricht öffnet das Gesamtbild. Endet eine fortgesetzte Reise,
+    ersetzt die neue Nachricht die alte. Optional auch bei Reisebeginn und nach einem manuellen Export.
+  domain: automation
+  author: ChrisFerro
+  homeassistant:
+    min_version: "2026.8.0"
+  source_url: https://github.com/ChrisFerro/ha-reiseverlauf/blob/main/blueprints/automation/reiseverlauftracker/benachrichtigung.yaml
+  input:
+    allgemein:
+      name: Fahrzeug und Empfänger
+      icon: mdi:rv-truck
+      input:
+        fahrzeug:
+          name: Fahrzeug
+          description: Der Eintrag der Reiseaufzeichnung, dessen Reisen gemeldet werden.
+          selector:
+            config_entry:
+              integration: reiseverlauftracker
+        geraete:
+          name: Empfänger
+          description: Handys mit der Home-Assistant-Companion-App, die die Nachricht bekommen.
+          selector:
+            device:
+              multiple: true
+              filter:
+                - integration: mobile_app
+    anlaesse:
+      name: Wann melden
+      icon: mdi:bell-cog
+      input:
+        bei_start:
+          name: Bei Reisebeginn
+          description: Auch melden, wenn eine Reise beginnt. Eine fortgesetzte Reise wird nicht gemeldet.
+          default: true
+          selector:
+            boolean:
+        bei_export:
+          name: Nach manuellem Export
+          description: Auch melden, wenn ein Export über die Aktion „Zeitraum exportieren“ fertig ist.
+          default: false
+          selector:
+            boolean:
+        mit_bild:
+          name: Gesamtbild anhängen
+          description: >-
+            Hängt das Gesamtbild an. Das Handy lädt es über seine Verbindung zu Home Assistant; unterwegs
+            braucht es dafür Fernzugriff (z. B. Home Assistant Cloud).
+          default: true
+          selector:
+            boolean:
+    texte:
+      name: Überschriften
+      icon: mdi:format-title
+      collapsed: true
+      input:
+        titel_ende:
+          name: Bei Reiseende
+          default: Reise beendet
+          selector:
+            text:
+        titel_aktualisiert:
+          name: Bei fortgesetzter Reise
+          default: Reise aktualisiert
+          selector:
+            text:
+        titel_start:
+          name: Bei Reisebeginn
+          default: Reise gestartet
+          selector:
+            text:
+        titel_export:
+          name: Nach manuellem Export
+          default: Export fertig
+          selector:
+            text:
+
+mode: queued
+max_exceeded: silent
+
+triggers:
+  - trigger: event
+    event_type: reiseverlauftracker_beendet
+    event_data:
+      entry_id: !input fahrzeug
+    id: beendet
+  - trigger: event
+    event_type: reiseverlauftracker_gestartet
+    event_data:
+      entry_id: !input fahrzeug
+      resumed: false
+    id: gestartet
+    enabled: !input bei_start
+  - trigger: event
+    event_type: reiseverlauftracker_exportiert
+    event_data:
+      entry_id: !input fahrzeug
+    id: exportiert
+    enabled: !input bei_export
+
+variables:
+  geraete: !input geraete
+  mit_bild: !input mit_bild
+  titel_ende: !input titel_ende
+  titel_aktualisiert: !input titel_aktualisiert
+  titel_start: !input titel_start
+  titel_export: !input titel_export
+  daten: "{{ trigger.event.data }}"
+  ueberschrift: >-
+    {% if trigger.id == 'gestartet' %}{{ titel_start }}
+    {% elif trigger.id == 'exportiert' %}{{ titel_export }}: {{ daten.titel }}
+    {% elif daten.fortgesetzt %}{{ titel_aktualisiert }}: {{ daten.titel }}
+    {% else %}{{ titel_ende }}: {{ daten.titel }}{% endif %}
+  nachricht: >-
+    {% set start = as_local(as_datetime(daten.start)) %}
+    {% if trigger.id == 'gestartet' %}
+      um {{ start.strftime('%H:%M') }} Uhr
+    {% else %}
+      {% set ende = as_local(as_datetime(daten.ende)) %}
+      {% set strecke = '%.1f' | format(daten.strecke_km) | replace('.', ',') %}
+      {% set fahrzeit = '%d h %02d min' | format(daten.fahrzeit_min // 60, daten.fahrzeit_min % 60) %}
+      {% if start.date() == ende.date() %}
+        {% set zeit = start.strftime('%H:%M') ~ '–' ~ ende.strftime('%H:%M') ~ ' Uhr' %}
+      {% else %}
+        {% set zeit = start.strftime('%d.%m. %H:%M') ~ ' – ' ~ ende.strftime('%d.%m. %H:%M') ~ ' Uhr' %}
+      {% endif %}
+      {{ strecke }} km · {{ fahrzeit }} Fahrzeit · {{ zeit }}
+    {% endif %}
+  zusatz: >-
+    {% set d = {'tag': 'reiseverlauf_' ~ (daten.ordner if daten.ordner is defined else 'start')} %}
+    {% if trigger.id != 'gestartet' and mit_bild and daten.gesamtbild_url %}
+      {% set d = dict(d, image=daten.gesamtbild_url) %}
+    {% endif %}
+    {% if trigger.id != 'gestartet' and daten.gesamtbild_url %}
+      {% set d = dict(d, clickAction=daten.gesamtbild_url, url=daten.gesamtbild_url) %}
+    {% endif %}
+    {{ d }}
+
+actions:
+  - repeat:
+      for_each: "{{ geraete }}"
+      sequence:
+        - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+          data:
+            title: "{{ ueberschrift }}"
+            message: "{{ nachricht }}"
+            data: "{{ zusatz }}"
