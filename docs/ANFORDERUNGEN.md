@@ -203,6 +203,11 @@ Migration: Dashboard auf Dienste umstellen, Helfer und Hintergrunddienst entfern
 15. ~~Weitere Benachrichtigungen~~ – entschieden (09.10.2026): Schalter „Bei Reisebeginn“ (Standard an,
     nicht bei Fortsetzung) und „Nach manuellem Export“ (Standard aus) im Blueprint.
 16. ~~Sprache der README~~ – entschieden (09.10.2026): `README.md` auf Deutsch und `README.en.md` auf Englisch.
+17. ~~Export-Formular im Dashboard~~ – entschieden (09.10.2026): Skript „Reise exportieren“ mit Feldern (Von, Bis,
+    Titel, Skalierung, Rand), das `exportieren` aufruft; Formular über den Skript-Dialog, keine Helfer.
+18. ~~Aufbau des Dashboards~~ – entschieden (09.10.2026): Ansichten „Letzte Reise“ (neu, erste, Ziel der
+    Push-Nachricht), „Export“ (Skript + Exportliste), „Aufräumen“ (Export-Auswahl, Knöpfe „Export löschen“ und
+    „Nur Rohdaten löschen“), „Tracker“ (unverändert). Downloads über den Medienbrowser statt direkter Links.
 
 ## 10. Empfohlene Reihenfolge
 
