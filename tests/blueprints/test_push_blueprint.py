@@ -20,6 +20,8 @@ ENDED: dict[str, Any] = {
     "titel": "Hamburg – Kiel, 12.10.2026",
     "start": "2026-10-12T08:00:00+00:00",
     "ende": "2026-10-12T09:30:00+00:00",
+    "abfahrt": "2026-10-12T08:05:00+00:00",
+    "ankunft": "2026-10-12T09:28:00+00:00",
     "strecke_km": 96.4,
     "fahrzeit_min": 72,
     "ordner": "2026-10-12_1000",
@@ -75,30 +77,28 @@ async def test_trip_end_notification(hass: HomeAssistant, phone: str, notify_cal
     assert len(notify_calls) == 1
     data = notify_calls[0].data
     assert data["title"] == "Reise beendet: Hamburg – Kiel, 12.10.2026"
-    assert data["message"] == "96,4 km · 1 h 12 min Fahrzeit · 10:00–11:30 Uhr"
+    assert data["message"] == "96,4 km · 1 h 12 min Fahrzeit · 10:05–11:28 Uhr"
     assert data["data"] == {
         "tag": "reiseverlauf_2026-10-12_1000",
-        "image": ENDED["gesamtbild_url"],
-        "clickAction": ENDED["gesamtbild_url"],
-        "url": ENDED["gesamtbild_url"],
+        "clickAction": "/dashboard-reiseverlauf",
+        "url": "/dashboard-reiseverlauf",
     }
 
 
-async def test_resumed_trip_over_several_days_without_image(
+async def test_resumed_trip_over_several_days_without_link(
     hass: HomeAssistant, phone: str, notify_calls: list[ServiceCall]
 ) -> None:
-    await setup_automation(hass, phone, mit_bild=False)
+    await setup_automation(hass, phone, dashboard="")
 
     hass.bus.async_fire(
-        "reiseverlauftracker_beendet", {**ENDED, "fortgesetzt": True, "ende": "2026-10-13T16:05:00+00:00"}
+        "reiseverlauftracker_beendet", {**ENDED, "fortgesetzt": True, "ankunft": "2026-10-13T16:05:00+00:00"}
     )
     await hass.async_block_till_done()
 
     data = notify_calls[0].data
     assert data["title"] == "Reise aktualisiert: Hamburg – Kiel, 12.10.2026"
-    assert data["message"] == "96,4 km · 1 h 12 min Fahrzeit · 12.10. 10:00 – 13.10. 18:05 Uhr"
-    assert "image" not in data["data"]
-    assert data["data"]["tag"] == "reiseverlauf_2026-10-12_1000"
+    assert data["message"] == "96,4 km · 1 h 12 min Fahrzeit · 12.10. 10:05 – 13.10. 18:05 Uhr"
+    assert data["data"] == {"tag": "reiseverlauf_2026-10-12_1000"}
 
 
 async def test_start_notification_only_for_new_trips(
@@ -136,3 +136,26 @@ async def test_manual_export_when_enabled(hass: HomeAssistant, phone: str, notif
     await hass.async_block_till_done()
 
     assert notify_calls[0].data["title"] == "Export fertig: Hamburg – Kiel, 12.10.2026"
+
+
+async def test_events_without_departure_fall_back_to_start_and_end(
+    hass: HomeAssistant, phone: str, notify_calls: list[ServiceCall]
+) -> None:
+    await setup_automation(hass, phone)
+
+    old = {key: value for key, value in ENDED.items() if key not in {"abfahrt", "ankunft"}}
+    hass.bus.async_fire("reiseverlauftracker_beendet", old)
+    await hass.async_block_till_done()
+
+    assert notify_calls[0].data["message"] == "96,4 km · 1 h 12 min Fahrzeit · 10:00–11:30 Uhr"
+
+
+async def test_automation_saved_with_old_image_input_still_loads(
+    hass: HomeAssistant, phone: str, notify_calls: list[ServiceCall]
+) -> None:
+    await setup_automation(hass, phone, mit_bild=True)
+
+    hass.bus.async_fire("reiseverlauftracker_beendet", ENDED)
+    await hass.async_block_till_done()
+
+    assert len(notify_calls) == 1

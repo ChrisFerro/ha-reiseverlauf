@@ -85,13 +85,14 @@ the integration uses to manage the export. Only files listed there are ever dele
 
 [![Import the blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FChrisFerro%2Fha-reiseverlauf%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freiseverlauftracker%2Fbenachrichtigung.yaml)
 
-Import the blueprint, create an automation from it and pick the vehicle and the phones. When a trip ends, the
-phones get its title, distance, driving time and time span with the composite image; tapping opens the image.
+Import the blueprint, create an automation from it, pick the vehicle and the phones, and set the dashboard view
+that opens on tap (default `/dashboard-reiseverlauf`). When a trip ends, the phones get its title, distance,
+driving time, departure and arrival.
 A resumed trip replaces the previous notification. Notifications on trip start (default on) and after manual
 exports (default off) are optional, and the headings can be changed. The blueprint texts are German.
 
-The phone loads the image through its connection to Home Assistant, so on the road it needs remote access (for
-example Home Assistant Cloud).
+The notification carries no image on purpose: the composite image is sized for a photo book, and iOS does not
+show attachments that large.
 
 ## Events
 

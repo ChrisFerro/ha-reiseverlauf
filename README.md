@@ -152,32 +152,33 @@ die in `export.json` stehen; eigene Dateien im Ordner bleiben erhalten.
 1. Blueprint über den Knopf importieren.
 2. **Einstellungen → Automationen & Szenen → Blueprints → „Reiseverlauf – Push-Nachricht“ → Automation
    erstellen**.
-3. Fahrzeug und Empfänger (Handys mit der Companion-App) wählen, speichern.
+3. Fahrzeug und Empfänger (Handys mit der Companion-App) wählen, unter **Ansicht beim Tippen** den Pfad einer
+   Dashboard-Ansicht eintragen (Standard `/dashboard-reiseverlauf`) und speichern.
 
 Nach dem Reiseende kommt eine Nachricht wie:
 
 ```text
 Reise beendet: Hamburg – Kiel, 12.10.2026
-96,4 km · 1 h 12 min Fahrzeit · 10:00–11:30 Uhr
-[Gesamtbild]
+96,4 km · 1 h 12 min Fahrzeit · 10:05–11:28 Uhr
 ```
 
-Tippen öffnet das Gesamtbild. Wird die Reise fortgesetzt, ersetzt „Reise aktualisiert: …“ die alte Nachricht.
+Tippen öffnet die eingestellte Dashboard-Ansicht, z. B. eine mit der Entität „Letzte Reise Gesamtbild“. Wird die
+Reise fortgesetzt, ersetzt „Reise aktualisiert: …“ die alte Nachricht.
 Optional meldet der Blueprint auch den Reisebeginn (Standard an) und manuelle Exporte (Standard aus); die
 Überschriften sind änderbar.
 
-Das Handy lädt das Bild über seine Verbindung zu Home Assistant. Unterwegs braucht es dafür Fernzugriff (z. B.
-Home Assistant Cloud); ohne Verbindung kommt die Nachricht ohne Bild.
+Die Nachricht enthält bewusst kein Bild: Das Gesamtbild ist für das Fotobuch so groß, dass iOS es als Anhang
+nicht anzeigt.
 
 ## Events
 
 Für eigene Automationen:
 
-| Event                            | Wann                                    | Daten                                                                                                                                               |
-| -------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reiseverlauftracker_gestartet`  | Reise beginnt oder wird fortgesetzt     | `entry_id`, `start`, `resumed`                                                                                                                      |
-| `reiseverlauftracker_beendet`    | Auswertung einer beendeten Reise fertig | `entry_id`, `titel`, `start`, `ende`, `strecke_km`, `fahrzeit_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `fortgesetzt` |
-| `reiseverlauftracker_exportiert` | Manueller Export fertig                 | wie `_beendet`, ohne `fortgesetzt`                                                                                                                  |
+| Event                            | Wann                                    | Daten                                                                                                                                                                     |
+| -------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reiseverlauftracker_gestartet`  | Reise beginnt oder wird fortgesetzt     | `entry_id`, `start`, `resumed`                                                                                                                                            |
+| `reiseverlauftracker_beendet`    | Auswertung einer beendeten Reise fertig | `entry_id`, `titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `fortgesetzt` |
+| `reiseverlauftracker_exportiert` | Manueller Export fertig                 | wie `_beendet`, ohne `fortgesetzt`                                                                                                                                        |
 
 ## Datenschutz
 

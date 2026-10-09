@@ -1,9 +1,10 @@
 blueprint:
   name: Reiseverlauf – Push-Nachricht
   description: >-
-    Schickt eine Push-Nachricht an die Companion-App, wenn eine Reise endet: mit Titel, Strecke, Fahrzeit,
-    Uhrzeit und dem Gesamtbild. Tippen auf die Nachricht öffnet das Gesamtbild. Endet eine fortgesetzte Reise,
-    ersetzt die neue Nachricht die alte. Optional auch bei Reisebeginn und nach einem manuellen Export.
+    Schickt eine Push-Nachricht an die Companion-App, wenn eine Reise endet: mit Titel, Strecke, Fahrzeit und
+    Abfahrt/Ankunft. Tippen auf die Nachricht öffnet eine Dashboard-Ansicht, z. B. mit dem Gesamtbild. Endet eine
+    fortgesetzte Reise, ersetzt die neue Nachricht die alte. Optional auch bei Reisebeginn und nach einem
+    manuellen Export.
   domain: automation
   author: ChrisFerro
   homeassistant:
@@ -44,14 +45,14 @@ blueprint:
           default: false
           selector:
             boolean:
-        mit_bild:
-          name: Gesamtbild anhängen
+        dashboard:
+          name: Ansicht beim Tippen
           description: >-
-            Hängt das Gesamtbild an. Das Handy lädt es über seine Verbindung zu Home Assistant; unterwegs
-            braucht es dafür Fernzugriff (z. B. Home Assistant Cloud).
-          default: true
+            Pfad der Dashboard-Ansicht, die sich beim Tippen auf die Nachricht öffnet, z. B.
+            /dashboard-reiseverlauf/letzte-reise. Leer lassen, damit Tippen nur die App öffnet.
+          default: /dashboard-reiseverlauf
           selector:
-            boolean:
+            text:
     texte:
       name: Überschriften
       icon: mdi:format-title
@@ -103,7 +104,7 @@ triggers:
 
 variables:
   geraete: !input geraete
-  mit_bild: !input mit_bild
+  dashboard: !input dashboard
   titel_ende: !input titel_ende
   titel_aktualisiert: !input titel_aktualisiert
   titel_start: !input titel_start
@@ -115,11 +116,11 @@ variables:
     {% elif daten.fortgesetzt %}{{ titel_aktualisiert }}: {{ daten.titel }}
     {% else %}{{ titel_ende }}: {{ daten.titel }}{% endif %}
   nachricht: >-
-    {% set start = as_local(as_datetime(daten.start)) %}
     {% if trigger.id == 'gestartet' %}
-      um {{ start.strftime('%H:%M') }} Uhr
+      um {{ as_local(as_datetime(daten.start)).strftime('%H:%M') }} Uhr
     {% else %}
-      {% set ende = as_local(as_datetime(daten.ende)) %}
+      {% set start = as_local(as_datetime(daten.abfahrt | default(daten.start))) %}
+      {% set ende = as_local(as_datetime(daten.ankunft | default(daten.ende))) %}
       {% set strecke = '%.1f' | format(daten.strecke_km) | replace('.', ',') %}
       {% set fahrzeit = '%d h %02d min' | format(daten.fahrzeit_min // 60, daten.fahrzeit_min % 60) %}
       {% if start.date() == ende.date() %}
@@ -131,11 +132,8 @@ variables:
     {% endif %}
   zusatz: >-
     {% set d = {'tag': 'reiseverlauf_' ~ (daten.ordner if daten.ordner is defined else 'start')} %}
-    {% if trigger.id != 'gestartet' and mit_bild and daten.gesamtbild_url %}
-      {% set d = dict(d, image=daten.gesamtbild_url) %}
-    {% endif %}
-    {% if trigger.id != 'gestartet' and daten.gesamtbild_url %}
-      {% set d = dict(d, clickAction=daten.gesamtbild_url, url=daten.gesamtbild_url) %}
+    {% if dashboard %}
+      {% set d = dict(d, clickAction=dashboard, url=dashboard) %}
     {% endif %}
     {{ d }}
 
