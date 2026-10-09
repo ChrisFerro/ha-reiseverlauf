@@ -53,7 +53,7 @@ home-assistant.db
 home-assistant_v2.db
 home-assistant_v2.db-*
 html5_push_registrations.conf
-image
+/image
 ip_bans.yaml
 known_devices.yaml
 phue.conf
