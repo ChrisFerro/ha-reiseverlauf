@@ -109,19 +109,22 @@ Dateinamen: `<slug des Titels>` oder `track_<von>_<bis>`.
 
 ## 6. Entitäten, Dienste, Events der Integration
 
-Entitäten:
+Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `sensor.arto88b_gps_reisestatus`):
 
-- `binary_sensor.reise_aktiv`
-- `sensor.reise_status` (`bereit`, `unterwegs`, `pause`, `auswertung`, `zusammenfuehrbar`, `fehler`, siehe 9.10)
-- Laufende Reise: `sensor.reise_start`, `sensor.reise_strecke`, `sensor.reise_fahrzeit`
-- Letzte Reise: `sensor.letzte_reise_titel` (Attribute: Dateiliste, Statistiktext), `_strecke`, `_fahrzeit`,
-  `_dauer`, `_ende`; `image.letzte_reise_gesamtbild` (siehe 9.11)
+- `binary_sensor.…_reise_aktiv`
+- `sensor.…_reisestatus` (`bereit`, `unterwegs`, `pause`, `auswertung`, `zusammenfuehrbar`, `fehler`, siehe 9.10)
+- Laufende Reise: `sensor.…_reisebeginn`, `…_strecke_laufende_reise`, `…_fahrzeit_laufende_reise`
+- Letzte Reise: `sensor.…_letzte_reise` (Titel; Attribute `dateien`, `statistik`, `ordner`, `start`),
+  `…_letzte_reise_strecke`, `…_fahrzeit`, `…_dauer`, `…_ende`; `image.…_letzte_reise_gesamtbild` (siehe 9.11)
+- `select.…_export_auswahl` (siehe 9.12)
 
-Dienste (Vorschlag):
+Dienste (alle mit Pflichtfeld `config_entry_id`):
 
-- `reiseverlauftracker.exportieren` (von, bis, titel, skala, rand_min): manueller Export beliebiger Zeiträume
-- `reiseverlauftracker.aufraeumen` (export, dateitypen): löscht Dateien eines Exports; Auswahl „alle Exporte“;
-  nur im Ausgabeordner, nur bekannte Dateitypen (Gesamtbild, Karte, Profil, GPX, Statistik)
+- `reiseverlauftracker.exportieren` (von, bis, titel, skala, rand_min): manueller Export beliebiger Zeiträume aus
+  dem Recorder in einen eigenen Ordner `<Start>-<Ende>`, inkl. Rohdaten
+- `reiseverlauftracker.aufraeumen` (export, dateitypen): löscht Dateien eines Exports oder aller Exporte (`all`);
+  ohne `export` gilt die Export-Auswahl; nur im Ausgabeordner, nur Dateien aus `export.json` (Gesamtbild, Karte,
+  Profil, GPX, Statistik, Rohdaten)
 - `reiseverlauftracker.reise_starten` / `reise_beenden` (manuell, siehe 9.8)
 
 Events:

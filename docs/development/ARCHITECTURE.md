@@ -2,19 +2,28 @@
 
 This document describes the technical architecture of the Reiseverlauf Tracker für Wohnmobile custom component for Home Assistant.
 
+The integration fetches nothing from a device or a cloud service. It listens to entities that already
+exist (D+ signal, position tracker, speed and altitude sensors), detects trips from them, records the
+points of each trip and exports them as images, GPX and statistics into the media folder.
+
 ## Directory Structure
 
 ```text
 custom_components/reiseverlauftracker/
-├── __init__.py              # Integration setup and unload
-├── config_flow.py           # Config flow entry point
-├── const.py                 # Constants and configuration keys
-├── coordinator/             # Data update coordinator package
-│   ├── __init__.py          # Exports ReiseverlaufDataUpdateCoordinator
-│   ├── base.py              # Main coordinator class
-│   └── trip_detector.py     # Trip state machine (D+, delay, merge window), no HA imports
-├── data.py                  # Data classes and type definitions
-├── diagnostics.py           # Diagnostic data for troubleshooting
+├── __init__.py              # async_setup (actions), setup and unload of an entry
+├── config_flow.py           # Config flow entry point required by hassfest
+├── const.py                 # Configuration keys, defaults, event names
+├── settings.py              # Typed view of entry data and options with defaults
+├── data.py                  # Runtime data stored on the config entry
+├── diagnostics.py           # Diagnostics with positions redacted
+├── coordinator/             # Trip detection, recording and export orchestration
+│   ├── base.py              # Push-driven coordinator: state listeners, deadline timer, Store
+│   ├── trip_detector.py     # Trip state machine (D+, delay, merge window), no HA imports
+│   ├── trip_log.py          # Points of one trip with running distance and driving time, no HA imports
+│   ├── models.py            # TripStatus and the TripSnapshot entities read
+│   ├── title.py             # Title of an automatic trip (date, place or both)
+│   ├── export_runner.py     # Runs export_trip() in the executor, place names, event payload
+│   └── exports.py           # Export folders, export.json, listing and cleanup (blocking)
 ├── export/                  # Trip export library, no HA imports, blocking (run in executor)
 │   ├── __init__.py          # Public API: export_trip(), TrackPoint, StepSeries, ExportOptions
 │   ├── model.py             # Input data and options
@@ -27,164 +36,125 @@ custom_components/reiseverlauftracker/
 │   ├── composite.py         # Composite image for the photo book
 │   ├── exporter.py          # Runs one export and writes the files
 │   └── fonts/               # Bundled DejaVu Sans and its license
-├── entity/                  # Base entity package
-│   ├── __init__.py          # Exports ReiseverlaufEntity
-│   └── base.py              # Base entity class implementation
-├── icons.json               # Entity and service action icons
-├── manifest.json            # Integration metadata
-├── repairs.py               # Repair flows for fixing issues
-├── services.yaml            # Service action definitions (legacy filename)
-├── api/                     # External API communication
-│   ├── __init__.py
-│   └── client.py            # API client implementation
-├── config_flow_handler/     # Config flow implementation
-│   ├── __init__.py          # Package exports
-│   ├── config_flow.py       # Main config flow (user, reauth, reconfigure)
-│   ├── options_flow.py      # Options flow
+├── config_flow_handler/     # Setup, reconfigure and options
+│   ├── config_flow.py       # User and reconfigure steps; unique ID is the position tracker
+│   ├── options_flow.py      # Options in sections: detection, export, thresholds
 │   ├── schemas/             # Voluptuous schemas
-│   │   ├── __init__.py      # Schema exports
-│   │   ├── config.py        # Config flow schemas
-│   │   └── options.py       # Options flow schemas
-│   └── validators/          # Input validation
-│       ├── __init__.py      # Validator exports
-│       └── credentials.py   # Credential validation
-├── service_actions/         # Service action implementations
-│   ├── __init__.py          # Registration in async_setup()
-│   └── refresh_data.py      # The refresh_data handler
-├── translations/            # Localization files
-│   └── en.json              # English translations
-├── utils/                   # Integration-wide utilities
-│   └── geo.py               # Position and great-circle distance
-└── <platform>/              # Platform-specific implementations
-    ├── __init__.py          # Platform setup and PARALLEL_UPDATES
-    └── <entity>.py          # Entity descriptions and entity class
+│   └── validators/          # Output folder inside the media directory
+├── entity/                  # ReiseverlaufEntity: one service device per entry
+├── binary_sensor/           # Trip active
+├── sensor/                  # Status, running trip, last trip (value_fn descriptions)
+├── image/                   # Composite image of the last trip via the image proxy
+├── select/                  # Export selection used by the cleanup action
+├── service_actions/         # exportieren, aufraeumen, reise_starten, reise_beenden
+│   ├── __init__.py          # Schemas and registration in async_setup()
+│   ├── entry.py             # Resolve a loaded config entry
+│   ├── history.py           # Read a period from the recorder
+│   ├── export.py            # Export and cleanup handlers
+│   └── trip.py              # Start and end trip handlers
+├── utils/
+│   ├── geo.py               # Position and great-circle distance
+│   └── geocode.py           # Place names from Nominatim
+├── icons.json               # Entity, section and action icons
+├── manifest.json            # Integration metadata
+├── repairs.py               # Repair flow entry point (no issues raised yet)
+├── services.yaml            # Action fields and selectors
+└── translations/            # de.json and en.json
 ```
 
-`entity_utils/` is part of the permitted package set in [`AGENTS.md`](../../AGENTS.md) but does
-not exist until an entity helper is used by three or more entity classes.
-
-`export/` is an approved exception to that package set: the export is the integration's core
-function and too large for `utils/`.
+`export/` is an approved exception to the package set in [`AGENTS.md`](../../AGENTS.md): the export is
+the integration's core function and too large for `utils/`. There is no `api/` package, because the
+integration talks to no device or service of its own.
 
 ## Core Components
 
-### Data Update Coordinator
+### Trip detector
 
-**Directory:** `coordinator/`
+**File:** `coordinator/trip_detector.py`
 
-The coordinator fetches the device state once per interval and hands the same payload to every
-entity, so no entity ever calls the API itself.
+A pure state machine with the phases `idle`, `active` and `ended`. It is fed D+ changes, positions and
+clock ticks and returns events (`TripStarted`, `TripResumed`, `TripEnded`, `TripDiscarded`,
+`TripClosed`). Every input first processes deadlines that passed before its timestamp, so a late timer
+never reorders events. `as_dict()` and the constructor make it persistent; `restore()` reconciles the
+stored state with the D+ state found after a restart.
 
-**Core functionality:**
+### Coordinator
 
-- Update interval from `entry.options`, defaulting to one hour
-- Translation of API client exceptions into `ConfigEntryAuthFailed` and `UpdateFailed`
-- Raising and clearing the repair issue for the deprecated API version
+**File:** `coordinator/base.py`, class `ReiseverlaufDataUpdateCoordinator`
 
-**Key class:** `ReiseverlaufDataUpdateCoordinator` (exported from `coordinator/__init__.py`)
+A `DataUpdateCoordinator` without an update interval. It subscribes to the configured entities, feeds
+the detector, keeps one timer for `next_deadline()` and publishes a `TripSnapshot` with
+`async_set_updated_data()`.
 
-Retries and backoff are **not** implemented here. Home Assistant already retries `UpdateFailed`
-with exponential backoff, and failures are logged by Home Assistant, not by the coordinator.
+- `unavailable` and `unknown` D+ states are ignored, never treated as "off".
+- While a trip runs or can still be merged, positions, speed and altitude go into a `TripLog`.
+- Detector state and trip log are persisted in two `Store` files per entry.
+- On `TripEnded` it starts the export as an entry task; the status shows `auswertung` meanwhile and
+  `fehler` if it fails, until the next trip starts.
+- It keeps the list of exports and the current export choice for the select entity and the cleanup action.
 
-**Design rationale:**
+### Export
 
-The coordinator is a package rather than a single file so that transform helpers, a cache or a
-push listener can be added as separate modules once they are needed — each staying under the
-200–400 line guideline and testable on its own.
+**Files:** `coordinator/export_runner.py`, `coordinator/exports.py`, package `export/`
 
-### API Client
+`async_export()` builds the title (place names from Nominatim when configured), then runs
+`export_trip()` in the executor. Each export gets its own folder below
+`<media dir>/<output folder>/`:
 
-**Directory:** `api/`
+- automatic trips: `<local start>` such as `2026-10-09_1040`; a merged trip replaces the files there
+- manual exports: `<local start>-<local end>`, so they never replace an automatic export
 
-Handles all communication with external APIs or devices. Implements:
+Besides the images, GPX and statistics, the folder holds `<name>_rohdaten.json` (recorded points) and
+`export.json` (title, figures, file list). `export.json` is what the integration reads back: the export
+list, the last trip after a restart, and the only files cleanup may delete.
 
-- Async HTTP requests using `aiohttp`
-- Connection management and timeouts
-- Authentication handling
-- Error translation to custom exceptions
+### Entities
 
-**Key class:** `ReiseverlaufApiClient`
+All entities sit on one device of type service per config entry and read the `TripSnapshot` only. The
+unique ID is `{entry_id}_{key}`.
 
-### Config Flow
+| Platform        | Keys                                                                                                                                                                        |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `binary_sensor` | `trip_active`                                                                                                                                                               |
+| `sensor`        | `trip_status`, `trip_start`, `trip_distance`, `trip_driving_time`, `last_trip_title`, `last_trip_distance`, `last_trip_driving_time`, `last_trip_duration`, `last_trip_end` |
+| `image`         | `last_trip_composite`                                                                                                                                                       |
+| `select`        | `export_choice`                                                                                                                                                             |
 
-**Directory:** `config_flow_handler/`
+### Service actions
 
-Implements the configuration UI for adding and configuring the integration. The package
-is organized modularly to support complex flows without becoming monolithic.
+Registered in `async_setup()`, each with a required `config_entry_id`:
 
-**Structure:**
+- `exportieren` reads a period from the recorder, exports it and fires `reiseverlauftracker_exportiert`.
+- `aufraeumen` deletes file types of one export, of all exports, or of the current export choice.
+- `reise_starten` and `reise_beenden` call the detector's manual start and end.
 
-- `config_flow.py`: Main flow (user setup, reauth, reconfigure)
-- `options_flow.py`: Options flow for post-setup configuration
-- `schemas/`: Voluptuous schemas for all forms
-- `validators/`: Validation logic separated from flow logic
+### Events
 
-**Supported flows:**
+| Event                            | When                                   |
+| -------------------------------- | -------------------------------------- |
+| `reiseverlauftracker_gestartet`  | A trip starts or resumes (`resumed`)   |
+| `reiseverlauftracker_beendet`    | The export of an ended trip is written |
+| `reiseverlauftracker_exportiert` | A manual export is written             |
 
-- Initial user setup with validation
-- Options flow for the poll interval
-- Reauthentication flow for expired credentials
-- Reconfiguration of the stored credentials
-
-A subentry flow goes in `config_flow_handler/subentry_flow.py` when the integration grows to
-need one; see [`ha-config-flow`](../../.agents/skills/ha-config-flow/SKILL.md).
-
-**Key classes:**
-
-- `ReiseverlaufConfigFlowHandler` (main flow)
-- `ReiseverlaufOptionsFlow` (options)
-
-### Base Entity
-
-**Package:** `entity/`
-
-Provides common functionality for all entities in the integration:
-
-- Device information
-- Unique ID generation
-- Coordinator integration
-- Availability tracking
-
-**Key class:** `ReiseverlaufEntity` (in `entity/base.py`)
-
-## Platform Organization
-
-Each platform (sensor, binary_sensor, switch, etc.) follows this pattern:
-
-```text
-<platform>/
-├── __init__.py              # Platform setup: async_setup_entry()
-└── <entity_name>.py         # Individual entity implementation
-```
-
-Platform entities inherit from both:
-
-1. Home Assistant platform base (e.g., `SensorEntity`)
-2. `ReiseverlaufEntity` for common functionality
+The keys of the payload are German (`titel`, `start`, `ende`, `strecke_km`, `fahrzeit_min`, `ordner`,
+`dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`), because users write automations against them.
 
 ## Data Flow
 
 ```text
-┌─────────────────┐
-│  Config Entry   │ ← Created by config flow
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   Coordinator   │ ← Fetches data from API every 5 min
-└────────┬────────┘
-         │
-         ▼
-    ┌────┴────┐
-    │  Data   │ ← Stored in coordinator.data
-    └────┬────┘
-         │
-    ┌────┴────────────────┐
-    │                     │
-    ▼                     ▼
-┌─────────┐         ┌─────────┐
-│ Sensor  │         │ Switch  │ ← Entities read from coordinator
-└─────────┘         └─────────┘
+ D+ / tracker / speed / altitude state changes        deadline timer
+                    │                                       │
+                    ▼                                       ▼
+          ┌───────────────────────────────────────────────────────┐
+          │ Coordinator ──► TripDetector ──► events               │
+          │      │                             │                  │
+          │      ▼                             ▼                  │
+          │   TripLog (Store)        TripEnded ──► export task     │
+          └──────┬───────────────────────────────┬────────────────┘
+                 │ TripSnapshot                   │ executor: export_trip()
+                 ▼                                ▼
+        entities (sensor, binary_sensor,   <media>/<folder>/<export>/
+        image, select)                     + event reiseverlauftracker_beendet
 ```
 
 ## AI Agent Context

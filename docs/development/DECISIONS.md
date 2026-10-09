@@ -140,25 +140,139 @@ OpenStreetMap tiles. DejaVu Sans is bundled in `export/fonts/` with its license.
 
 ---
 
+### Drive the Coordinator by State Changes, Without an API Client
+
+**Date:** 2026-10-09
+
+**Context:** The integration derives everything from entities that already exist in Home Assistant (D+,
+position tracker, speed, altitude). There is no device or service to poll. This supersedes "Separate API
+Client from Coordinator" and the polling assumption of "Use DataUpdateCoordinator for All Data Fetching".
+
+**Decision:** Keep `DataUpdateCoordinator` for entity plumbing, but without an update interval and without
+an `api/` package. State-change listeners and one timer for the detector's next deadline feed a pure
+`TripDetector`; the coordinator publishes a snapshot with `async_set_updated_data()`.
+
+**Rationale:**
+
+- Trip start and end must be detected within seconds, which polling would only approximate
+- A pure state machine can be tested exhaustively without Home Assistant
+- `CoordinatorEntity` still gives entities a single source and one update path
+
+**Consequences:**
+
+- `_async_update_data()` only returns the current snapshot; a failed update cannot make entities unavailable
+- Every input processes passed deadlines first, so a late timer never reorders events
+- Detector state must be persisted and reconciled after a restart (`restore()`)
+
+---
+
+### Record Trip Points in the Integration and Keep Them With the Export
+
+**Date:** 2026-10-09
+
+**Context:** The recorder keeps ten days by default, and a trip can last longer or be exported later.
+
+**Decision:** While a trip runs or can still be merged, the coordinator records positions, speed and
+altitude in a `Store` per entry. After the export the points are written as `<name>_rohdaten.json` into
+the export folder and stay there until the cleanup action deletes them. Manual exports store the points
+they read from the recorder in the same format.
+
+**Rationale:**
+
+- Exports of automatic trips do not depend on recorder retention
+- One raw data format for both kinds of exports keeps a later re-export simple
+
+**Consequences:**
+
+- The trip log store grows with the trip (thousands of points per day); it is saved with a delay
+- Raw data is a file type of its own in the cleanup action
+- Re-exporting from raw data is not implemented yet; manual exports read the recorder only
+
+---
+
+### One Folder per Export With export.json as the Source of Truth
+
+**Date:** 2026-10-09
+
+**Context:** Exports live in the media folder, which users can also browse and change. The integration
+must list them, show the last trip after a restart, and delete files without touching anything else.
+
+**Decision:** Each export gets its own folder named after its local start time (manual exports: start and
+end). `export.json` in the folder lists title, figures and file names. Listing, the last trip and cleanup
+read only this file; cleanup deletes only the files named there.
+
+**Rationale:**
+
+- A merged trip replaces its files in the same folder instead of leaving an outdated export behind
+- No second index to keep in sync with the folder contents
+- Files a user adds to a folder are never deleted
+
+**Consequences:**
+
+- Folders without a readable `export.json` are ignored
+- Two exports with the same start minute share a folder; the later one replaces the earlier one
+- Changing the folder naming later leaves old folders as they are
+
+---
+
+### Unique IDs: Position Tracker for the Entry, Entry ID for Entities
+
+**Date:** 2026-10-09
+
+**Context:** The integration has no serial number or account ID. One entry represents one vehicle.
+
+**Decision:** The config entry's unique ID is the entity ID of the position tracker. Entity unique IDs are
+`{entry_id}_{key}`, all on one service device per entry.
+
+**Rationale:**
+
+- The tracker is what distinguishes vehicles, so the same vehicle cannot be set up twice
+- Entity IDs of other integrations are the only stable handle available
+
+**Consequences:**
+
+- Renaming the tracker's entity ID does not update the entry; reconfigure sets the new tracker and unique ID
+- Renaming an entity description `key` is a breaking change
+
+---
+
+### German Keys in Events, Attributes and Status Values
+
+**Date:** 2026-10-09
+
+**Context:** Users write automations and dashboard templates against event data, attributes and the status
+sensor. The requirements name these values in German.
+
+**Decision:** Status values (`bereit`, `unterwegs`, `pause`, `auswertung`, `zusammenfuehrbar`, `fehler`),
+event payload keys and extra attribute keys are German. Code identifiers stay English; the UI shows
+translations.
+
+**Rationale:**
+
+- The values match the requirements and read naturally in the user's automations
+- Translations still give English users English labels in the UI
+
+**Consequences:**
+
+- Changing any of these values breaks user automations
+- codespell needs inline ignores for German keys such as `titel`, `ende` and `ordner`
+
+---
+
 ## Future Considerations
 
-### State Restoration
+### Re-Export From Raw Data
 
 **Status:** Not yet implemented
 
-Consider implementing state restoration for switches and configurable settings to maintain state across Home Assistant restarts when the external device is unavailable.
+`exportieren` reads the recorder only. Reading `<name>_rohdaten.json` instead would allow exports older than
+the recorder retention.
 
-### Multi-Device Support
+### Altitude From the Router
 
-**Status:** Not yet implemented
+**Status:** Open (requirements 9.6)
 
-Current architecture assumes single device per config entry. If multi-device support is needed, coordinator data structure will need redesign to map device ID → data.
-
-### Polling vs. Push
-
-**Status:** Uses polling
-
-Currently implements polling-based updates. If the API supports webhooks or WebSocket, consider implementing push-based updates for real-time responsiveness.
+The altitude is set by a script on the router. The integration could read it itself instead.
 
 ---
 
