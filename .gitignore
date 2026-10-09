@@ -2,6 +2,9 @@
 config/*
 !config/configuration.yaml
 !config/packages/
+!config/media/
+config/media/*
+!config/media/.gitkeep
 
 # Custom components (HACS-installed dependencies and dev symlinks)
 custom_components/*
