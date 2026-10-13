@@ -1,0 +1,5 @@
+rules:
+  stale-action-refs:
+    ignore:
+      # home-assistant/actions publishes no current tags; hassfest is pinned to master.
+      - validate.yml
