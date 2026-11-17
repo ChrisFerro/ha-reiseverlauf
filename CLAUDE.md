@@ -30,9 +30,13 @@ Ausführliche Anforderungen und der Ist-Zustand stehen in der importierten Datei
 4. Automations-Blueprint für die Push-Nachricht, README, HACS-Metadaten.
 5. Migration des Dashboards und Abbau der alten Helfer/des Hintergrunddienstes (erst nach Freigabe).
 6. Fahrtenbuch (Kilometerstand, Tank- und Gasfüllstände je Halt, Tank-/Gasstopps mit Menge und Betrag);
-   Anforderungen und offene Fragen in `docs/ANFORDERUNGEN.md` Abschnitt 11.
+   Anforderungen und offene Fragen in `docs/features/fahrtenbuch.md`.
 
-Vor jeder Etappe kurz die offenen Entscheidungen in `docs/ANFORDERUNGEN.md` (Abschnitt 9) prüfen
+Jedes Feature hat ein eigenes Dokument in `docs/features/` (Verzeichnis in `docs/ANFORDERUNGEN.md` Abschnitt 11).
+Vor der Arbeit an einem Feature dessen Dokument lesen; neue Anforderungen und Entscheidungen dort eintragen.
+
+Vor jeder Etappe kurz die offenen Entscheidungen in `docs/ANFORDERUNGEN.md` (Abschnitt 9) und die offenen Fragen
+im Dokument des Features (Abschnitt 4) prüfen
 und dem Nutzer die nötigen Fragen stellen, jeweils eine Frage auf einmal.
 
 ## Wichtige Fallstricke (aus dem bisherigen Projekt)
