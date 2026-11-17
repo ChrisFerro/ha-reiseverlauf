@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Any
 
-import voluptuous as vol
+import probatio
 
 from custom_components.reiseverlauftracker.const import DOMAIN
 from custom_components.reiseverlauftracker.export import ExportFile
@@ -31,23 +31,23 @@ SERVICE_END_TRIP = "reise_beenden"
 SERVICE_EXPORT = "exportieren"
 SERVICE_START_TRIP = "reise_starten"
 
-ENTRY_SCHEMA = vol.Schema({vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string})
+ENTRY_SCHEMA = probatio.Schema({probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string})
 
 EXPORT_SCHEMA = ENTRY_SCHEMA.extend(
     {
-        vol.Required(ATTR_START): cv.datetime,
-        vol.Required(ATTR_END): cv.datetime,
-        vol.Optional(ATTR_TITLE): cv.string,
-        vol.Optional(ATTR_SCALE): vol.All(vol.Coerce(float), vol.Range(min=1, max=4)),
-        vol.Optional(ATTR_MARGIN): vol.All(vol.Coerce(float), vol.Range(min=0, max=120)),
+        probatio.Required(ATTR_START): cv.datetime,
+        probatio.Required(ATTR_END): cv.datetime,
+        probatio.Optional(ATTR_TITLE): cv.string,
+        probatio.Optional(ATTR_SCALE): probatio.All(probatio.Coerce(float), probatio.Range(min=1, max=4)),
+        probatio.Optional(ATTR_MARGIN): probatio.All(probatio.Coerce(float), probatio.Range(min=0, max=120)),
     }
 )
 
 CLEANUP_SCHEMA = ENTRY_SCHEMA.extend(
     {
-        vol.Optional(ATTR_EXPORT): cv.string,
-        vol.Optional(ATTR_FILE_TYPES, default=[kind.value for kind in ExportFile]): vol.All(
-            cv.ensure_list, [vol.In([kind.value for kind in ExportFile])], vol.Length(min=1)
+        probatio.Optional(ATTR_EXPORT): cv.string,
+        probatio.Optional(ATTR_FILE_TYPES, default=[kind.value for kind in ExportFile]): probatio.All(
+            cv.ensure_list, [probatio.In([kind.value for kind in ExportFile])], probatio.Length(min=1)
         ),
     }
 )
@@ -68,7 +68,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_end_trip(call: ServiceCall) -> None:
         await async_handle_end_trip(hass, call)
 
-    actions: tuple[tuple[str, Any, vol.Schema, SupportsResponse], ...] = (
+    actions: tuple[tuple[str, Any, probatio.Schema, SupportsResponse], ...] = (
         (SERVICE_EXPORT, handle_export, EXPORT_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_CLEANUP, handle_cleanup, CLEANUP_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_START_TRIP, handle_start_trip, ENTRY_SCHEMA, SupportsResponse.NONE),

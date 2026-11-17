@@ -1,6 +1,6 @@
 """Config flow schema for the user and reconfigure steps."""
 
-import voluptuous as vol
+import probatio
 
 from custom_components.reiseverlauftracker.const import (
     CONF_ALTITUDE_ENTITY,
@@ -15,30 +15,30 @@ from custom_components.reiseverlauftracker.const import (
 from homeassistant.helpers import selector
 
 
-def get_user_schema() -> vol.Schema:
+def get_user_schema() -> probatio.Schema:
     """
     Build the schema for the user and reconfigure steps.
 
     Returns:
-        The voluptuous schema for the data sources and the output folder.
+        The probatio schema for the data sources and the output folder.
 
     """
-    return vol.Schema(
+    return probatio.Schema(
         {
-            vol.Required(CONF_DPLUS_ENTITY): selector.EntitySelector(
+            probatio.Required(CONF_DPLUS_ENTITY): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain=["binary_sensor", "sensor"]),
             ),
-            vol.Required(CONF_DPLUS_ON_VALUE, default=DEFAULT_DPLUS_ON_VALUE): selector.TextSelector(),
-            vol.Required(CONF_TRACKER_ENTITY): selector.EntitySelector(
+            probatio.Required(CONF_DPLUS_ON_VALUE, default=DEFAULT_DPLUS_ON_VALUE): selector.TextSelector(),
+            probatio.Required(CONF_TRACKER_ENTITY): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="device_tracker"),
             ),
-            vol.Required(CONF_SPEED_ENTITY): selector.EntitySelector(
+            probatio.Required(CONF_SPEED_ENTITY): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor"),
             ),
-            vol.Optional(CONF_ALTITUDE_ENTITY): selector.EntitySelector(
+            probatio.Optional(CONF_ALTITUDE_ENTITY): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor"),
             ),
-            vol.Required(CONF_OUTPUT_DIR, default=DEFAULT_OUTPUT_DIR): selector.TextSelector(),
+            probatio.Required(CONF_OUTPUT_DIR, default=DEFAULT_OUTPUT_DIR): selector.TextSelector(),
         },
     )
 

@@ -30,7 +30,7 @@ mit dem Gesamtbild aufs Handy.
 
 ## Voraussetzungen
 
-- Home Assistant 2026.8 oder neuer
+- Home Assistant 2026.10 oder neuer
 - [HACS](https://hacs.xyz/)
 - Entitäten für:
   - **D+** – ein `sensor` (z. B. mit `ON`/`OFF`) oder `binary_sensor`, der bei laufendem Motor „Ein“ ist

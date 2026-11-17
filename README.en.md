@@ -27,7 +27,7 @@ blueprint then sends a push notification with the composite image to your phone.
 
 ## Requirements
 
-- Home Assistant 2026.8 or newer
+- Home Assistant 2026.10 or newer
 - [HACS](https://hacs.xyz/)
 - Entities for:
   - **D+** – a `sensor` (for example with `ON`/`OFF`) or `binary_sensor` that is on while the engine runs

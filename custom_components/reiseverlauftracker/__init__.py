@@ -65,7 +65,6 @@ async def async_setup_entry(
     await coordinator.async_start()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
 
@@ -85,11 +84,3 @@ async def async_unload_entry(
     if unloaded:
         await entry.runtime_data.coordinator.async_stop()
     return unloaded
-
-
-async def async_reload_entry(
-    hass: HomeAssistant,
-    entry: ReiseverlaufConfigEntry,
-) -> None:
-    """Reload the config entry after its data or options changed."""
-    await hass.config_entries.async_reload(entry.entry_id)

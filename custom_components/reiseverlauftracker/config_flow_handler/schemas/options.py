@@ -1,6 +1,6 @@
 """Options flow schema."""
 
-import voluptuous as vol
+import probatio
 
 from custom_components.reiseverlauftracker.const import (
     CONF_ELEVATION_HYSTERESIS,
@@ -43,45 +43,47 @@ def _number(minimum: float, maximum: float, step: float, unit: str | None = None
     return selector.NumberSelector(config)
 
 
-def get_options_schema() -> vol.Schema:
+def get_options_schema() -> probatio.Schema:
     """
     Build the options form schema; current values are filled in by the flow.
 
     Returns:
-        The voluptuous schema with the detection, export and threshold sections.
+        The probatio schema with the detection, export and threshold sections.
 
     """
-    detection = vol.Schema(
+    detection = probatio.Schema(
         {
-            vol.Required(CONF_END_DELAY, default=DEFAULT_END_DELAY_MIN): _number(1, 1440, 1, "min"),
-            vol.Required(CONF_MERGE_WINDOW, default=DEFAULT_MERGE_WINDOW_H): _number(0, 72, 0.5, "h"),
-            vol.Required(CONF_MIN_MOVEMENT, default=DEFAULT_MIN_MOVEMENT_M): _number(10, 10000, 10, "m"),
+            probatio.Required(CONF_END_DELAY, default=DEFAULT_END_DELAY_MIN): _number(1, 1440, 1, "min"),
+            probatio.Required(CONF_MERGE_WINDOW, default=DEFAULT_MERGE_WINDOW_H): _number(0, 72, 0.5, "h"),
+            probatio.Required(CONF_MIN_MOVEMENT, default=DEFAULT_MIN_MOVEMENT_M): _number(10, 10000, 10, "m"),
         },
     )
-    export = vol.Schema(
+    export = probatio.Schema(
         {
-            vol.Required(CONF_TITLE_FORMAT, default=DEFAULT_TITLE_FORMAT): selector.SelectSelector(
+            probatio.Required(CONF_TITLE_FORMAT, default=DEFAULT_TITLE_FORMAT): selector.SelectSelector(
                 selector.SelectSelectorConfig(options=TITLE_FORMATS, translation_key=CONF_TITLE_FORMAT),
             ),
-            vol.Required(CONF_PLACE_NAMES, default=DEFAULT_PLACE_NAMES): selector.BooleanSelector(),
-            vol.Required(CONF_SCALE, default=DEFAULT_SCALE): _number(1, 4, 0.5),
-            vol.Required(CONF_MARGIN, default=DEFAULT_MARGIN_MIN): _number(0, 120, 1, "min"),
+            probatio.Required(CONF_PLACE_NAMES, default=DEFAULT_PLACE_NAMES): selector.BooleanSelector(),
+            probatio.Required(CONF_SCALE, default=DEFAULT_SCALE): _number(1, 4, 0.5),
+            probatio.Required(CONF_MARGIN, default=DEFAULT_MARGIN_MIN): _number(0, 120, 1, "min"),
         },
     )
-    thresholds = vol.Schema(
+    thresholds = probatio.Schema(
         {
-            vol.Required(CONF_STANDSTILL_SPEED, default=DEFAULT_STANDSTILL_SPEED_KMH): _number(0, 20, 0.5, "km/h"),
-            vol.Required(CONF_MAX_ACCURACY, default=DEFAULT_MAX_ACCURACY_M): _number(5, 1000, 5, "m"),
-            vol.Required(CONF_MIN_POINT_DISTANCE, default=DEFAULT_MIN_POINT_DISTANCE_M): _number(0, 500, 1, "m"),
-            vol.Required(CONF_ELEVATION_HYSTERESIS, default=DEFAULT_ELEVATION_HYSTERESIS_M): _number(0, 50, 0.5, "m"),
-            vol.Required(CONF_MIN_STOP_DURATION, default=DEFAULT_MIN_STOP_DURATION_MIN): _number(1, 120, 1, "min"),
+            probatio.Required(CONF_STANDSTILL_SPEED, default=DEFAULT_STANDSTILL_SPEED_KMH): _number(0, 20, 0.5, "km/h"),
+            probatio.Required(CONF_MAX_ACCURACY, default=DEFAULT_MAX_ACCURACY_M): _number(5, 1000, 5, "m"),
+            probatio.Required(CONF_MIN_POINT_DISTANCE, default=DEFAULT_MIN_POINT_DISTANCE_M): _number(0, 500, 1, "m"),
+            probatio.Required(CONF_ELEVATION_HYSTERESIS, default=DEFAULT_ELEVATION_HYSTERESIS_M): _number(
+                0, 50, 0.5, "m"
+            ),
+            probatio.Required(CONF_MIN_STOP_DURATION, default=DEFAULT_MIN_STOP_DURATION_MIN): _number(1, 120, 1, "min"),
         },
     )
-    return vol.Schema(
+    return probatio.Schema(
         {
-            vol.Required(SECTION_DETECTION): section(detection),
-            vol.Required(SECTION_EXPORT): section(export),
-            vol.Required(SECTION_THRESHOLDS): section(thresholds, {"collapsed": True}),
+            probatio.Required(SECTION_DETECTION): section(detection),
+            probatio.Required(SECTION_EXPORT): section(export),
+            probatio.Required(SECTION_THRESHOLDS): section(thresholds, {"collapsed": True}),
         },
     )
 
