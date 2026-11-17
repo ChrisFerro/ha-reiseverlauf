@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.5](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.4...v0.1.5) (2026-11-17)
+
+
+### Bug Fixes
+
+* **coordinator:** coalesce position updates and merge stops ([7e42bce](https://github.com/ChrisFerro/ha-reiseverlauf/commit/7e42bcec7e0c72f177e17e9bac4bde9b465b038f))
+* **coordinator:** coalesce position updates and merge stops ([a883340](https://github.com/ChrisFerro/ha-reiseverlauf/commit/a8833402f759556c7a229e9b38a443bef40e1ade))
+
 ## [0.1.4](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.3...v0.1.4) (2026-10-09)
 
 
