@@ -116,17 +116,19 @@ def test_average_counts_only_moving_sections() -> None:
     assert TripLog(T0, SETTINGS).average_moving_kmh is None
 
 
-def test_stops_shorter_than_minimum_are_dropped() -> None:
+def test_stops_shorter_than_minimum_do_not_count() -> None:
     log = TripLog(T0, SETTINGS)
     log.add_position(at(0), lat(0), 8.0, 10)
     log.begin_stop(at(60))
     assert log.end_stop(at(120), timedelta(minutes=5)) is None
-    assert log.stops == []
+    assert log.confirmed_stops(at(120), timedelta(minutes=5)) == []
+    assert log.export_stops(at(120), timedelta(minutes=5)) == ()
 
+    log.add_position(at(150), lat(500), 8.0, 10)
     log.begin_stop(at(200))
     stop = log.end_stop(at(900), timedelta(minutes=5))
     assert stop is not None
-    assert (stop.start, stop.end, stop.lat) == (at(200), at(900), pytest.approx(50.0))
+    assert (stop.start, stop.end, stop.lat) == (at(200), at(900), pytest.approx(lat(500)))
 
 
 def test_open_stop_counts_once_it_reaches_the_minimum() -> None:
@@ -146,10 +148,69 @@ def test_export_stops_leave_out_the_arrival() -> None:
     log.set_stop_place(at(0), "Brenner")
     log.begin_stop(at(3600))
 
-    stops = log.export_stops(at(3600))
+    stops = log.export_stops(at(3600), timedelta(minutes=5))
 
     assert len(stops) == 1
     assert (stops[0].place, stops[0].duration) == ("Brenner", timedelta(minutes=10))
+
+
+def test_short_engine_runs_without_moving_continue_the_stop() -> None:
+    """Refuel, move to a parking space, stop again: one stop (as on 31.10.2026)."""
+    log = TripLog(T0, SETTINGS)
+    five = timedelta(minutes=5)
+    log.add_position(at(0), lat(0), 8.0, 10)
+    log.begin_stop(at(60))
+    assert log.end_stop(at(300), five) is None
+    log.add_position(at(320), lat(40), 8.0, 10)
+    log.begin_stop(at(360))
+    assert log.end_stop(at(600), five) is not None
+    log.begin_stop(at(800))
+    log.end_stop(at(1300), five)
+
+    assert [(s.start, s.end) for s in log.export_stops(at(3600), five)] == [(at(60), at(1300))]
+
+
+def test_a_stop_does_not_continue_after_the_vehicle_drove_off() -> None:
+    log = TripLog(T0, SETTINGS)
+    five = timedelta(minutes=5)
+    log.add_position(at(0), lat(0), 8.0, 10)
+    log.begin_stop(at(60))
+    log.end_stop(at(600), five)
+    log.add_position(at(660), lat(2000), 8.0, 10)
+    log.add_position(at(720), lat(50), 8.0, 10)
+    log.begin_stop(at(780))
+    log.end_stop(at(1200), five)
+
+    assert [(s.start, s.end) for s in log.export_stops(at(3600), five)] == [(at(60), at(600)), (at(780), at(1200))]
+
+
+def test_lat_and_lon_updates_of_one_fix_are_coalesced() -> None:
+    """A tracker fed by two sensors reports the new latitude first, then the longitude."""
+    log = TripLog(T0, SETTINGS)
+    log.add_position(at(0), 50.0, 8.0, 10)
+    log.add_position(at(5), lat(1000), 8.0, 10)
+    log.add_position(at(6), lat(1000), 8.014, 10)
+    log.add_position(at(10), lat(2000), 8.014, 10)
+    log.add_position(at(11), lat(2000), 8.028, 10)
+
+    straight = TripLog(T0, SETTINGS)
+    straight.add_position(at(0), 50.0, 8.0, 10)
+    straight.add_position(at(6), lat(1000), 8.014, 10)
+    straight.add_position(at(11), lat(2000), 8.028, 10)
+
+    assert len(log.positions) == 3
+    assert log.distance_m == pytest.approx(straight.distance_m)
+    assert log.driving_time == straight.driving_time
+    assert log.moving_distance_m == pytest.approx(straight.moving_distance_m)
+
+
+def test_a_tracker_updating_every_second_is_not_collapsed() -> None:
+    log = TripLog(T0, SETTINGS)
+    for second in range(10):
+        log.add_position(at(second), lat(second * 20), 8.0, 10)
+
+    assert [p.time for p in log.positions] == [at(2), at(5), at(8), at(9)]
+    assert log.distance_km == pytest.approx(0.14, rel=1e-3)
 
 
 def test_start_place_and_stops_survive_a_restart() -> None:

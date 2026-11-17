@@ -10,7 +10,8 @@ homeassistant:
   debug: true
   packages: !include_dir_named packages
   media_dirs:
-    local: /workspaces/ha-reiseverlauf/config/media
+    # Set by script/hooks/develop.pre.sh, so the path follows the checkout folder
+    local: !env_var REISEVERLAUF_MEDIA_DIR
 
 # Debugging integration
 # https://www.home-assistant.io/integrations/debugpy/

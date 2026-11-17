@@ -41,6 +41,9 @@ Wichtig:
   liegen als rohe Float-Bits vor (z. B. `1118656744` = 86,67 km/h). Beim Lesen alter Daten:
   Werte über 100000 als Big-Endian-`float32` zurückrechnen (`struct.unpack(">f", struct.pack(">I", n))`).
 - Höhendaten gibt es erst seit dem 04.10.2026.
+- Der Template-Tracker ändert Breite und Länge nacheinander (etwa 1 s Abstand). Jede Änderung ergibt einen
+  Zustand, der erste mit neuer Breite und alter Länge. Die Integration fasst Positionen innerhalb von 3 s zu
+  einem Punkt zusammen; sonst ergibt sich eine Treppenspur (31.10.2026: 109 km statt 84 km laut Tacho).
 - Der Recorder behält standardmäßig nur 10 Tage. Die Auswertung muss direkt nach Reiseende laufen oder
   die Integration speichert die Punkte selbst (offene Entscheidung, siehe 9).
 
@@ -173,8 +176,9 @@ die 13 Helfer gelöscht, Skripte, Log und `/config/www/tracks` entfernt. Das Rou
    Medienquelle `/media/local/...`). Standard-Ausgabeordner `reiseverlauf` im lokalen Medienordner von HA,
    in der Einrichtung änderbar. `/config/www` wird nicht mehr verwendet.
 3. ~~Sprachen~~ – entschieden (06.10.2026): Deutsch + Englisch für Oberfläche und Exporte (Sprache der HA-Instanz).
-4. ~~Höhen-Hysterese~~ – vorläufig 5 m (06.10.2026): im Stand driftet die Höhe über 48 h um knapp 4 m.
-   Nach der ersten echten Fahrt erneut prüfen.
+4. ~~Höhen-Hysterese~~ – entschieden (17.11.2026): bleibt 5 m. Geprüft an der Fahrt vom 31.10.2026 gegen
+   EU-DEM (25 m): GPS-Höhe weicht im Mittel 1,4 m ab (80 % innerhalb ±6 m); die Summe der Höhenmeter hängt vor
+   allem von der Glättung ab, 5 m liegen im plausiblen Bereich.
 5. ~~Reise mit langen Pausen~~ – entschieden (06.10.2026): automatische Zusammenführung, siehe 4.
 6. Soll die Integration später auch die Höhe selbst vom Router holen (statt Skript)?
 7. ~~Titel automatisch erkannter Reisen~~ – entschieden (09.10.2026): einstellbar „nur Datum“,
@@ -219,6 +223,8 @@ die 13 Helfer gelöscht, Skripte, Log und `/config/www/tracks` entfernt. Das Rou
     Schwellenwerte, Standard 5 min) = Halt mit Ort (Nominatim), von, bis, Dauer. Live als Attribut der Pausenzeit,
     nach der Reise in Statistik, `export.json` und Event `_beendet`. Ein Halt ist so aufgebaut, dass später
     Fahrtenbuch-Daten daran hängen können.
+    Ergänzt (17.11.2026): Geht D+ während eines Halts kurz an, ohne dass sich das Fahrzeug weiter als die
+    Mindestbewegung entfernt (z. B. Tanken und Umparken), setzt das nächste D+-Aus denselben Halt fort.
 21. ~~Knöpfe im Dashboard~~ – entschieden (09.10.2026): „Reise jetzt beenden“ (während einer Reise) und „Reise
     starten / fortsetzen“ (ohne laufende Reise) in der neuen Ansicht „Aktuelle Reise“.
 22. Fahrtenbuch – offen, siehe Abschnitt 11 (Etappe 6).
