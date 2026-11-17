@@ -66,6 +66,9 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
 - Letzte Reise: `sensor.…_letzte_reise` (Titel; Attribute `dateien`, `statistik`, `ordner`, `start`),
   `…_letzte_reise_strecke`, `…_fahrzeit`, `…_dauer`, `…_ende`; `image.…_letzte_reise_gesamtbild` (siehe 9.11)
 - `select.…_export_auswahl` (siehe [Export](features/export.md) 2.4)
+- Fahrtenbuch-Formular: `number.…_fahrtenbuch_*` (Kilometerstand, Kraftstoff, Gas 1/2, Diesel und Gas getankt und
+  Betrag), `button.…_fahrtenbuch_speichern`/`_verwerfen`, `sensor.…_fahrtenbuch_eintrag` (siehe
+  [Fahrtenbuch](features/fahrtenbuch.md) 6.2)
 
 Dienste (alle mit Pflichtfeld `config_entry_id`):
 
@@ -75,6 +78,7 @@ Dienste (alle mit Pflichtfeld `config_entry_id`):
   ohne `export` gilt die Export-Auswahl; nur im Ausgabeordner, nur Dateien aus `export.json` (Gesamtbild, Karte,
   Profil, GPX, Statistik, Rohdaten)
 - `reiseverlauftracker.reise_starten` / `reise_beenden` (manuell, siehe [Reiseerkennung](features/reiseerkennung.md) 5.2)
+- `reiseverlauftracker.fahrtenbuch_eintragen` / `_aendern` / `_loeschen` / `_csv` (siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.4)
 
 Events:
 

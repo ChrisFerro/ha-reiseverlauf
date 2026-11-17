@@ -99,6 +99,15 @@
               "elevation_hysteresis": "Altitude changes smaller than this do not count towards the elevation gain.",
               "min_stop_duration": "How long D+ must be off during a trip for the stop to be listed with its place."
             }
+          },
+          "logbook": {
+            "name": "Logbook",
+            "data": {
+              "tank_size": "Tank size"
+            },
+            "data_description": {
+              "tank_size": "Capacity of the fuel tank. Once an average consumption is known, the fuel level is suggested from it."
+            }
           }
         }
       }
@@ -215,6 +224,61 @@
       },
       "trip_average_speed": {
         "name": "Trip average speed"
+      },
+      "logbook_entry": {
+        "name": "Logbook entry",
+        "state": {
+          "offen": "Pending",
+          "gespeichert": "Saved"
+        },
+        "state_attributes": {
+          "anlass": {
+            "name": "Occasion"
+          },
+          "ort": {
+            "name": "Place"
+          },
+          "halt_start": {
+            "name": "Stop since"
+          },
+          "letzte_eintraege": {
+            "name": "Latest entries"
+          }
+        }
+      }
+    },
+    "number": {
+      "logbook_odometer": {
+        "name": "Logbook odometer"
+      },
+      "logbook_fuel": {
+        "name": "Logbook fuel"
+      },
+      "logbook_gas_1": {
+        "name": "Logbook gas 1"
+      },
+      "logbook_gas_2": {
+        "name": "Logbook gas 2"
+      },
+      "logbook_fuel_litres": {
+        "name": "Logbook diesel refuelled"
+      },
+      "logbook_fuel_amount": {
+        "name": "Logbook diesel amount"
+      },
+      "logbook_gas_litres": {
+        "name": "Logbook gas refilled"
+      },
+      "logbook_gas_amount": {
+        "name": "Logbook gas amount"
+      }
+    },
+    "button": {
+      "logbook_save": {
+        "name": "Logbook save"
+      },
+      "logbook_discard": {
+        "name": "Logbook discard"
       }
     }
   },
@@ -286,6 +350,126 @@
           "description": "The trip recording entry of the vehicle."
         }
       }
+    },
+    "fahrtenbuch_eintragen": {
+      "name": "Add logbook entry",
+      "description": "Adds an entry without the form, for example from an automation. Position and place come from the vehicle.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "zeit": {
+          "name": "Time",
+          "description": "When the entry was made. Leave empty for now."
+        },
+        "kilometerstand": {
+          "name": "Odometer",
+          "description": "Odometer reading in km. Leave empty for the carried-forward reading."
+        },
+        "kraftstoff": {
+          "name": "Fuel",
+          "description": "Fuel tank level in percent."
+        },
+        "gas_1": {
+          "name": "Gas 1",
+          "description": "Level of the first gas tank in percent."
+        },
+        "gas_2": {
+          "name": "Gas 2",
+          "description": "Level of the second gas tank in percent."
+        },
+        "diesel_liter": {
+          "name": "Diesel refuelled",
+          "description": "Litres refuelled. 0 removes the refuelling."
+        },
+        "diesel_betrag": {
+          "name": "Diesel amount",
+          "description": "Amount paid for the diesel."
+        },
+        "gas_liter": {
+          "name": "Gas refilled",
+          "description": "Litres of gas for both tanks together. 0 removes the gas refill."
+        },
+        "gas_betrag": {
+          "name": "Gas amount",
+          "description": "Amount paid for the gas."
+        }
+      }
+    },
+    "fahrtenbuch_aendern": {
+      "name": "Change logbook entry",
+      "description": "Changes single values of an entry. Values not given stay as they are.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "eintrag": {
+          "name": "Entry",
+          "description": "ID of the entry, for example from the attribute “Latest entries” of the logbook entry sensor."
+        },
+        "zeit": {
+          "name": "Time",
+          "description": "When the entry was made. Leave empty for now."
+        },
+        "kilometerstand": {
+          "name": "Odometer",
+          "description": "Odometer reading in km. Leave empty for the carried-forward reading."
+        },
+        "kraftstoff": {
+          "name": "Fuel",
+          "description": "Fuel tank level in percent."
+        },
+        "gas_1": {
+          "name": "Gas 1",
+          "description": "Level of the first gas tank in percent."
+        },
+        "gas_2": {
+          "name": "Gas 2",
+          "description": "Level of the second gas tank in percent."
+        },
+        "diesel_liter": {
+          "name": "Diesel refuelled",
+          "description": "Litres refuelled. 0 removes the refuelling."
+        },
+        "diesel_betrag": {
+          "name": "Diesel amount",
+          "description": "Amount paid for the diesel."
+        },
+        "gas_liter": {
+          "name": "Gas refilled",
+          "description": "Litres of gas for both tanks together. 0 removes the gas refill."
+        },
+        "gas_betrag": {
+          "name": "Gas amount",
+          "description": "Amount paid for the gas."
+        }
+      }
+    },
+    "fahrtenbuch_loeschen": {
+      "name": "Delete logbook entry",
+      "description": "Deletes an entry from the logbook.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "eintrag": {
+          "name": "Entry",
+          "description": "ID of the entry, for example from the attribute “Latest entries” of the logbook entry sensor."
+        }
+      }
+    },
+    "fahrtenbuch_csv": {
+      "name": "Logbook as CSV",
+      "description": "Writes the whole logbook as fahrtenbuch.csv into the output folder. The file is also rewritten after every change.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        }
+      }
     }
   },
   "exceptions": {
@@ -321,6 +505,15 @@
     },
     "no_trip": {
       "message": "No trip is running."
+    },
+    "logbook_entry_not_found": {
+      "message": "There is no logbook entry {id}."
+    },
+    "amount_without_litres": {
+      "message": "An amount needs the litres refuelled."
+    },
+    "csv_failed": {
+      "message": "The CSV file could not be written: {error}"
     }
   }
 }

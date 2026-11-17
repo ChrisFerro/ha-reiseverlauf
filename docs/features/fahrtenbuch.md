@@ -1,6 +1,6 @@
 # Fahrtenbuch (Etappe 6)
 
-Stand: 17.11.2026, Entwurf freigegeben, Umsetzung läuft (Teilschritte 1 und 2 von 6.7 erledigt).
+Stand: 17.11.2026, Entwurf freigegeben, Umsetzung läuft (Teilschritte 1 bis 3 von 6.7 erledigt).
 Übergeordnete Anforderungen, Entscheidungen und Begriffe: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
 
 ## 1. Ziel
@@ -122,15 +122,18 @@ Füllständen vorbelegen. Die Integration bringt das Formular daher als eigene E
 
 - `number.…_fahrtenbuch_kilometerstand`, `…_fahrtenbuch_kraftstoff`, `…_fahrtenbuch_gas_1`, `…_fahrtenbuch_gas_2`
   (Prozent, Schieberegler);
-- `number.…_fahrtenbuch_diesel_liter`, `…_diesel_betrag`, `…_gas_liter`, `…_gas_betrag` (Eingabefeld, 0 = kein
-  Tank-/Gasstopp);
+- `number.…_fahrtenbuch_diesel_getankt`, `…_diesel_betrag`, `…_gas_getankt`, `…_gas_betrag` (Eingabefeld, 0 = kein
+  Tank-/Gasstopp; Beträge in der Währung der Instanz);
 - `button.…_fahrtenbuch_speichern` und `button.…_fahrtenbuch_verwerfen`;
-- `sensor.…_fahrtenbuch_eintrag`: `offen` oder `gespeichert`, Attribute Anlass, Halt, Ort.
+- `sensor.…_fahrtenbuch_eintrag`: `offen` oder `gespeichert`, Attribute Anlass, Ort, Halt seit und
+  `letzte_eintraege` (die 10 neuesten Einträge mit `id`, gebraucht für `fahrtenbuch_aendern`/`_loeschen`).
 
 Bei jedem Anlass (6.3) belegt die Integration die Felder neu vor: berechneter Kilometerstand, Kraftstoff berechnet
 aus Strecke und Ø-Verbrauch (5.8), sonst der letzte Wert, Gas mit den letzten Werten, Mengen und Beträge 0. Ein noch offener Entwurf wird dabei ersetzt. Eine Menge über 0 setzt den Vorschlag des
 zugehörigen Füllstands auf 100 % (beim Gas beide Tanks). „Speichern“ legt den Eintrag an; ohne offenen Anlass
-entsteht ein manueller Eintrag (5.5). Für Automationen gibt es dasselbe als Dienst.
+entsteht ein manueller Eintrag (5.5) mit Position und Ort des Fahrzeugs, während einer Reise mit Bezug auf sie.
+Ein Eintrag zu einem Anlass behält den Streckenzähler des Anlasses, auch wenn er erst später gespeichert wird; sonst
+ginge die seitdem gefahrene Strecke für den Kilometerstand verloren. Für Automationen gibt es dasselbe als Dienst.
 
 ### 6.3 Anlässe, Events, Push
 
@@ -147,10 +150,14 @@ entsteht ein manueller Eintrag (5.5). Für Automationen gibt es dasselbe als Die
 
 ### 6.4 Dienste
 
-- `fahrtenbuch_eintragen` (alle Felder, optional `zeit`): Eintrag ohne Formular, z. B. aus einer Automation.
-- `fahrtenbuch_aendern` (`eintrag`, Felder) und `fahrtenbuch_loeschen` (`eintrag`): Korrekturen (5.6).
-- `fahrtenbuch_csv`: schreibt `fahrtenbuch.csv` in den Ausgabeordner. Die Datei wird außerdem nach jeder Änderung
-  neu geschrieben; `aufraeumen` lässt sie in Ruhe.
+- `fahrtenbuch_eintragen` (`zeit`, `kilometerstand`, `kraftstoff`, `gas_1`, `gas_2`, `diesel_liter`,
+  `diesel_betrag`, `gas_liter`, `gas_betrag`, alle optional): Eintrag ohne Formular, z. B. aus einer Automation.
+  Ohne `kilometerstand` gilt der fortgeschriebene Stand. Antwort: der neue Eintrag.
+- `fahrtenbuch_aendern` (`eintrag`, Felder) und `fahrtenbuch_loeschen` (`eintrag`): Korrekturen (5.6). Liter 0
+  entfernen einen Tank-/Gasstopp, ein Betrag allein ändert nur den Betrag.
+- `fahrtenbuch_csv`: schreibt `fahrtenbuch.csv` in den Ausgabeordner (UTF-8 mit BOM für Excel). Antwort: Pfad,
+  Medien-URL, Anzahl der Einträge. Die Datei wird außerdem nach jeder Änderung neu geschrieben; `aufraeumen` lässt
+  sie in Ruhe.
 
 ### 6.5 Auswertungen (5.4)
 

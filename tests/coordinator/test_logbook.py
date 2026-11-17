@@ -5,7 +5,14 @@ import json
 
 import pytest
 
-from custom_components.reiseverlauftracker.coordinator.logbook import Logbook, Occasion, Refill
+from custom_components.reiseverlauftracker.coordinator.logbook import (
+    Draft,
+    FormField,
+    Logbook,
+    Occasion,
+    Refill,
+    Suggestion,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -214,3 +221,41 @@ def test_round_trip_through_json() -> None:
     assert restored.distance_counter_m == book.distance_counter_m
     assert restored.running_trip_m == 1000
     assert restored.tank_litres == 80
+
+
+def test_draft_starts_from_the_suggestion_without_refills() -> None:
+    draft = Draft.from_suggestion(Suggestion(odometer_km=1000, fuel_percent=40, gas1_percent=50, gas2_percent=60))
+
+    assert draft.value(FormField.ODOMETER) == 1000
+    assert draft.fuel is None
+    assert draft.gas is None
+
+
+def test_draft_fills_the_tanks_on_a_new_refill_only() -> None:
+    draft = Draft(fuel_percent=20, gas1_percent=10, gas2_percent=30)
+
+    draft = draft.with_value(FormField.FUEL_LITRES, 60).with_value(FormField.GAS_LITRES, 25)
+    assert (draft.fuel_percent, draft.gas1_percent, draft.gas2_percent) == (100, 100, 100)
+
+    draft = draft.with_value(FormField.FUEL, 90).with_value(FormField.FUEL_LITRES, 61)
+    assert draft.fuel_percent == 90
+    assert draft.fuel == Refill(61, None)
+
+
+def test_draft_round_trip_through_json() -> None:
+    draft = Draft(odometer_km=5, fuel_litres=1.5, gas_amount=2)
+
+    assert Draft.from_dict(json.loads(json.dumps(draft.as_dict()))) == draft
+
+
+def test_entry_saved_later_keeps_the_counter_of_its_occasion() -> None:
+    book = Logbook()
+    book.add(at(0), Occasion.MANUAL, odometer_km=1000)
+    book.set_running_trip_distance(2000)
+    occasion_counter = book.distance_counter_m
+    book.set_running_trip_distance(30_000)
+
+    entry = book.add(at(1), Occasion.TRIP_START, odometer_km=1002, distance_counter_m=occasion_counter)
+
+    assert not entry.odometer_corrected
+    assert book.suggest_odometer() == 1030

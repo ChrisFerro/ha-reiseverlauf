@@ -86,3 +86,183 @@ reise_beenden:
       selector:
         config_entry:
           integration: reiseverlauftracker
+
+fahrtenbuch_eintragen:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    zeit:
+      selector:
+        datetime:
+    kilometerstand:
+      example: 34383
+      selector:
+        number:
+          min: 0
+          max: 9999999
+          step: 1
+          mode: box
+          unit_of_measurement: km
+    kraftstoff:
+      example: 75
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          mode: box
+          unit_of_measurement: "%"
+    gas_1:
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          mode: box
+          unit_of_measurement: "%"
+    gas_2:
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          mode: box
+          unit_of_measurement: "%"
+    diesel_liter:
+      example: 55.3
+      selector:
+        number:
+          min: 0
+          max: 1000
+          step: 0.01
+          mode: box
+          unit_of_measurement: L
+    diesel_betrag:
+      example: 96.20
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+    gas_liter:
+      selector:
+        number:
+          min: 0
+          max: 1000
+          step: 0.01
+          mode: box
+          unit_of_measurement: L
+    gas_betrag:
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+
+fahrtenbuch_aendern:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    eintrag:
+      required: true
+      example: "{{ state_attr('sensor.wohnmobil_fahrtenbuch_eintrag', 'letzte_eintraege')[0].id }}"
+      selector:
+        text:
+    zeit:
+      selector:
+        datetime:
+    kilometerstand:
+      example: 34383
+      selector:
+        number:
+          min: 0
+          max: 9999999
+          step: 1
+          mode: box
+          unit_of_measurement: km
+    kraftstoff:
+      example: 75
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          mode: box
+          unit_of_measurement: "%"
+    gas_1:
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          mode: box
+          unit_of_measurement: "%"
+    gas_2:
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          mode: box
+          unit_of_measurement: "%"
+    diesel_liter:
+      example: 55.3
+      selector:
+        number:
+          min: 0
+          max: 1000
+          step: 0.01
+          mode: box
+          unit_of_measurement: L
+    diesel_betrag:
+      example: 96.20
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+    gas_liter:
+      selector:
+        number:
+          min: 0
+          max: 1000
+          step: 0.01
+          mode: box
+          unit_of_measurement: L
+    gas_betrag:
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+
+fahrtenbuch_loeschen:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    eintrag:
+      required: true
+      example: "{{ state_attr('sensor.wohnmobil_fahrtenbuch_eintrag', 'letzte_eintraege')[0].id }}"
+      selector:
+        text:
+
+fahrtenbuch_csv:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker

@@ -17,6 +17,7 @@ from custom_components.reiseverlauftracker.const import (
     DOMAIN,
     SECTION_DETECTION,
     SECTION_EXPORT,
+    SECTION_LOGBOOK,
     SECTION_THRESHOLDS,
 )
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
@@ -93,6 +94,7 @@ async def test_options_flow_stores_sections_and_reloads(hass: HomeAssistant, ini
                 "min_point_distance": 15,
                 "elevation_hysteresis": 10,
             },
+            SECTION_LOGBOOK: {"tank_size": 75},
         },
     )
     await hass.async_block_till_done()
@@ -105,6 +107,8 @@ async def test_options_flow_stores_sections_and_reloads(hass: HomeAssistant, ini
     assert settings.merge_window == timedelta(0)
     assert settings.title_format == "date"
     assert not settings.place_names
+    assert settings.tank_litres == 75
+    assert init_integration.runtime_data.coordinator.logbook.logbook.tank_litres == 75
 
 
 async def test_defaults_apply_without_options(hass: HomeAssistant, init_integration: MockConfigEntry) -> None:
@@ -115,6 +119,7 @@ async def test_defaults_apply_without_options(hass: HomeAssistant, init_integrat
     assert settings.min_movement_m == 100
     assert settings.title_format == "date_place"
     assert settings.place_names
+    assert settings.tank_litres == 90
     assert settings.is_dplus_on("on")
     assert not settings.is_dplus_on("unavailable")
 

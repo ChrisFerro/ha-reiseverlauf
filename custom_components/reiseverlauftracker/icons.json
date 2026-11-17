@@ -5,7 +5,8 @@
         "sections": {
           "detection": "mdi:car-clock",
           "export": "mdi:image-multiple",
-          "thresholds": "mdi:tune-variant"
+          "thresholds": "mdi:tune-variant",
+          "logbook": "mdi:notebook-edit"
         }
       }
     }
@@ -70,6 +71,46 @@
       },
       "trip_average_speed": {
         "default": "mdi:speedometer-medium"
+      },
+      "logbook_entry": {
+        "default": "mdi:notebook-check",
+        "state": {
+          "offen": "mdi:notebook-edit"
+        }
+      }
+    },
+    "number": {
+      "logbook_odometer": {
+        "default": "mdi:counter"
+      },
+      "logbook_fuel": {
+        "default": "mdi:gas-station"
+      },
+      "logbook_gas_1": {
+        "default": "mdi:propane-tank"
+      },
+      "logbook_gas_2": {
+        "default": "mdi:propane-tank"
+      },
+      "logbook_fuel_litres": {
+        "default": "mdi:fuel"
+      },
+      "logbook_fuel_amount": {
+        "default": "mdi:cash"
+      },
+      "logbook_gas_litres": {
+        "default": "mdi:propane-tank-outline"
+      },
+      "logbook_gas_amount": {
+        "default": "mdi:cash"
+      }
+    },
+    "button": {
+      "logbook_save": {
+        "default": "mdi:content-save"
+      },
+      "logbook_discard": {
+        "default": "mdi:close-circle-outline"
       }
     }
   },
@@ -85,6 +126,18 @@
     },
     "reise_beenden": {
       "service": "mdi:stop"
+    },
+    "fahrtenbuch_eintragen": {
+      "service": "mdi:notebook-plus"
+    },
+    "fahrtenbuch_aendern": {
+      "service": "mdi:notebook-edit"
+    },
+    "fahrtenbuch_loeschen": {
+      "service": "mdi:notebook-remove"
+    },
+    "fahrtenbuch_csv": {
+      "service": "mdi:file-delimited"
     }
   }
 }

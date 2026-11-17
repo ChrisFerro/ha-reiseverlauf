@@ -1,6 +1,7 @@
 """Tests for logbook occasions, measured distance and storage in the coordinator."""
 
 from datetime import timedelta
+from pathlib import Path
 from typing import Any
 
 from freezegun.api import FrozenDateTimeFactory
@@ -164,9 +165,9 @@ async def test_logbook_survives_restart(
     assert keeper.logbook.suggest_odometer() == 34301
 
 
-async def test_unreadable_store_starts_empty(hass: HomeAssistant, hass_storage: dict[str, Any]) -> None:
+async def test_unreadable_store_starts_empty(hass: HomeAssistant, hass_storage: dict[str, Any], tmp_path: Path) -> None:
     hass_storage[STORE_KEY.format("x")] = {"version": 1, "key": STORE_KEY.format("x"), "data": {"entries": [{}]}}
-    keeper = LogbookKeeper(hass, "x", 90)
+    keeper = LogbookKeeper(hass, "x", 90, tmp_path)
 
     await keeper.async_load()
 

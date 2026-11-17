@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from .current_trip import ENTITY_DESCRIPTIONS as CURRENT_TRIP_DESCRIPTIONS
 from .entity import ReiseverlaufSensor
 from .last_trip import ENTITY_DESCRIPTIONS as LAST_TRIP_DESCRIPTIONS
+from .logbook import LOGBOOK_ENTRY, ReiseverlaufLogbookEntrySensor
 
 PARALLEL_UPDATES = 0
 
@@ -22,6 +23,10 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
+    coordinator = entry.runtime_data.coordinator
     async_add_entities(
-        ReiseverlaufSensor(entry.runtime_data.coordinator, description) for description in ENTITY_DESCRIPTIONS
+        [
+            *(ReiseverlaufSensor(coordinator, description) for description in ENTITY_DESCRIPTIONS),
+            ReiseverlaufLogbookEntrySensor(coordinator, LOGBOOK_ENTRY),
+        ]
     )

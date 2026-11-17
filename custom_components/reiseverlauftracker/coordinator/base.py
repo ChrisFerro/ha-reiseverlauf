@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from custom_components.reiseverlauftracker.const import (
-    DEFAULT_TANK_LITRES,
     DOMAIN,
     EVENT_TRIP_ENDED,
     EVENT_TRIP_EXPORTED,
@@ -39,7 +38,7 @@ from homeassistant.util import dt as dt_util
 from .export_runner import async_export, event_data, media_base
 from .exports import ExportInfo, list_exports, remove_files
 from .logbook import Occasion
-from .logbook_keeper import LogbookKeeper
+from .logbook_keeper import EntryContext, LogbookKeeper
 from .models import TripSnapshot
 from .places import async_place_name
 from .snapshot import ExportState, build_snapshot
@@ -78,7 +77,9 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.settings = settings
         self.detector = TripDetector(_detector_settings(settings))
         self.log: TripLog | None = None
-        self.logbook = LogbookKeeper(hass, entry.entry_id, DEFAULT_TANK_LITRES)
+        self.logbook = LogbookKeeper(
+            hass, entry.entry_id, settings.tank_litres, media_base(hass, settings), on_change=self._publish
+        )
         self._detector_store: Store[dict[str, Any]] = Store(
             hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}.detector"
         )
@@ -225,6 +226,20 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
     async def _async_load_exports(self) -> None:
         exports = await self.hass.async_add_executor_job(list_exports, media_base(self.hass, self.settings))
         self.exports = tuple(exports)
+
+    async def async_logbook_context(self) -> EntryContext:
+        """Return trip and position for a manual logbook entry; the place is looked up like a stop's."""
+        lat = lon = None
+        if (tracker := self.hass.states.get(self.settings.tracker_entity)) is not None:
+            lat, lon = _float(tracker.attributes.get(ATTR_LATITUDE)), _float(tracker.attributes.get(ATTR_LONGITUDE))
+        place = await async_place_name(self.hass, self.settings, lat, lon) if lat is not None else None
+        trip_start = self.log.start if self.log is not None and self.detector.phase is TripPhase.ACTIVE else None
+        return EntryContext(trip_start=trip_start, lat=lat, lon=lon, place=place)
+
+    async def async_save_logbook_form(self) -> None:
+        """Save the logbook form as an entry."""
+        context = EntryContext() if self.logbook.pending else await self.async_logbook_context()
+        await self.logbook.async_save_draft(context)
 
     @callback
     def async_start_trip(self) -> None:

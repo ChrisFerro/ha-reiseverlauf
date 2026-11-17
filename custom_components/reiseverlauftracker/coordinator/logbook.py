@@ -129,6 +129,80 @@ class Suggestion:
     gas2_percent: float | None = None
 
 
+class FormField(StrEnum):
+    """Fields of the logbook form; the values are the attribute names of `Draft`."""
+
+    ODOMETER = "odometer_km"
+    FUEL = "fuel_percent"
+    GAS1 = "gas1_percent"
+    GAS2 = "gas2_percent"
+    FUEL_LITRES = "fuel_litres"
+    FUEL_AMOUNT = "fuel_amount"
+    GAS_LITRES = "gas_litres"
+    GAS_AMOUNT = "gas_amount"
+
+
+@dataclass(frozen=True, slots=True)
+class Draft:
+    """
+    Values in the logbook form; litres and amounts of 0 mean no refill.
+
+    Entering litres sets the matching level to 100 %, since a refill fills up:
+    fuel the fuel tank, gas both gas tanks.
+    """
+
+    odometer_km: float | None = None
+    fuel_percent: float | None = None
+    gas1_percent: float | None = None
+    gas2_percent: float | None = None
+    fuel_litres: float = 0.0
+    fuel_amount: float = 0.0
+    gas_litres: float = 0.0
+    gas_amount: float = 0.0
+
+    @classmethod
+    def from_suggestion(cls, suggestion: Suggestion) -> Draft:
+        """Return a form pre-filled with the suggestion and no refills."""
+        return cls(
+            odometer_km=suggestion.odometer_km,
+            fuel_percent=suggestion.fuel_percent,
+            gas1_percent=suggestion.gas1_percent,
+            gas2_percent=suggestion.gas2_percent,
+        )
+
+    def value(self, form_field: FormField) -> float | None:
+        """Return the value of one field."""
+        return getattr(self, form_field.value)
+
+    def with_value(self, form_field: FormField, value: float) -> Draft:
+        """Return the form with one field changed, filling the tank on a new refill."""
+        changed = replace(self, **{form_field.value: value})
+        if form_field is FormField.FUEL_LITRES and value > 0 and self.fuel_litres <= 0:
+            changed = replace(changed, fuel_percent=FULL_PERCENT)
+        if form_field is FormField.GAS_LITRES and value > 0 and self.gas_litres <= 0:
+            changed = replace(changed, gas1_percent=FULL_PERCENT, gas2_percent=FULL_PERCENT)
+        return changed
+
+    @property
+    def fuel(self) -> Refill | None:
+        """Return the fuel refill, or None without litres."""
+        return Refill(self.fuel_litres, self.fuel_amount or None) if self.fuel_litres > 0 else None
+
+    @property
+    def gas(self) -> Refill | None:
+        """Return the gas refill, or None without litres."""
+        return Refill(self.gas_litres, self.gas_amount or None) if self.gas_litres > 0 else None
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the form as a JSON-serialisable dict."""
+        return {f.value: self.value(f) for f in FormField}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Draft:
+        """Rebuild a form from `as_dict()` output; unknown keys are ignored."""
+        return cls(**{f.value: data[f.value] for f in FormField if f.value in data})
+
+
 @dataclass(frozen=True, slots=True)
 class TripSummary:
     """Logbook figures of one trip for its export."""
@@ -202,19 +276,24 @@ class Logbook:
         lat: float | None = None,
         lon: float | None = None,
         place: str | None = None,
+        distance_counter_m: float | None = None,
     ) -> LogbookEntry:
         """
-        Add an entry at the current distance counter and return it.
+        Add an entry and return it.
 
-        The odometer counts as corrected when it differs from the carried-forward
-        value; the difference then shows how far off the measured distance was.
+        The entry belongs to `distance_counter_m`, by default the current one; an
+        entry saved after its occasion passes the counter of the occasion, so that
+        the distance driven since is not lost. The odometer counts as corrected
+        when it differs from the carried-forward value at that counter; the
+        difference then shows how far off the measured distance was.
         """
-        suggested = self.suggest_odometer()
+        counter = self.distance_counter_m if distance_counter_m is None else distance_counter_m
+        suggested = self.suggest_odometer(counter)
         entry = LogbookEntry(
             id=uuid.uuid4().hex,
             time=time,
             occasion=occasion,
-            distance_counter_m=self.distance_counter_m,
+            distance_counter_m=counter,
             odometer_km=odometer_km,
             odometer_corrected=odometer_km is not None and suggested is not None and odometer_km != suggested,
             fuel_percent=fuel_percent,
@@ -261,16 +340,17 @@ class Logbook:
             raise KeyError(entry_id)
         self.entries = [e for e in self.entries if e.id != entry_id]
 
-    def km_since(self, entry: LogbookEntry) -> float:
-        """Return the distance measured since `entry` in kilometres."""
-        return max(self.distance_counter_m - entry.distance_counter_m, 0.0) / 1000
+    def km_since(self, entry: LogbookEntry, counter_m: float | None = None) -> float:
+        """Return the distance measured since `entry` until `counter_m` (default: now) in kilometres."""
+        counter = self.distance_counter_m if counter_m is None else counter_m
+        return max(counter - entry.distance_counter_m, 0.0) / 1000
 
-    def suggest_odometer(self) -> float | None:
+    def suggest_odometer(self, counter_m: float | None = None) -> float | None:
         """Return the last odometer reading plus the distance measured since, in whole kilometres."""
         last = self.last(having="odometer_km")
         if last is None or last.odometer_km is None:
             return None
-        return float(round(last.odometer_km + self.km_since(last)))
+        return float(round(last.odometer_km + self.km_since(last, counter_m)))
 
     def average_consumption(self) -> float | None:
         """

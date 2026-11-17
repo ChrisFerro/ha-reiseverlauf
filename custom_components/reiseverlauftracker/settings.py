@@ -22,6 +22,7 @@ from .const import (
     CONF_SCALE,
     CONF_SPEED_ENTITY,
     CONF_STANDSTILL_SPEED,
+    CONF_TANK_SIZE,
     CONF_TITLE_FORMAT,
     CONF_TRACKER_ENTITY,
     DEFAULT_DPLUS_ON_VALUE,
@@ -37,9 +38,11 @@ from .const import (
     DEFAULT_PLACE_NAMES,
     DEFAULT_SCALE,
     DEFAULT_STANDSTILL_SPEED_KMH,
+    DEFAULT_TANK_LITRES,
     DEFAULT_TITLE_FORMAT,
     SECTION_DETECTION,
     SECTION_EXPORT,
+    SECTION_LOGBOOK,
     SECTION_THRESHOLDS,
 )
 
@@ -66,6 +69,7 @@ class ReiseverlaufSettings:
     min_point_distance_m: float
     elevation_hysteresis_m: float
     min_stop_duration: timedelta
+    tank_litres: float = DEFAULT_TANK_LITRES
 
     @classmethod
     def from_entry(cls, data: Mapping[str, Any], options: Mapping[str, Any]) -> ReiseverlaufSettings:
@@ -73,6 +77,7 @@ class ReiseverlaufSettings:
         detection = options.get(SECTION_DETECTION, {})
         export = options.get(SECTION_EXPORT, {})
         thresholds = options.get(SECTION_THRESHOLDS, {})
+        logbook = options.get(SECTION_LOGBOOK, {})
         return cls(
             dplus_entity=data[CONF_DPLUS_ENTITY],
             dplus_on_value=data.get(CONF_DPLUS_ON_VALUE, DEFAULT_DPLUS_ON_VALUE),
@@ -92,6 +97,7 @@ class ReiseverlaufSettings:
             min_point_distance_m=thresholds.get(CONF_MIN_POINT_DISTANCE, DEFAULT_MIN_POINT_DISTANCE_M),
             elevation_hysteresis_m=thresholds.get(CONF_ELEVATION_HYSTERESIS, DEFAULT_ELEVATION_HYSTERESIS_M),
             min_stop_duration=timedelta(minutes=thresholds.get(CONF_MIN_STOP_DURATION, DEFAULT_MIN_STOP_DURATION_MIN)),
+            tank_litres=logbook.get(CONF_TANK_SIZE, DEFAULT_TANK_LITRES),
         )
 
     def is_dplus_on(self, state: str) -> bool:
