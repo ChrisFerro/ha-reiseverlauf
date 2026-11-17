@@ -7,8 +7,8 @@ from homeassistant import config_entries
 from .schemas import get_options_schema
 
 
-class ReiseverlaufOptionsFlow(config_entries.OptionsFlow):
-    """Let the user tune trip detection, export and thresholds after setup."""
+class ReiseverlaufOptionsFlow(config_entries.OptionsFlowWithReload):
+    """Let the user tune trip detection, export and thresholds after setup; saving reloads the entry."""
 
     async def async_step_init(
         self,
