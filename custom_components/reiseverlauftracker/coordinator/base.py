@@ -346,7 +346,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             return
         positions, speed, altitude = self.log.export_inputs()
         data = ([p for p in positions if p.time <= trip_event.end], speed, altitude)
-        stops = self.log.export_stops(trip_event.end)
+        stops = self.log.export_stops(trip_event.end, self.settings.min_stop_duration)
         self._exporting = True
         self.config_entry.async_create_task(
             self.hass,
@@ -453,6 +453,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         return RunningStatsSettings(
             max_accuracy_m=self.settings.max_accuracy_m,
             standstill_kmh=self.settings.standstill_kmh,
+            min_movement_m=self.settings.min_movement_m,
         )
 
 

@@ -104,7 +104,7 @@ def test_export_continues_when_map_fails(
 
 
 def test_export_without_movement_writes_nothing(tmp_path: Path) -> None:
-    points = [TrackPoint(START, *north(0)), TrackPoint(START, *north(20))]
+    points = [TrackPoint(START, *north(0)), TrackPoint(START + timedelta(minutes=1), *north(20))]
     with pytest.raises(NoMovementError):
         export_trip(points, None, None, tmp_path / "out", ExportOptions(with_map=False))
     assert not (tmp_path / "out").exists()

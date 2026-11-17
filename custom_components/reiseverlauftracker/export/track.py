@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 import math
 import struct
 
@@ -12,6 +12,10 @@ from .model import ExportOptions, StepSeries, TrackPoint
 
 RAW_FLOAT_BITS_THRESHOLD = 100000
 MAX_PLAUSIBLE_KMH = 200.0
+# A tracker built from separate latitude and longitude sensors changes twice per
+# fix, about a second apart; the first state pairs the new latitude with the old
+# longitude. Updates closer than this belong to one fix (sensors poll every 5 s).
+COALESCE_WINDOW = timedelta(seconds=3)
 
 
 class NotEnoughPointsError(Exception):
@@ -74,6 +78,24 @@ def find_movement(points: Sequence[TrackPoint], min_movement_m: float) -> tuple[
     return max(leave - 1, 0), min(enter + 1, len(points) - 1)
 
 
+def coalesce(points: Sequence[TrackPoint], window: timedelta = COALESCE_WINDOW) -> list[TrackPoint]:
+    """
+    Merge each group of points within `window` of its first point into the group's last point.
+
+    `points` must be sorted by time. Measuring from the first point of a group keeps
+    a tracker that really updates every second from collapsing into one point.
+    """
+    kept: list[TrackPoint] = []
+    group_start: datetime | None = None
+    for point in points:
+        if group_start is not None and point.time - group_start < window:
+            kept[-1] = point
+        else:
+            kept.append(point)
+            group_start = point.time
+    return kept
+
+
 def thin_out(points: Sequence[TrackPoint], min_distance_m: float) -> list[TrackPoint]:
     """Drop points closer than `min_distance_m` to the last kept one; keep both ends."""
     if len(points) < 3:
@@ -100,9 +122,11 @@ def prepare_track(
         NoMovementError: The vehicle never left the minimum movement radius.
 
     """
-    usable = sorted(
-        (p for p in positions if p.accuracy is None or p.accuracy <= options.max_accuracy_m),
-        key=lambda p: p.time,
+    usable = coalesce(
+        sorted(
+            (p for p in positions if p.accuracy is None or p.accuracy <= options.max_accuracy_m),
+            key=lambda p: p.time,
+        )
     )
     if len(usable) < 2:
         raise NotEnoughPointsError

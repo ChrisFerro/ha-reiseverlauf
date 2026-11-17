@@ -63,12 +63,14 @@ async def test_export_period_from_history(
     hass: HomeAssistant,
     config_entry: MockConfigEntry,
     media_dir: Path,
+    freezer: FrozenDateTimeFactory,
 ) -> None:
     hass.config.language = "de"
     entry = await setup(hass, config_entry, media_dir)
     events = async_capture_events(hass, EVENT_TRIP_EXPORTED)
     start = dt_util.utcnow() - timedelta(minutes=1)
     for step in range(1, 6):
+        freezer.tick(timedelta(minutes=1))
         hass.states.async_set(SPEED, str(1118656744 if step == 1 else 50 + step))
         set_position(hass, 1000 * step)
     await async_wait_recording_done(hass)
