@@ -91,6 +91,7 @@ Push-Nachricht: **nicht** in der Integration, sondern als Automation aus einem m
 D+-Entität und „Ein“-Wert, Verzögerung (min), Zusammenführungsfenster (h), Mindestbewegung (m), Positions-Tracker, Geschwindigkeits-
 und Höhensensor (Höhe optional), Ausgabeordner, Standard-Skala, Standard-Rand (min), Schwellen:
 Stillstand 3 km/h, GPS-Genauigkeit 50 m, Punktabstand 15 m, Höhen-Hysterese 5 m, Mindestdauer eines Halts 5 min.
+Fahrtenbuch: Tankgröße (Liter, Standard 90, siehe [Fahrtenbuch](features/fahrtenbuch.md) 5.8).
 
 ## 8. Bisheriger Aufbau (abgelöst)
 
@@ -116,7 +117,7 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 | 9.13, 9.14, 9.15              | Inhalt, Empfänger, weitere Benachrichtigungen           | [push-benachrichtigung.md](features/push-benachrichtigung.md) |
 | 9.17, 9.18, 9.21              | Export-Formular, Aufbau, Knöpfe                         | [dashboard.md](features/dashboard.md)                         |
 | 9.19, 9.20                    | Live-Werte, Halte                                       | [halte.md](features/halte.md)                                 |
-| 9.22                          | Fahrtenbuch (offen)                                     | [fahrtenbuch.md](features/fahrtenbuch.md)                     |
+| 9.22                          | Fahrtenbuch (entschieden)                               | [fahrtenbuch.md](features/fahrtenbuch.md)                     |
 
 ## 10. Empfohlene Reihenfolge
 
@@ -140,4 +141,4 @@ offenen Fragen und Entscheidungen. Dieses Dokument bleibt die Übersicht und ent
 | Export und Verwaltung   | [export.md](features/export.md)                               | 2, 3   | umgesetzt                |
 | Push-Benachrichtigung   | [push-benachrichtigung.md](features/push-benachrichtigung.md) | 4      | umgesetzt                |
 | Dashboard und Migration | [dashboard.md](features/dashboard.md)                         | 5      | umgesetzt                |
-| Fahrtenbuch             | [fahrtenbuch.md](features/fahrtenbuch.md)                     | 6      | Anforderungen, offen     |
+| Fahrtenbuch             | [fahrtenbuch.md](features/fahrtenbuch.md)                     | 6      | entschieden, offen       |
