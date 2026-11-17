@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from custom_components.reiseverlauftracker.const import (
+    DEFAULT_TANK_LITRES,
     DOMAIN,
     EVENT_TRIP_ENDED,
     EVENT_TRIP_EXPORTED,
@@ -37,6 +38,8 @@ from homeassistant.util import dt as dt_util
 
 from .export_runner import async_export, event_data, media_base
 from .exports import ExportInfo, list_exports, remove_files
+from .logbook import Occasion
+from .logbook_keeper import LogbookKeeper
 from .models import TripSnapshot
 from .places import async_place_name
 from .snapshot import ExportState, build_snapshot
@@ -75,6 +78,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.settings = settings
         self.detector = TripDetector(_detector_settings(settings))
         self.log: TripLog | None = None
+        self.logbook = LogbookKeeper(hass, entry.entry_id, DEFAULT_TANK_LITRES)
         self._detector_store: Store[dict[str, Any]] = Store(
             hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}.detector"
         )
@@ -91,7 +95,8 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.export_choice: str | None = None
 
     async def async_start(self) -> None:
-        """Restore detector and trip log, reconcile with the current D+ state and subscribe."""
+        """Restore detector, trip log and logbook, reconcile with the current D+ state and subscribe."""
+        await self.logbook.async_load()
         if (stored := await self._detector_store.async_load()) is not None:
             try:
                 self.detector = TripDetector(self.detector.settings, stored)
@@ -102,6 +107,10 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 self.log = TripLog.from_dict(stored_log, self._log_settings())
             except KeyError, ValueError, TypeError:
                 LOGGER.warning("Stored trip points are unreadable, recording continues without them")
+        if self.log is not None:
+            self.logbook.set_running_trip_distance(self.log.distance_m)
+        elif self.logbook.logbook.running_trip_m:
+            self.logbook.close_trip()
 
         await self._async_load_exports()
         self.last_export = next((info for info in self.exports if info.automatic), None)
@@ -133,6 +142,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         await self._detector_store.async_save(self.detector.as_dict())
         if self.log is not None:
             await self._log_store.async_save(self.log.as_dict())
+        await self.logbook.async_save_now()
 
     async def async_refresh_exports(self) -> None:
         """Re-read the export folders, for example after files were deleted."""
@@ -265,6 +275,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             self._handle(self.detector.update_position(Position(lat, lon), at))
         if record and self.log is not None:
             self.log.add_position(at, lat, lon, accuracy)
+            self.logbook.set_running_trip_distance(self.log.distance_m)
             self._save_log()
 
     def _on_dplus_for_stops(self, dplus_on: bool, at: datetime) -> None:
@@ -296,12 +307,25 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self._publish()
 
     def _lookup_stop_place(self, start: datetime, lat: float | None, lon: float | None) -> None:
+        """Look up the place of a stop that reached the minimum duration, then announce it to the logbook."""
+
         async def lookup() -> None:
             place = await async_place_name(self.hass, self.settings, lat, lon)
-            if self.log is not None and place is not None:
+            if self.log is None:
+                return
+            if place is not None:
                 self.log.set_stop_place(start, place)
                 self._save_log()
                 self._publish()
+            self.logbook.announce(
+                Occasion.STOP,
+                dt_util.utcnow(),
+                trip_start=self.log.start,
+                stop_start=start,
+                lat=lat,
+                lon=lon,
+                place=place,
+            )
 
         self.config_entry.async_create_task(self.hass, lookup(), "reiseverlauftracker stop place")
 
@@ -406,6 +430,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
 
     def _drop_log(self) -> None:
         self.log = None
+        self.logbook.close_trip()
         self.config_entry.async_create_task(self.hass, self._log_store.async_remove())
 
     def _save_log(self) -> None:
@@ -423,6 +448,15 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             self._save_log()
             self._publish()
         self._fire_started(start, resumed=False)
+        if log is not None and log is self.log:
+            self.logbook.announce(
+                Occasion.TRIP_START,
+                dt_util.utcnow(),
+                trip_start=start,
+                lat=first.lat if first else None,
+                lon=first.lon if first else None,
+                place=place,
+            )
 
     def _fire_started(self, start: datetime, *, resumed: bool) -> None:
         self.hass.bus.async_fire(

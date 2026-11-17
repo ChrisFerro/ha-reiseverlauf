@@ -1,6 +1,6 @@
 # Fahrtenbuch (Etappe 6)
 
-Stand: 17.11.2026, Anforderungen und Entscheidungen (alle offenen Fragen geklärt), noch keine Umsetzung.
+Stand: 17.11.2026, Entwurf freigegeben, Umsetzung läuft (Teilschritte 1 und 2 von 6.7 erledigt).
 Übergeordnete Anforderungen, Entscheidungen und Begriffe: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
 
 ## 1. Ziel
@@ -95,7 +95,7 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
 
 ## 6. Entwurf der Umsetzung (zur Freigabe)
 
-Stand: 17.11.2026, noch nicht freigegeben.
+Stand: 17.11.2026, freigegeben.
 
 ### 6.1 Datenmodell und Speicher
 
@@ -135,9 +135,10 @@ entsteht ein manueller Eintrag (5.5). Für Automationen gibt es dasselbe als Die
 ### 6.3 Anlässe, Events, Push
 
 - **Reisestart** (nicht bei fortgesetzter Reise): Formular vorbelegen, Event `reiseverlauftracker_fahrtenbuch`
-  mit `anlass: reisestart`.
-- **Halt:** sobald ein Halt die Mindestdauer erreicht (derselbe Zeitpunkt wie die Ortsabfrage), Event mit
-  `anlass: halt`, Ort, vorgeschlagenem Kilometerstand. Ein fortgesetzter Halt (Tanken, dann Umparken) löst kein
+  mit `anlass: reisestart`. Daten des Events: `entry_id`, `anlass`, `zeit`, `ort`, `reise_start`, `halt_start`,
+  `vorschlag` (`kilometerstand`, `kraftstoff`, `gas_1`, `gas_2`).
+- **Halt:** sobald ein Halt die Mindestdauer erreicht (nach der Ortsabfrage), Event mit `anlass: halt`, Ort,
+  vorgeschlagenem Kilometerstand. Ein fortgesetzter Halt (Tanken, dann Umparken) löst kein
   zweites Event aus. Die Ankunft am Ziel ist ebenfalls ein Halt; bei der Standardverzögerung von 60 min liegt der
   Eintrag in der Regel vor dem Export.
 - **Push:** neuer Blueprint `fahrtenbuch.yaml` (Fahrzeug, Empfänger, Dashboard-Ansicht, Schalter für Reisestart und
