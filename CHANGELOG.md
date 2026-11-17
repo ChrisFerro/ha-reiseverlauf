@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.5...v0.2.0) (2026-11-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* Home Assistant 2026.10 or newer is required.
+
+### Features
+
+* require Home Assistant 2026.10 ([f6c4207](https://github.com/ChrisFerro/ha-reiseverlauf/commit/f6c4207f630fd976ad47986113a444a4ec6fb1ef))
+
+
+### Bug Fixes
+
+* **config-flow:** reload through the options flow ([222627c](https://github.com/ChrisFerro/ha-reiseverlauf/commit/222627cf55bdfd3763bc91492fd0d37d0a178bc4))
+
 ## [0.1.5](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.4...v0.1.5) (2026-11-17)
 
 
