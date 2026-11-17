@@ -1,0 +1,373 @@
+"""
+Logbook of odometer readings, tank levels and refills.
+
+The logbook has no Home Assistant dependencies. The coordinator persists
+`as_dict()` in its own `Store`, which outlives the per-trip log, and feeds the
+distance measured during trips into it, so that the odometer can be carried
+forward between readings (see docs/features/fahrtenbuch.md).
+"""
+
+from dataclasses import dataclass, field, replace
+from datetime import datetime
+from enum import StrEnum
+from typing import Any
+import uuid
+
+LOGBOOK_VERSION = 1
+FULL_PERCENT = 100.0
+
+
+class Occasion(StrEnum):
+    """Why an entry was made; the UI shows their translations."""
+
+    TRIP_START = "reisestart"
+    STOP = "halt"
+    MANUAL = "manuell"  # codespell:ignore manuell
+
+
+@dataclass(frozen=True, slots=True)
+class Refill:
+    """Fuel or gas bought at one stop; gas always fills both tanks."""
+
+    litres: float
+    amount: float | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the refill as a JSON-serialisable dict."""
+        return {"litres": self.litres, "amount": self.amount}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> Refill | None:
+        """Rebuild a refill from `as_dict()` output."""
+        return cls(litres=data["litres"], amount=data.get("amount")) if data else None
+
+
+@dataclass(frozen=True, slots=True)
+class LogbookEntry:
+    """
+    One logbook entry.
+
+    `distance_counter_m` is the total distance the integration had measured when
+    the entry was made; the difference to a later counter is the distance driven
+    in between. Trip and stop are referenced by their start times, because the
+    per-trip log is discarded once the trip is closed.
+    """
+
+    id: str
+    time: datetime
+    occasion: Occasion
+    distance_counter_m: float
+    odometer_km: float | None = None
+    odometer_corrected: bool = False
+    fuel_percent: float | None = None
+    gas1_percent: float | None = None
+    gas2_percent: float | None = None
+    fuel: Refill | None = None
+    gas: Refill | None = None
+    trip_start: datetime | None = None
+    stop_start: datetime | None = None
+    lat: float | None = None
+    lon: float | None = None
+    place: str | None = None
+
+    @property
+    def cost(self) -> float:
+        """Return what fuel and gas cost at this entry."""
+        return sum(r.amount or 0.0 for r in (self.fuel, self.gas) if r is not None)
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the entry as a JSON-serialisable dict."""
+        return {
+            "id": self.id,
+            "time": self.time.isoformat(),
+            "occasion": self.occasion.value,
+            "distance_counter_m": self.distance_counter_m,
+            "odometer_km": self.odometer_km,
+            "odometer_corrected": self.odometer_corrected,
+            "fuel_percent": self.fuel_percent,
+            "gas1_percent": self.gas1_percent,
+            "gas2_percent": self.gas2_percent,
+            "fuel": self.fuel.as_dict() if self.fuel else None,
+            "gas": self.gas.as_dict() if self.gas else None,
+            "trip_start": self.trip_start.isoformat() if self.trip_start else None,
+            "stop_start": self.stop_start.isoformat() if self.stop_start else None,
+            "lat": self.lat,
+            "lon": self.lon,
+            "place": self.place,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> LogbookEntry:
+        """Rebuild an entry from `as_dict()` output."""
+        return cls(
+            id=data["id"],
+            time=datetime.fromisoformat(data["time"]),
+            occasion=Occasion(data["occasion"]),
+            distance_counter_m=data["distance_counter_m"],
+            odometer_km=data.get("odometer_km"),
+            odometer_corrected=data.get("odometer_corrected", False),
+            fuel_percent=data.get("fuel_percent"),
+            gas1_percent=data.get("gas1_percent"),
+            gas2_percent=data.get("gas2_percent"),
+            fuel=Refill.from_dict(data.get("fuel")),
+            gas=Refill.from_dict(data.get("gas")),
+            trip_start=_optional_time(data.get("trip_start")),
+            stop_start=_optional_time(data.get("stop_start")),
+            lat=data.get("lat"),
+            lon=data.get("lon"),
+            place=data.get("place"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class Suggestion:
+    """Values the form is pre-filled with."""
+
+    odometer_km: float | None = None
+    fuel_percent: float | None = None
+    gas1_percent: float | None = None
+    gas2_percent: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TripSummary:
+    """Logbook figures of one trip for its export."""
+
+    odometer_start_km: float | None = None
+    odometer_end_km: float | None = None
+    fuel_litres: float = 0.0
+    fuel_cost: float = 0.0
+    gas_litres: float = 0.0
+    gas_cost: float = 0.0
+
+    @property
+    def cost(self) -> float:
+        """Return fuel and gas costs together."""
+        return self.fuel_cost + self.gas_cost
+
+
+@dataclass(slots=True)
+class Logbook:
+    """
+    All entries of one vehicle, plus the distance measured so far.
+
+    The measured distance is split into closed trips and the running trip: the
+    running trip's distance may still shrink (merged GPS fixes) and is only added
+    for good when the trip's log is discarded.
+    """
+
+    tank_litres: float = 90.0
+    entries: list[LogbookEntry] = field(default_factory=list)
+    closed_trips_m: float = 0.0
+    running_trip_m: float = 0.0
+
+    @property
+    def distance_counter_m(self) -> float:
+        """Return the total distance measured by the integration."""
+        return self.closed_trips_m + self.running_trip_m
+
+    def set_running_trip_distance(self, metres: float) -> None:
+        """Set the distance of the running trip so far."""
+        self.running_trip_m = max(metres, 0.0)
+
+    def close_trip(self) -> None:
+        """Add the running trip's distance to the closed trips."""
+        self.closed_trips_m += self.running_trip_m
+        self.running_trip_m = 0.0
+
+    def get(self, entry_id: str) -> LogbookEntry | None:
+        """Return the entry with `entry_id`."""
+        return next((e for e in self.entries if e.id == entry_id), None)
+
+    def last(self, *, having: str | None = None) -> LogbookEntry | None:
+        """Return the latest entry, or the latest one where the field `having` is set."""
+        for entry in reversed(self.entries):
+            if having is None or getattr(entry, having) is not None:
+                return entry
+        return None
+
+    def add(
+        self,
+        time: datetime,
+        occasion: Occasion,
+        *,
+        odometer_km: float | None = None,
+        fuel_percent: float | None = None,
+        gas1_percent: float | None = None,
+        gas2_percent: float | None = None,
+        fuel: Refill | None = None,
+        gas: Refill | None = None,
+        trip_start: datetime | None = None,
+        stop_start: datetime | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        place: str | None = None,
+    ) -> LogbookEntry:
+        """
+        Add an entry at the current distance counter and return it.
+
+        The odometer counts as corrected when it differs from the carried-forward
+        value; the difference then shows how far off the measured distance was.
+        """
+        suggested = self.suggest_odometer()
+        entry = LogbookEntry(
+            id=uuid.uuid4().hex,
+            time=time,
+            occasion=occasion,
+            distance_counter_m=self.distance_counter_m,
+            odometer_km=odometer_km,
+            odometer_corrected=odometer_km is not None and suggested is not None and odometer_km != suggested,
+            fuel_percent=fuel_percent,
+            gas1_percent=gas1_percent,
+            gas2_percent=gas2_percent,
+            fuel=fuel,
+            gas=gas,
+            trip_start=trip_start,
+            stop_start=stop_start,
+            lat=lat,
+            lon=lon,
+            place=place,
+        )
+        self.entries.append(entry)
+        self.entries.sort(key=lambda e: e.time)
+        return entry
+
+    def update(self, entry_id: str, **changes: Any) -> LogbookEntry:
+        """
+        Change fields of an entry and return the new entry.
+
+        Raises:
+            KeyError: No entry has `entry_id`.
+
+        """
+        entry = self.get(entry_id)
+        if entry is None:
+            raise KeyError(entry_id)
+        if "odometer_km" in changes and changes["odometer_km"] != entry.odometer_km:
+            changes.setdefault("odometer_corrected", True)
+        changed = replace(entry, **changes)
+        self.entries = sorted((changed if e is entry else e for e in self.entries), key=lambda e: e.time)
+        return changed
+
+    def remove(self, entry_id: str) -> None:
+        """
+        Delete an entry.
+
+        Raises:
+            KeyError: No entry has `entry_id`.
+
+        """
+        if self.get(entry_id) is None:
+            raise KeyError(entry_id)
+        self.entries = [e for e in self.entries if e.id != entry_id]
+
+    def km_since(self, entry: LogbookEntry) -> float:
+        """Return the distance measured since `entry` in kilometres."""
+        return max(self.distance_counter_m - entry.distance_counter_m, 0.0) / 1000
+
+    def suggest_odometer(self) -> float | None:
+        """Return the last odometer reading plus the distance measured since, in whole kilometres."""
+        last = self.last(having="odometer_km")
+        if last is None or last.odometer_km is None:
+            return None
+        return float(round(last.odometer_km + self.km_since(last)))
+
+    def average_consumption(self) -> float | None:
+        """
+        Return the fuel consumption in l/100 km by the full-tank method.
+
+        Every refill to 100 % closes an interval: the litres bought since the
+        previous full refill, partial refills included, divided by the odometer
+        distance in between. The first full refill only marks the start.
+
+        Returns:
+            Total litres ÷ total distance of all closed intervals, or None
+            before there are two full refills with odometer readings.
+
+        """
+        litres_total = km_total = litres_open = 0.0
+        previous_full: LogbookEntry | None = None
+        for entry in self.entries:
+            if entry.fuel is None:
+                continue
+            litres_open += entry.fuel.litres
+            if entry.odometer_km is None or (entry.fuel_percent or 0.0) < FULL_PERCENT:
+                continue
+            if previous_full is not None and previous_full.odometer_km is not None:
+                km = entry.odometer_km - previous_full.odometer_km
+                if km > 0:
+                    litres_total += litres_open
+                    km_total += km
+            previous_full, litres_open = entry, 0.0
+        return litres_total / km_total * 100 if km_total > 0 else None
+
+    def suggest_fuel_percent(self) -> float | None:
+        """Return the last fuel level minus what the distance since has used, in whole percent."""
+        last = self.last(having="fuel_percent")
+        if last is None or last.fuel_percent is None:
+            return None
+        consumption = self.average_consumption()
+        if consumption is None or self.tank_litres <= 0:
+            return last.fuel_percent
+        used_percent = self.km_since(last) * consumption / 100 / self.tank_litres * 100
+        return float(round(min(max(last.fuel_percent - used_percent, 0.0), FULL_PERCENT)))
+
+    def suggestion(self) -> Suggestion:
+        """Return the values to pre-fill the form with."""
+        gas1 = self.last(having="gas1_percent")
+        gas2 = self.last(having="gas2_percent")
+        return Suggestion(
+            odometer_km=self.suggest_odometer(),
+            fuel_percent=self.suggest_fuel_percent(),
+            gas1_percent=gas1.gas1_percent if gas1 else None,
+            gas2_percent=gas2.gas2_percent if gas2 else None,
+        )
+
+    def cost_between(self, start: datetime, end: datetime) -> float:
+        """Return fuel and gas costs of the entries from `start` until before `end`."""
+        return sum(e.cost for e in self.entries if start <= e.time < end)
+
+    def trip_summary(self, trip_start: datetime) -> TripSummary:
+        """
+        Return the logbook figures of the trip that started at `trip_start`.
+
+        Call it when the trip has ended, before `close_trip()`. The entries of the
+        trip include its arrival, which begins after the trip's end time. Without a
+        reading at the trip start there is no start odometer; the end odometer is
+        carried forward from the latest reading to the current distance counter.
+        """
+        entries = [e for e in self.entries if e.trip_start == trip_start]
+        readings = [e for e in entries if e.odometer_km is not None and e.occasion is Occasion.TRIP_START]
+        fuel = [e.fuel for e in entries if e.fuel is not None]
+        gas = [e.gas for e in entries if e.gas is not None]
+        return TripSummary(
+            odometer_start_km=readings[0].odometer_km if readings else None,
+            odometer_end_km=self.suggest_odometer(),
+            fuel_litres=sum(r.litres for r in fuel),
+            fuel_cost=sum(r.amount or 0.0 for r in fuel),
+            gas_litres=sum(r.litres for r in gas),
+            gas_cost=sum(r.amount or 0.0 for r in gas),
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the logbook as a JSON-serialisable dict; the tank size is a setting and not stored."""
+        return {
+            "version": LOGBOOK_VERSION,
+            "closed_trips_m": self.closed_trips_m,
+            "running_trip_m": self.running_trip_m,
+            "entries": [e.as_dict() for e in self.entries],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any], tank_litres: float) -> Logbook:
+        """Rebuild a logbook from `as_dict()` output."""
+        return cls(
+            tank_litres=tank_litres,
+            entries=sorted((LogbookEntry.from_dict(e) for e in data.get("entries", [])), key=lambda e: e.time),
+            closed_trips_m=data.get("closed_trips_m", 0.0),
+            running_trip_m=data.get("running_trip_m", 0.0),
+        )
+
+
+def _optional_time(value: str | None) -> datetime | None:
+    return datetime.fromisoformat(value) if value else None
