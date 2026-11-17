@@ -12,7 +12,7 @@ from custom_components.reiseverlauftracker.export import (
     TrackPoint,
     decode_speed,
 )
-from custom_components.reiseverlauftracker.export.track import prepare_track, thin_out
+from custom_components.reiseverlauftracker.export.track import coalesce, prepare_track, thin_out
 
 pytestmark = pytest.mark.unit
 
@@ -108,3 +108,25 @@ def test_thin_out_keeps_ends_and_spacing() -> None:
     assert kept[0] is points[0]
     assert kept[-1] is points[-1]
     assert [round(p.lat, 7) for p in kept[1:-1]] == [round(points[i].lat, 7) for i in (3, 6, 9)]
+
+
+def test_coalesce_keeps_the_complete_update_of_each_fix() -> None:
+    first = TrackPoint(START, 47.0, 11.0)
+    half = TrackPoint(START + timedelta(seconds=5), 47.01, 11.0)
+    full = TrackPoint(START + timedelta(seconds=6), 47.01, 11.01)
+    later = TrackPoint(START + timedelta(seconds=10), 47.02, 11.01)
+
+    assert coalesce([first, half, full, later]) == [first, full, later]
+
+
+def test_prepare_measures_the_coalesced_track() -> None:
+    """Separate latitude and longitude updates must not add a staircase to the distance."""
+    points = []
+    for i in range(1, 60):
+        t = START + timedelta(seconds=5 * i)
+        points.append(TrackPoint(t, 47.0 + i * 0.001, 11.0 + (i - 1) * 0.001, 10))
+        points.append(TrackPoint(t + timedelta(seconds=1), 47.0 + i * 0.001, 11.0 + i * 0.001, 10))
+
+    track = prepare_track(points, None, None, ExportOptions())
+
+    assert all(round((p.lat - 47.0) * 1000) == round((p.lon - 11.0) * 1000) for p in track.points)
