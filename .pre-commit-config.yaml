@@ -11,10 +11,13 @@
 # to the standard location at $HOME/.local/ha-venv.
 # Node hooks use ./node_modules/.bin/ (installed via npm install).
 #
-# Install both hook types with a plain `prek install` — without this,
-# the commit-msg hook below would need an explicit --hook-type flag and would
-# silently never run for anyone who forgot it.
-default_install_hook_types: [pre-commit, commit-msg]
+# Install all three hook types with a plain `prek install` — without this,
+# the commit-msg and pre-push hooks below would need an explicit --hook-type
+# flag and would silently never run for anyone who forgot it.
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+# Hooks without their own `stages` would otherwise also run on commit-msg and
+# pre-push, where the formatters below would rewrite files during a push.
+default_stages: [pre-commit]
 
 repos:
   - repo: local
@@ -58,12 +61,21 @@ repos:
       #   requirements_test.txt (pytest-homeassistant-custom-component pin)
       #   hacs.json (homeassistant minimum)
       #   .devcontainer/.env (HA_VERSION override, if set)
+      # and the Python version mise.toml pins against HA's requires-python
       - id: ha-version-sync
         name: homeassistant/pytest-homeassistant-custom-component sync
         entry: ./script/ha-version-sync
         language: system
-        files: ^(hacs\.json|requirements_test\.txt|\.devcontainer/\.env)$
+        files: ^(hacs\.json|requirements_test\.txt|\.devcontainer/\.env|mise\.toml|pyproject\.toml)$
         pass_filenames: false
+
+      # Secrets in the staged changes, with the rules in .betterleaks.toml
+      - id: secret-scan
+        name: secret scan (betterleaks)
+        entry: ./script/secret-scan --staged
+        language: system
+        pass_filenames: false
+        always_run: true
 
       # Shell script linting
       - id: shellcheck
@@ -141,3 +153,14 @@ repos:
       #   # Run manually with: pre-commit run pyright --all-files
       #   stages: [manual]
       # yamllint enable rule:comments-indentation
+
+      # The pushed commit must be the clean, checked-out HEAD and pass lint and
+      # type checks; script/push-gate explains the rules.
+      - id: push-gate
+        name: push gate (lint-check + type-check)
+        entry: script/push-gate
+        language: system
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+        require_serial: true
