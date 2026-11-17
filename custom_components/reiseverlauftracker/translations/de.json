@@ -245,6 +245,27 @@
             "name": "Letzte Einträge"
           }
         }
+      },
+      "odometer": {
+        "name": "Kilometerstand"
+      },
+      "fuel_level": {
+        "name": "Kraftstoff"
+      },
+      "gas_1_level": {
+        "name": "Gas 1"
+      },
+      "gas_2_level": {
+        "name": "Gas 2"
+      },
+      "average_consumption": {
+        "name": "Durchschnittsverbrauch"
+      },
+      "costs_month": {
+        "name": "Tank- und Gaskosten Monat"
+      },
+      "costs_year": {
+        "name": "Tank- und Gaskosten Jahr"
       }
     },
     "number": {

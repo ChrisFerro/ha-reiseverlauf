@@ -28,6 +28,12 @@ class Texts:
     time_axis: str
     stops: str
     unknown_place: str
+    odometer: str
+    refuelled: str
+    diesel: str
+    gas: str
+    costs: str
+    consumption: str
 
 
 TEXTS: dict[str, Texts] = {
@@ -52,6 +58,12 @@ TEXTS: dict[str, Texts] = {
         time_axis="Uhrzeit",
         stops="Halte",
         unknown_place="Unbekannter Ort",
+        odometer="Kilometerstand",
+        refuelled="Getankt",
+        diesel="Diesel",
+        gas="Gas",
+        costs="Kosten",
+        consumption="Ø-Verbrauch",
     ),
     "en": Texts(
         decimal_separator=".",
@@ -74,6 +86,12 @@ TEXTS: dict[str, Texts] = {
         time_axis="Time",
         stops="Stops",
         unknown_place="Unknown place",
+        odometer="Odometer",
+        refuelled="Refuelled",
+        diesel="diesel",
+        gas="gas",
+        costs="Costs",
+        consumption="Ø consumption",
     ),
 }
 
@@ -86,6 +104,14 @@ def texts_for(language: str) -> Texts:
 def format_number(texts: Texts, value: float, decimals: int = 0) -> str:
     """Format a number with the decimal separator of the language."""
     return f"{value:.{decimals}f}".replace(".", texts.decimal_separator)
+
+
+CURRENCY_SYMBOLS = {"EUR": "€", "CHF": "CHF", "GBP": "£", "USD": "$"}
+
+
+def format_money(texts: Texts, value: float, currency: str) -> str:
+    """Format an amount with two decimals and the currency symbol, or the code without a known symbol."""
+    return f"{format_number(texts, value, 2)} {CURRENCY_SYMBOLS.get(currency, currency)}"
 
 
 def format_duration(value: timedelta) -> str:

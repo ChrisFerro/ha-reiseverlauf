@@ -245,6 +245,27 @@
             "name": "Latest entries"
           }
         }
+      },
+      "odometer": {
+        "name": "Odometer"
+      },
+      "fuel_level": {
+        "name": "Fuel"
+      },
+      "gas_1_level": {
+        "name": "Gas 1"
+      },
+      "gas_2_level": {
+        "name": "Gas 2"
+      },
+      "average_consumption": {
+        "name": "Average consumption"
+      },
+      "costs_month": {
+        "name": "Fuel and gas costs month"
+      },
+      "costs_year": {
+        "name": "Fuel and gas costs year"
       }
     },
     "number": {

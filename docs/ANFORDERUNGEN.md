@@ -69,6 +69,8 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
 - Fahrtenbuch-Formular: `number.…_fahrtenbuch_*` (Kilometerstand, Kraftstoff, Gas 1/2, Diesel und Gas getankt und
   Betrag), `button.…_fahrtenbuch_speichern`/`_verwerfen`, `sensor.…_fahrtenbuch_eintrag` (siehe
   [Fahrtenbuch](features/fahrtenbuch.md) 6.2)
+- Fahrtenbuch-Auswertung: `sensor.…_kilometerstand`, `…_kraftstoff`, `…_gas_1`, `…_gas_2`, `…_durchschnittsverbrauch`,
+  `…_tank_und_gaskosten_monat`, `…_tank_und_gaskosten_jahr` (siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.5)
 
 Dienste (alle mit Pflichtfeld `config_entry_id`):
 
@@ -85,7 +87,7 @@ Events:
 - `reiseverlauftracker_gestartet`
 - `reiseverlauftracker_exportiert` nach manuellem Export (Daten wie `_beendet`, siehe [Export](features/export.md) 5.5)
 - `reiseverlauftracker_beendet` mit Daten: Titel, Start, Ende, Strecke_km, Fahrzeit, Dateiliste (Name, URL),
-  Statistiktext, Pfad des Gesamtbilds, Halte
+  Statistiktext, Pfad des Gesamtbilds, Halte, Fahrtenbuch (Kilometerstand, Liter, Kosten, Verbrauch)
 - `reiseverlauftracker_fahrtenbuch` bei Reisestart und bei jedem Halt ab der Mindestdauer: Anlass, Zeit, Ort,
   Reise- und Halt-Start, Vorschlag (Kilometerstand, Kraftstoff, Gas 1, Gas 2), siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.3
 

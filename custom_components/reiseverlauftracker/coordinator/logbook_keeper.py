@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from custom_components.reiseverlauftracker.const import DOMAIN, EVENT_LOGBOOK, LOGGER
+from custom_components.reiseverlauftracker.export import LogbookFigures
 from custom_components.reiseverlauftracker.export.logbook_csv import logbook_csv
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -212,6 +213,21 @@ class LogbookKeeper:
                 "gas_2": suggestion.gas2_percent,
             },
         }
+
+    def trip_figures(self, trip_start: datetime) -> LogbookFigures | None:
+        """Return the logbook figures for the export of a trip, or None while the logbook is empty."""
+        if not self.logbook.entries:
+            return None
+        summary = self.logbook.trip_summary(trip_start)
+        return LogbookFigures(
+            odometer_start_km=summary.odometer_start_km,
+            odometer_end_km=summary.odometer_end_km,
+            fuel_litres=summary.fuel_litres,
+            fuel_cost=summary.fuel_cost,
+            gas_litres=summary.gas_litres,
+            gas_cost=summary.gas_cost,
+            consumption_l_100km=self.logbook.average_consumption(),
+        )
 
     def set_field(self, form_field: FormField, value: float) -> None:
         """Change one value of the form."""

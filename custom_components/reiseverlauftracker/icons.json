@@ -77,6 +77,27 @@
         "state": {
           "offen": "mdi:notebook-edit"
         }
+      },
+      "odometer": {
+        "default": "mdi:counter"
+      },
+      "fuel_level": {
+        "default": "mdi:gas-station"
+      },
+      "gas_1_level": {
+        "default": "mdi:propane-tank"
+      },
+      "gas_2_level": {
+        "default": "mdi:propane-tank"
+      },
+      "average_consumption": {
+        "default": "mdi:fuel"
+      },
+      "costs_month": {
+        "default": "mdi:cash-multiple"
+      },
+      "costs_year": {
+        "default": "mdi:cash-multiple"
       }
     },
     "number": {

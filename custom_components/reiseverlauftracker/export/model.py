@@ -76,6 +76,51 @@ class Stop:
 
 
 @dataclass(frozen=True, slots=True)
+class LogbookFigures:
+    """Logbook figures of one trip; costs in `ExportOptions.currency`."""
+
+    odometer_start_km: float | None = None
+    odometer_end_km: float | None = None
+    fuel_litres: float = 0.0
+    fuel_cost: float = 0.0
+    gas_litres: float = 0.0
+    gas_cost: float = 0.0
+    consumption_l_100km: float | None = None
+    """Average consumption over all refills so far, not of this trip alone."""
+
+    @property
+    def cost(self) -> float:
+        """Return fuel and gas costs together."""
+        return self.fuel_cost + self.gas_cost
+
+    def as_dict(self) -> dict[str, float | None]:
+        """Return the figures as stored in `export.json` and sent with the events, keyed in German."""
+        return {
+            "kilometerstand_start": self.odometer_start_km,
+            "kilometerstand_ende": self.odometer_end_km,
+            "diesel_liter": self.fuel_litres,
+            "diesel_kosten": round(self.fuel_cost, 2),
+            "gas_liter": self.gas_litres,
+            "gas_kosten": round(self.gas_cost, 2),
+            "kosten": round(self.cost, 2),
+            "verbrauch_l_100km": round(self.consumption_l_100km, 1) if self.consumption_l_100km is not None else None,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, float | None]) -> LogbookFigures:
+        """Rebuild the figures from `as_dict()` output."""
+        return cls(
+            odometer_start_km=data.get("kilometerstand_start"),
+            odometer_end_km=data.get("kilometerstand_ende"),
+            fuel_litres=data.get("diesel_liter") or 0.0,
+            fuel_cost=data.get("diesel_kosten") or 0.0,
+            gas_litres=data.get("gas_liter") or 0.0,
+            gas_cost=data.get("gas_kosten") or 0.0,
+            consumption_l_100km=data.get("verbrauch_l_100km"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class ExportOptions:
     """Settings of one export run."""
 
@@ -95,3 +140,5 @@ class ExportOptions:
     user_agent: str = "reiseverlauftracker"
     with_map: bool = True
     stops: tuple[Stop, ...] = ()
+    logbook: LogbookFigures | None = None
+    currency: str = "EUR"

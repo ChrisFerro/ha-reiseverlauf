@@ -84,3 +84,14 @@ def test_composite_stacks_parts_under_header() -> None:
     assert image.size == (2400, 380 + 1600 + 40 + 900 + 40)
     assert image.getpixel((10, 380 + 10)) == (255, 0, 0)
     assert render_composite([None], "Tour", "", figures) is None
+
+
+def test_composite_adds_a_row_for_extra_figures() -> None:
+    part = Image.new("RGB", (2400, 900), "blue")
+    figures = [("Strecke", "30,0 km")]
+
+    image = render_composite([part], "Tour", "01.10.2026", figures, extra_figures=[("Kosten", "114,80 €")])
+
+    assert image is not None
+    assert image.size == (2400, 380 + 150 + 900 + 40)
+    assert image.getpixel((10, 380 + 150 + 10)) == (0, 0, 255)

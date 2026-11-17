@@ -1,6 +1,6 @@
 # Fahrtenbuch (Etappe 6)
 
-Stand: 17.11.2026, Entwurf freigegeben, Umsetzung läuft (Teilschritte 1 bis 3 von 6.7 erledigt).
+Stand: 17.11.2026, Entwurf freigegeben, Umsetzung läuft (Teilschritte 1 bis 4 von 6.7 erledigt).
 Übergeordnete Anforderungen, Entscheidungen und Begriffe: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
 
 ## 1. Ziel
@@ -164,12 +164,15 @@ ginge die seitdem gefahrene Strecke für den Kilometerstand verloren. Für Autom
 - **Verbrauch l/100 km** nach der Volltank-Methode: getankte Liter ÷ km seit dem vorherigen Tankstopp. Der erste
   Tankstopp ist nur Ausgangspunkt. Durchschnitt über alle Tankstopps (Summe Liter ÷ Summe km). Er enthält
   vorerst auch den Dieselverbrauch der Heizung im Stand.
-- **Sensoren:** Kilometerstand (Vorschlag bzw. zuletzt eingetragen), Kraftstoff, Gas 1, Gas 2 (letzter Eintrag),
-  Durchschnittsverbrauch, Kosten im laufenden Monat und Jahr (Diesel + Gas). Keine Langzeitstatistik für
-  Kosten, sie werden aus den Einträgen berechnet.
-- **Reise-Export:** Kilometerstand von/bis (Eintrag beim Reisestart bzw. letzter Eintrag der Reise, sonst
-  berechnet), Tank- und Gaskosten und getankte Liter der Reise in Statistik, Gesamtbild, `export.json` und Event
-  `_beendet`. Ein später korrigierter Eintrag ändert einen fertigen Export nicht.
+- **Sensoren:** `sensor.…_kilometerstand` (letzter Stand + seitdem gemessene Strecke), `…_kraftstoff`, `…_gas_1`,
+  `…_gas_2` (letzter Eintrag mit diesem Wert), `…_durchschnittsverbrauch` (l/100 km),
+  `…_tank_und_gaskosten_monat` und `…_jahr` (Diesel + Gas im laufenden Kalendermonat bzw. -jahr, Ortszeit). Keine
+  Langzeitstatistik für Kosten, sie werden aus den Einträgen berechnet.
+- **Reise-Export:** Kilometerstand von/bis (von: Eintrag beim Reisestart; bis: fortgeschriebener Stand beim
+  Export), getankte Liter, Kosten und Ø-Verbrauch in der Statistik, als zweite Zeile im Kopf des Gesamtbilds, in
+  `export.json` (`logbook`) und im Event `_beendet` (`fahrtenbuch`: `kilometerstand_start`, `kilometerstand_ende`,
+  `diesel_liter`, `diesel_kosten`, `gas_liter`, `gas_kosten`, `kosten`, `verbrauch_l_100km`). Ohne Einträge im
+  Fahrtenbuch bleibt der Export wie bisher. Ein später korrigierter Eintrag ändert einen fertigen Export nicht.
 - **CSV:** eine Zeile je Eintrag, Spalten wie 6.1, Trennzeichen und Dezimalzeichen passend zur Sprache
   (deutsch: `;` und `,`).
 

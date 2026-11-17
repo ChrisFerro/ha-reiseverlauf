@@ -241,3 +241,37 @@ async def test_csv_action_writes_the_file(hass: HomeAssistant, loaded: MockConfi
         "eintraege": 0,
     }
     assert len(csv_lines(media_dir)) == 1
+
+
+def sensor_value(hass: HomeAssistant, entry: MockConfigEntry, key: str) -> float | None:
+    """Return the value of a logbook sensor, or None while it is unknown."""
+    state = hass.states.get(entity_id(hass, entry, Platform.SENSOR, key))
+    assert state is not None
+    return None if state.state == "unknown" else float(state.state)
+
+
+async def test_evaluation_sensors(hass: HomeAssistant, loaded: MockConfigEntry, freezer: FrozenDateTimeFactory) -> None:
+    freezer.move_to("2026-11-17 12:00:00+00:00")
+    base = {"config_entry_id": loaded.entry_id}
+    assert sensor_value(hass, loaded, "odometer") is None
+    assert sensor_value(hass, loaded, "costs_month") == 0
+
+    last_year = {"zeit": "2025-12-30 10:00:00", "diesel_liter": 30, "diesel_betrag": 50}
+    await call(hass, "fahrtenbuch_eintragen", {**base, **last_year, "kilometerstand": 1000, "kraftstoff": 100})
+    october = {"zeit": "2026-10-05 10:00:00", "gas_liter": 20, "gas_betrag": 19}
+    await call(hass, "fahrtenbuch_eintragen", {**base, **october, "gas_1": 100, "gas_2": 100})
+    november = {"diesel_liter": 60, "diesel_betrag": 102.5, "kraftstoff": 100, "kilometerstand": 1500}
+    await call(hass, "fahrtenbuch_eintragen", {**base, **november})
+    coordinator_of(loaded).logbook.set_running_trip_distance(25_000)
+    coordinator_of(loaded).async_update_listeners()
+    await hass.async_block_till_done()
+
+    assert sensor_value(hass, loaded, "odometer") == 1525
+    assert sensor_value(hass, loaded, "fuel_level") == 100
+    assert sensor_value(hass, loaded, "gas_1_level") == 100
+    assert sensor_value(hass, loaded, "average_consumption") == 12.0
+    assert sensor_value(hass, loaded, "costs_month") == 102.5
+    assert sensor_value(hass, loaded, "costs_year") == 121.5
+    state = hass.states.get(entity_id(hass, loaded, Platform.SENSOR, "costs_year"))
+    assert state is not None
+    assert state.attributes["unit_of_measurement"] == hass.config.currency

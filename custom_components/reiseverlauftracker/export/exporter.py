@@ -17,7 +17,7 @@ from .composite import render_composite
 from .gpx import build_gpx
 from .map import TileFetcher, http_tile_fetcher, render_map
 from .model import ExportOptions, StepSeries, TrackPoint
-from .stats import TripStats, compute_stats, stats_rows, stats_text, stop_lines
+from .stats import TripStats, compute_stats, logbook_rows, stats_rows, stats_text, stop_lines
 from .texts import default_title, texts_for
 from .track import prepare_track
 
@@ -99,7 +99,8 @@ def export_trip(
     )
     stats = compute_stats(track.points, track.speed, options)
     rows = stats_rows(stats, texts, tz)
-    text = stats_text(title, rows, stop_lines(options.stops, texts, tz))
+    logbook = logbook_rows(options.logbook, texts, options.currency)
+    text = stats_text(title, rows + logbook, stop_lines(options.stops, texts, tz))
 
     out_dir.mkdir(parents=True, exist_ok=True)
     files: dict[ExportFile, Path] = {}
@@ -130,7 +131,7 @@ def export_trip(
         profile.close()
 
     untitled_profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale)
-    composite = render_composite([map_image, untitled_profile], title, rows[0][1], rows[1:], scale)
+    composite = render_composite([map_image, untitled_profile], title, rows[0][1], rows[1:], scale, logbook)
     if composite is not None:
         composite.save(path(ExportFile.COMPOSITE))
         composite.close()

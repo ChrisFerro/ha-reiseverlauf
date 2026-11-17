@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from custom_components.reiseverlauftracker.export import ExportFile, Stop
+from custom_components.reiseverlauftracker.export import ExportFile, LogbookFigures, Stop
 
 METADATA_FILE = "export.json"
 METADATA_VERSION = 1
@@ -34,6 +34,7 @@ class ExportInfo:
     departure: datetime | None = None
     arrival: datetime | None = None
     stops: tuple[Stop, ...] = ()
+    logbook: LogbookFigures | None = None
 
     def label(self, tz: tzinfo) -> str:
         """Return the short unique name shown in the export selection: start time and shortened title."""
@@ -60,6 +61,7 @@ class ExportInfo:
             "departure": self.departure.isoformat() if self.departure else None,
             "arrival": self.arrival.isoformat() if self.arrival else None,
             "stops": [{"start": s.start.isoformat(), "end": s.end.isoformat(), "place": s.place} for s in self.stops],
+            "logbook": self.logbook.as_dict() if self.logbook else None,
         }
 
     @classmethod
@@ -85,6 +87,7 @@ class ExportInfo:
                 )
                 for s in data.get("stops", [])
             ),
+            logbook=LogbookFigures.from_dict(data["logbook"]) if data.get("logbook") else None,
         )
 
 

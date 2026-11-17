@@ -15,6 +15,7 @@ from custom_components.reiseverlauftracker.const import (
 )
 from custom_components.reiseverlauftracker.export import (
     ExportFile,
+    LogbookFigures,
     NoMovementError,
     NotEnoughPointsError,
     StepSeries,
@@ -386,15 +387,21 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         positions, speed, altitude = self.log.export_inputs()
         data = ([p for p in positions if p.time <= trip_event.end], speed, altitude)
         stops = self.log.export_stops(trip_event.end, self.settings.min_stop_duration)
+        logbook = self.logbook.trip_figures(trip_event.start)
         self._exporting = True
         self.config_entry.async_create_task(
             self.hass,
-            self._async_export_ended(trip_event, data, self.log.as_dict(), stops),
+            self._async_export_ended(trip_event, data, self.log.as_dict(), stops, logbook),
             "reiseverlauftracker export",
         )
 
     async def _async_export_ended(
-        self, trip_event: TripEnded, data: Any, raw: dict[str, Any], stops: tuple[Stop, ...]
+        self,
+        trip_event: TripEnded,
+        data: Any,
+        raw: dict[str, Any],
+        stops: tuple[Stop, ...],
+        logbook: LogbookFigures | None,
     ) -> None:
         async with self._export_lock:
             try:
@@ -407,6 +414,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                     version=async_get_loaded_integration(self.hass, DOMAIN).version,
                     raw=raw,
                     stops=stops,
+                    logbook=logbook,
                 )
             except NotEnoughPointsError, NoMovementError:
                 LOGGER.warning("Trip from %s has no usable movement to export", trip_event.start)

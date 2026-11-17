@@ -5,10 +5,11 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from custom_components.reiseverlauftracker.export import ExportOptions, StepSeries, Stop, TrackPoint
+from custom_components.reiseverlauftracker.export import ExportOptions, LogbookFigures, StepSeries, Stop, TrackPoint
 from custom_components.reiseverlauftracker.export.stats import (
     compute_stats,
     elevation_change,
+    logbook_rows,
     moving_time,
     stats_rows,
     stats_text,
@@ -120,3 +121,39 @@ def test_stats_text_lists_stops() -> None:
 
     assert text.endswith("\nHalte:\n  Brenner  10:00–10:20 (0 h 20 min)\n  Unbekannter Ort  12:00–13:10 (1 h 10 min)\n")
     assert stop_lines([], texts, BERLIN) == []
+
+
+def test_logbook_rows_german() -> None:
+    figures = LogbookFigures(
+        odometer_start_km=34299,
+        odometer_end_km=34383,
+        fuel_litres=55.3,
+        fuel_cost=96.4,
+        gas_litres=20,
+        gas_cost=18.4,
+        consumption_l_100km=11.96,
+    )
+
+    assert logbook_rows(figures, texts_for("de"), "EUR") == [
+        ("Kilometerstand", "34299 – 34383 km"),
+        ("Getankt", "55,3 l Diesel · 20,0 l Gas"),
+        ("Kosten", "114,80 €"),
+        ("Ø-Verbrauch", "12,0 l/100 km"),
+    ]
+
+
+def test_logbook_rows_leave_out_what_is_missing() -> None:
+    texts = texts_for("en")
+
+    assert logbook_rows(None, texts, "EUR") == []
+    assert logbook_rows(LogbookFigures(odometer_end_km=1000), texts, "CHF") == [("Odometer", "1000 km")]
+    assert logbook_rows(LogbookFigures(gas_litres=10, gas_cost=9.5), texts, "XYZ") == [
+        ("Refuelled", "10.0 l gas"),
+        ("Costs", "9.50 XYZ"),
+    ]
+
+
+def test_logbook_figures_round_trip() -> None:
+    figures = LogbookFigures(odometer_start_km=1, odometer_end_km=2, fuel_litres=3, fuel_cost=4.5, gas_cost=1)
+
+    assert LogbookFigures.from_dict(figures.as_dict()) == figures
