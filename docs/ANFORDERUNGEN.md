@@ -158,4 +158,4 @@ neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeb
 | Feat-05 | Dashboard und Migration | [feat-05-dashboard.md](features/feat-05-dashboard.md)                         | 5      | umgesetzt                |
 | Feat-06 | Fahrtenbuch             | [feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)                     | 6      | umgesetzt                |
 | Feat-07 | Geschützter Download    | [feat-07-downloads.md](features/feat-07-downloads.md)                         | 7      | geplant, Fragen offen    |
-| Feat-08 | Verbrauchsmodell        | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | geplant, Fragen offen    |
+| Feat-08 | Verbrauchsmodell        | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | entschieden, offen       |

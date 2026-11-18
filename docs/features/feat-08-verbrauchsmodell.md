@@ -1,7 +1,7 @@
 # Feat-08: Verbrauchsmodell
 
-Stand: 18.11.2026, geplant (Etappe 8), offene Fragen in Abschnitt 4. Umsetzung erst, wenn genug Fahrtenbuch-Daten
-vorliegen.
+Stand: 18.11.2026, Fragen geklärt (Abschnitt 5). Zwischenschritt (5.5) zuerst; das Modell erst, wenn genug
+Fahrtenbuch-Daten vorliegen.
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Fahrtenbuch](feat-06-fahrtenbuch.md).
 
@@ -55,8 +55,8 @@ Der Kraftstoff-Vorschlag und der Durchschnittsverbrauch des Fahrtenbuchs werden 
    Standtagen eine Differenz aussagekräftig ist.~~ – entschieden, siehe 5.3.
 4. ~~**Anzeige:** Welche Werte sollen sichtbar sein (Sensor „Verbrauch im Stand“, bereinigter Ø-Verbrauch, Zusatz je
    Höhenmeter) und wo (Dashboard, Reise-Export)?~~ – entschieden, siehe 5.4.
-5. **Zwischenschritt:** Soll der Sensor „Verbrauch im Stand“ schon vorab kommen, bevor das Modell den Vorschlag
-   verändert?
+5. ~~**Zwischenschritt:** Soll der Sensor „Verbrauch im Stand“ schon vorab kommen, bevor das Modell den Vorschlag
+   verändert?~~ – entschieden, siehe 5.5.
 
 ## 5. Entscheidungen
 
@@ -79,6 +79,11 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
   - **Zusatz für Steigungen** in l je 1000 Höhenmeter bergauf,
   - **Heizung im Stand** in l je Tag.
     Solange das Modell noch nicht genug Daten hat, sind die Sensoren „unbekannt“ und der Export zeigt die Werte nicht.
+- **5.5 Zwischenschritt** – entschieden (18.11.2026): Vorab kommt ein Sensor „Heizung im Stand (abgelesen)“ in l je
+  Tag aus den abgelesenen Füllständen: Summe der Abnahmen zwischen letztem Eintrag einer Reise und nächstem
+  Reisebeginn (ohne Tankstopp dazwischen) ÷ Summe der Standtage, über alle Standzeiten. Er ist grob (5.3) und
+  verändert weder Ø-Verbrauch noch Vorschlag. Sobald das Modell genug Daten hat, ersetzt dessen Wert „Heizung im
+  Stand“ (5.4) ihn in Export und Vorschlag; der abgelesene Wert bleibt als Kontrolle.
 
 ## 6. Mögliche Umsetzung (zur Diskussion)
 
