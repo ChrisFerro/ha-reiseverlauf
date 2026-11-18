@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.0...v0.2.1) (2026-11-18)
+
+
+### Features
+
+* **logbook:** add logbook with reminders, evaluation and CSV ([#24](https://github.com/ChrisFerro/ha-reiseverlauf/issues/24)) ([d6781b5](https://github.com/ChrisFerro/ha-reiseverlauf/commit/d6781b54e3186cd9c6379c24b0e459227c354eed))
+
 ## [0.2.0](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.1.5...v0.2.0) (2026-11-17)
 
 
