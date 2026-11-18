@@ -49,8 +49,8 @@ Der Kraftstoff-Vorschlag und der Durchschnittsverbrauch des Fahrtenbuchs werden 
 1. ~~**Heizung:** Zieht die Heizung (z. B. Truma Combi D) den Diesel aus dem Fahrzeugtank oder hat sie einen eigenen
    Tank? Gibt es weitere Verbraucher aus dem Fahrzeugtank (z. B. Standheizung des Fahrerhauses)?~~ – entschieden,
    siehe 5.1.
-2. **Heizung als Sensor:** Gibt es in Home Assistant Werte zur Heizung (Betriebszustand, Leistungsstufe, z. B. über
-   Truma iNet/CP plus), aus denen sich die Laufzeit statt nur der Standtage ergibt?
+2. ~~**Heizung als Sensor:** Gibt es in Home Assistant Werte zur Heizung (Betriebszustand, Leistungsstufe, z. B. über
+   Truma iNet/CP plus), aus denen sich die Laufzeit statt nur der Standtage ergibt?~~ – entschieden, siehe 5.2.
 3. **Tankanzeige:** Wie fein ist die Tankanzeige (Prozent, Achtel, Balken)? Davon hängt ab, ab wie vielen
    Standtagen eine Differenz aussagekräftig ist.
 4. **Anzeige:** Welche Werte sollen sichtbar sein (Sensor „Verbrauch im Stand“, bereinigter Ø-Verbrauch, Zusatz je
@@ -65,6 +65,9 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
 - **5.1 Heizung am Fahrzeugtank** – entschieden (18.11.2026): Die Heizung bezieht ihren Diesel aus dem
   Fahrzeugtank. Ein sinkender Kraftstoff-Füllstand im Stand ist daher Heizungsverbrauch und wird vom Fahrverbrauch
   getrennt (Abschnitt 2). Weitere Verbraucher aus dem Fahrzeugtank sind nicht bekannt.
+- **5.2 Keine Heizungswerte** – entschieden (18.11.2026): In Home Assistant gibt es bisher keine Werte zur Heizung
+  (Betriebszustand, Leistung, Laufzeit). Der Verbrauch im Stand wird daher je Standtag geschätzt. Ein späterer
+  Heizungssensor (z. B. Truma iNet) bleibt als Erweiterung möglich: dann Verbrauch je Heizstunde.
 
 ## 6. Mögliche Umsetzung (zur Diskussion)
 
