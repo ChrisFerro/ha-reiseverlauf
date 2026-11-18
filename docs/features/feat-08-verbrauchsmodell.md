@@ -17,9 +17,9 @@ Der Kraftstoff-Vorschlag und der Durchschnittsverbrauch des Fahrtenbuchs werden 
 
 ## 2. Anforderungen (Entwurf)
 
-- **Verbrauch im Stand messen:** Differenz zwischen dem Kraftstoff-Füllstand am letzten Eintrag einer Reise
-  (Halt/Ankunft) und dem bestätigten Füllstand beim nächsten Reisebeginn, umgerechnet in Liter über die
-  Tankgröße; ohne Tankstopp dazwischen. Daraus Liter je Standtag.
+- **Verbrauch im Stand schätzen:** in erster Linie aus den getankten Litern zwischen zwei vollen Tankfüllungen,
+  zusammen mit Strecke und Höhenmetern (Standtage als dritter Faktor, siehe 5.3). Die Differenz der abgelesenen
+  Füllstände zwischen letztem Halt und nächstem Reisebeginn dient nur zur Kontrolle.
 - **Fahrverbrauch bereinigen:** Ø-Verbrauch je 100 km ohne den im Stand verbrauchten Diesel.
 - **Höhenmeter-Faktor:** Verbrauch ≈ Grundverbrauch je km × Strecke + Zusatzverbrauch je 100 Höhenmeter bergauf,
   geschätzt aus den Tankintervallen (Höhenmeter je Reise aus dem Export).
@@ -51,8 +51,8 @@ Der Kraftstoff-Vorschlag und der Durchschnittsverbrauch des Fahrtenbuchs werden 
    siehe 5.1.
 2. ~~**Heizung als Sensor:** Gibt es in Home Assistant Werte zur Heizung (Betriebszustand, Leistungsstufe, z. B. über
    Truma iNet/CP plus), aus denen sich die Laufzeit statt nur der Standtage ergibt?~~ – entschieden, siehe 5.2.
-3. **Tankanzeige:** Wie fein ist die Tankanzeige (Prozent, Achtel, Balken)? Davon hängt ab, ab wie vielen
-   Standtagen eine Differenz aussagekräftig ist.
+3. ~~**Tankanzeige:** Wie fein ist die Tankanzeige (Prozent, Achtel, Balken)? Davon hängt ab, ab wie vielen
+   Standtagen eine Differenz aussagekräftig ist.~~ – entschieden, siehe 5.3.
 4. **Anzeige:** Welche Werte sollen sichtbar sein (Sensor „Verbrauch im Stand“, bereinigter Ø-Verbrauch, Zusatz je
    Höhenmeter) und wo (Dashboard, Reise-Export)?
 5. **Zwischenschritt:** Soll der Sensor „Verbrauch im Stand“ schon vorab kommen, bevor das Modell den Vorschlag
@@ -68,12 +68,18 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
 - **5.2 Keine Heizungswerte** – entschieden (18.11.2026): In Home Assistant gibt es bisher keine Werte zur Heizung
   (Betriebszustand, Leistung, Laufzeit). Der Verbrauch im Stand wird daher je Standtag geschätzt. Ein späterer
   Heizungssensor (z. B. Truma iNet) bleibt als Erweiterung möglich: dann Verbrauch je Heizstunde.
+- **5.3 Ablesegenauigkeit der Tankanzeige** – entschieden (18.11.2026): Die Tankanzeige ist ein Zeiger zwischen leer
+  und voll mit knapp 90° Drehbereich; abgelesen wird in Schritten von etwa 5 bis 10 % (bei 90 l etwa 4,5 bis 9 l).
+  Die Heizung verbraucht typischerweise wenige Liter am Tag, eine einzelne Standzeit liegt daher meist unter der
+  Ablesegenauigkeit. Grundlage der Schätzung sind deshalb die genau gemessenen Liter an der Zapfsäule zwischen zwei
+  vollen Tankfüllungen (Abschnitt 6); die abgelesenen Füllstände dienen nur zur Kontrolle und für den Vorschlag.
 
 ## 6. Mögliche Umsetzung (zur Diskussion)
 
 - Höhenmeter bergauf je Fahrtenbuch-Intervall aus den gespeicherten Reisepunkten bzw. `export.json` der Reisen
   zwischen zwei Einträgen.
-- Schätzung mit kleinster Quadratsumme über die Tankintervalle (zwei Parameter, ohne zusätzliche Bibliothek), nur
-  wenn genug Intervalle mit ausreichend unterschiedlichen Höhenmetern vorliegen (Richtwert etwa 8).
-- Verbrauch im Stand als Mittelwert der Differenzen Halt → Reisebeginn je Standtag, nur über Paare ohne Tankstopp
-  und mit plausiblen Werten (keine Zunahme).
+- Schätzung mit kleinster Quadratsumme über die Tankintervalle: getankte Liter ≈ a × km + b × Höhenmeter bergauf
+  - c × Standtage (drei Parameter, ohne zusätzliche Bibliothek). Nur wenn genug Intervalle vorliegen, die sich in
+    Höhenmetern und Standtagen ausreichend unterscheiden (Richtwert etwa 8 bis 10).
+- Zur Kontrolle: Summe der Füllstands-Differenzen Halt → Reisebeginn über viele Standzeiten (einzelne Differenzen
+  liegen meist unter der Ablesegenauigkeit).
