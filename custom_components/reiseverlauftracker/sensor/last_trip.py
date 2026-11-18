@@ -33,6 +33,7 @@ ENTITY_DESCRIPTIONS = (
         translation_key="last_trip_title",
         value_fn=lambda data: data.last_export.title if data.last_export else None,
         attributes_fn=_title_attributes,
+        download_fn=lambda data: data.last_export,
     ),
     ReiseverlaufSensorEntityDescription(
         key="last_trip_distance",

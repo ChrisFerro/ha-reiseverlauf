@@ -14,6 +14,7 @@ from homeassistant.loader import async_get_loaded_integration
 from .const import DOMAIN
 from .coordinator import ReiseverlaufDataUpdateCoordinator
 from .data import ReiseverlaufData
+from .download import async_register_views
 from .service_actions import async_setup_services
 from .settings import ReiseverlaufSettings
 
@@ -36,13 +37,14 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """
-    Register the service actions.
+    Register the service actions and the download views.
 
     Returns:
-        True once the actions are registered.
+        True once the actions and views are registered.
 
     """
     await async_setup_services(hass)
+    async_register_views(hass)
     return True
 
 
