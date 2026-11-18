@@ -164,6 +164,18 @@ fahrtenbuch_eintragen:
           step: 0.01
           mode: box
 
+fahrtenbuch_speichern:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    anlass_zeit:
+      example: "{{ trigger.event.data.zeit }}"
+      selector:
+        text:
+
 fahrtenbuch_aendern:
   fields:
     config_entry_id:

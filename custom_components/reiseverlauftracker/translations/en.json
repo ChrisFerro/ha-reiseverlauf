@@ -418,6 +418,20 @@
         }
       }
     },
+    "fahrtenbuch_speichern": {
+      "name": "Save logbook form",
+      "description": "Saves the logbook form like the button \"Logbook save\", for example from a push notification.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "anlass_zeit": {
+          "name": "Occasion time",
+          "description": "Field \"zeit\" of the event reiseverlauftracker_fahrtenbuch. The form is then saved only while this occasion is still pending; without it, like the button."
+        }
+      }
+    },
     "fahrtenbuch_aendern": {
       "name": "Change logbook entry",
       "description": "Changes single values of an entry. Values not given stay as they are.",
@@ -535,6 +549,9 @@
     },
     "csv_failed": {
       "message": "The CSV file could not be written: {error}"
+    },
+    "logbook_occasion_not_pending": {
+      "message": "The logbook occasion of {time} is no longer pending."
     }
   }
 }

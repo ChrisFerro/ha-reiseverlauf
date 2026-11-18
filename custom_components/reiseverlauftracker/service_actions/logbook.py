@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse
 
 ATTR_ENTRY = "eintrag"
+ATTR_OCCASION_TIME = "anlass_zeit"
 ATTR_TIME = "zeit"
 ATTR_ODOMETER = "kilometerstand"
 ATTR_FUEL = "kraftstoff"
@@ -78,6 +79,35 @@ async def async_handle_add(hass: HomeAssistant, call: ServiceCall) -> ServiceRes
     coordinator = _coordinator(hass, call)
     context = await coordinator.async_logbook_context()
     entry = await coordinator.logbook.async_add(_changes(dict(call.data)), context)
+    return {ATTR_ENTRY: entry_data(entry)}
+
+
+async def async_handle_save_form(hass: HomeAssistant, call: ServiceCall) -> ServiceResponse:
+    """
+    Save the logbook form, like the save button.
+
+    With `anlass_zeit`, only while that occasion is still pending: a tap on an
+    old notification must not save the form for a later occasion or as a
+    manual entry.
+
+    Returns:
+        The new entry.
+
+    Raises:
+        ServiceValidationError: The given occasion is no longer pending.
+
+    """
+    coordinator = _coordinator(hass, call)
+    if ATTR_OCCASION_TIME in call.data:
+        pending = coordinator.logbook.pending
+        occasion_time = dt_util.as_utc(call.data[ATTR_OCCASION_TIME])
+        if pending is None or pending.time != occasion_time:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="logbook_occasion_not_pending",
+                translation_placeholders={"time": occasion_time.isoformat()},
+            )
+    entry = await coordinator.async_save_logbook_form()
     return {ATTR_ENTRY: entry_data(entry)}
 
 

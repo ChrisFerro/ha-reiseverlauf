@@ -418,6 +418,20 @@
         }
       }
     },
+    "fahrtenbuch_speichern": {
+      "name": "Fahrtenbuch-Formular speichern",
+      "description": "Speichert das Fahrtenbuch-Formular wie der Knopf „Fahrtenbuch speichern“, z. B. aus einer Push-Nachricht.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "anlass_zeit": {
+          "name": "Zeit des Anlasses",
+          "description": "Feld „zeit“ aus dem Event reiseverlauftracker_fahrtenbuch. Dann wird nur gespeichert, solange dieser Anlass noch offen ist; ohne Angabe wie der Knopf."
+        }
+      }
+    },
     "fahrtenbuch_aendern": {
       "name": "Fahrtenbuch-Eintrag ändern",
       "description": "Ändert einzelne Werte eines Eintrags. Nicht angegebene Werte bleiben.",
@@ -535,6 +549,9 @@
     },
     "csv_failed": {
       "message": "Die CSV-Datei konnte nicht geschrieben werden: {error}"
+    },
+    "logbook_occasion_not_pending": {
+      "message": "Der Fahrtenbuch-Anlass von {time} ist nicht mehr offen."
     }
   }
 }

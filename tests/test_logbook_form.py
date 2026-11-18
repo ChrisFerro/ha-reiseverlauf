@@ -232,6 +232,36 @@ async def test_actions_reject_unknown_entries_and_lone_amounts(hass: HomeAssista
         await call(hass, "fahrtenbuch_eintragen", {**base, "diesel_betrag": 50})
 
 
+async def test_save_action_only_saves_the_named_occasion(
+    hass: HomeAssistant, loaded: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    base = {"config_entry_id": loaded.entry_id}
+    keeper = coordinator_of(loaded).logbook
+    hass.states.async_set(DPLUS, "ON")
+    await advance(hass, freezer, timedelta(minutes=1))
+    pending = keeper.pending
+    assert pending is not None
+    occasion_time = pending.time.isoformat()
+
+    with pytest.raises(ServiceValidationError):
+        await call(hass, "fahrtenbuch_speichern", {**base, "anlass_zeit": "2020-01-01T00:00:00+00:00"})
+    assert keeper.logbook.entries == []
+
+    saved = await call(hass, "fahrtenbuch_speichern", {**base, "anlass_zeit": occasion_time})
+    assert saved is not None
+    assert saved["eintrag"]["anlass"] == Occasion.TRIP_START.value
+    assert keeper.pending is None
+
+    # A second tap on the same notification must not add a manual entry.
+    with pytest.raises(ServiceValidationError):
+        await call(hass, "fahrtenbuch_speichern", {**base, "anlass_zeit": occasion_time})
+    assert len(keeper.logbook.entries) == 1
+
+    manual = await call(hass, "fahrtenbuch_speichern", base)
+    assert manual is not None
+    assert manual["eintrag"]["anlass"] == Occasion.MANUAL.value
+
+
 async def test_csv_action_writes_the_file(hass: HomeAssistant, loaded: MockConfigEntry, media_dir: Path) -> None:
     response = await call(hass, "fahrtenbuch_csv", {"config_entry_id": loaded.entry_id})
 

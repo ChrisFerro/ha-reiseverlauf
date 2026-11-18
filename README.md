@@ -21,6 +21,9 @@ mit dem Gesamtbild aufs Handy.
   Wartezeit am Hafen, wird dieselbe Reise fortgesetzt und neu ausgewertet.
 - **Auswertung:** Strecke, Fahrzeit, Höchst- und Durchschnittsgeschwindigkeit, Höhe und Höhenmeter; Karte auf
   OpenStreetMap-Kacheln, Profile, GPX mit Höhe und Geschwindigkeit, Gesamtbild.
+- **Fahrtenbuch:** Kilometerstand (fortgeschrieben aus der gemessenen Strecke), Füllstände von Kraftstofftank
+  und zwei Gastanks, Tank- und Gasstopps mit Menge und Betrag. Erinnerung per Push bei Reisebeginn und jedem
+  Halt; Durchschnittsverbrauch, Kosten im Monat und Jahr, CSV-Datei und Werte im Reise-Export.
 - **Titel mit Ortsnamen:** z. B. „Hamburg – Kiel, 12.10.2026“; wahlweise nur Datum oder nur Ort.
 - **Eigene Aufzeichnung:** Die Punkte jeder Reise werden gespeichert, unabhängig davon, wie lange der Recorder
   Daten behält.
@@ -67,7 +70,7 @@ Alles lässt sich später über **Neu konfigurieren** ändern.
 
 ### Optionen
 
-Unter **Konfigurieren**, in drei Bereichen:
+Unter **Konfigurieren**, in vier Bereichen:
 
 | Bereich        | Option                           | Standard      |
 | -------------- | -------------------------------- | ------------- |
@@ -83,6 +86,7 @@ Unter **Konfigurieren**, in drei Bereichen:
 |                | Mindestabstand der Punkte        | 15 m          |
 |                | Höhen-Hysterese                  | 5 m           |
 |                | Mindestdauer eines Halts         | 5 min         |
+| Fahrtenbuch    | Tankgröße                        | 90 l          |
 
 Eine Reise, die sich nie weiter als die Mindestbewegung vom Start entfernt, wird verworfen (kein Export, keine
 Nachricht). Ist D+ während einer Reise mindestens die Mindestdauer eines Halts aus, gilt das als Halt: Die
@@ -101,18 +105,28 @@ z. B. `sensor.wohnmobil_gps_reisestatus`.
 | Letzte Reise                                                                                                        | Titel; Attribute `dateien` (Typ, Name, URL), `statistik`, `ordner`, `start`                                         |
 | Letzte Reise Strecke, Fahrzeit, Dauer, Ende                                                                         | Kennzahlen der letzten automatisch erkannten Reise                                                                  |
 | Letzte Reise Gesamtbild                                                                                             | Bild-Entität, zeigt das Gesamtbild auf dem Dashboard                                                                |
+| Fahrtenbuch Kilometerstand, Kraftstoff, Gas 1, Gas 2, Diesel getankt, Diesel Betrag, Gas getankt, Gas Betrag        | Formular für den nächsten Fahrtenbuch-Eintrag, vorbelegt mit dem Vorschlag (siehe [Fahrtenbuch](#fahrtenbuch))      |
+| Fahrtenbuch speichern, Fahrtenbuch verwerfen                                                                        | Knöpfe des Formulars                                                                                                |
+| Fahrtenbuch Eintrag                                                                                                 | „Offen“, solange ein Anlass auf den Eintrag wartet, sonst „Gespeichert“; Attribute Anlass, Ort, `letzte_eintraege`  |
+| Kilometerstand, Kraftstoff, Gas 1, Gas 2                                                                            | Aktueller Kilometerstand und letzte Füllstände                                                                      |
+| Durchschnittsverbrauch, Tank- und Gaskosten Monat und Jahr                                                          | Auswertung des Fahrtenbuchs (Verbrauch ab dem zweiten vollen Tank)                                                  |
 | Export-Auswahl                                                                                                      | Alle Exporte (neueste zuerst) und „Alle Exporte“; wird von „Exporte aufräumen“ genutzt                              |
 
 ## Aktionen
 
 Alle Aktionen brauchen das Feld **Fahrzeug** (den Eintrag der Integration).
 
-| Aktion                                                   | Zweck                                                                                                                                          |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Zeitraum exportieren (`reiseverlauftracker.exportieren`) | Beliebigen Zeitraum aus dem Recorder auswerten; optional mit Titel, Skalierung und Rand; liefert das Ergebnis als Antwort                      |
-| Exporte aufräumen (`reiseverlauftracker.aufraeumen`)     | Dateitypen (Gesamtbild, Karte, Profil, GPX, Statistik, Rohdaten) eines Exports oder aller Exporte löschen; ohne Angabe gilt die Export-Auswahl |
-| Reise starten (`reiseverlauftracker.reise_starten`)      | Reise ohne D+ starten oder die letzte im Zusammenführungsfenster fortsetzen                                                                    |
-| Reise beenden (`reiseverlauftracker.reise_beenden`)      | Laufende Reise sofort beenden und auswerten                                                                                                    |
+| Aktion                                                                       | Zweck                                                                                                                                          |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zeitraum exportieren (`reiseverlauftracker.exportieren`)                     | Beliebigen Zeitraum aus dem Recorder auswerten; optional mit Titel, Skalierung und Rand; liefert das Ergebnis als Antwort                      |
+| Exporte aufräumen (`reiseverlauftracker.aufraeumen`)                         | Dateitypen (Gesamtbild, Karte, Profil, GPX, Statistik, Rohdaten) eines Exports oder aller Exporte löschen; ohne Angabe gilt die Export-Auswahl |
+| Reise starten (`reiseverlauftracker.reise_starten`)                          | Reise ohne D+ starten oder die letzte im Zusammenführungsfenster fortsetzen                                                                    |
+| Reise beenden (`reiseverlauftracker.reise_beenden`)                          | Laufende Reise sofort beenden und auswerten                                                                                                    |
+| Fahrtenbuch-Formular speichern (`reiseverlauftracker.fahrtenbuch_speichern`) | Formular speichern wie der Knopf; mit `anlass_zeit` nur, solange dieser Anlass offen ist (für Push-Knöpfe)                                     |
+| Fahrtenbuch-Eintrag anlegen (`reiseverlauftracker.fahrtenbuch_eintragen`)    | Eintrag ohne Formular, z. B. aus einer Automation; liefert den Eintrag als Antwort                                                             |
+| Fahrtenbuch-Eintrag ändern (`reiseverlauftracker.fahrtenbuch_aendern`)       | Felder eines Eintrags ändern; Liter 0 entfernt einen Tank- oder Gasstopp                                                                       |
+| Fahrtenbuch-Eintrag löschen (`reiseverlauftracker.fahrtenbuch_loeschen`)     | Eintrag löschen; die ID steht im Attribut `letzte_eintraege`                                                                                   |
+| Fahrtenbuch als CSV (`reiseverlauftracker.fahrtenbuch_csv`)                  | `fahrtenbuch.csv` im Ausgabeordner schreiben (geschieht auch nach jeder Änderung)                                                              |
 
 Beispiel für einen Dashboard-Knopf, der den in der Export-Auswahl gewählten Export komplett löscht:
 
@@ -144,6 +158,8 @@ manuelle Exporte `2026-10-12_1000-1130`). Darin liegen:
 | `<titel>_rohdaten.json` | Aufgezeichnete Punkte                        |
 | `export.json`           | Verwaltungsdaten der Integration             |
 
+Im Ausgabeordner selbst liegt außerdem `fahrtenbuch.csv` (siehe [Fahrtenbuch](#fahrtenbuch)).
+
 Die Dateien sind im Medienbrowser unter **Medien → Lokale Medien** zu finden. Die Integration löscht nur Dateien,
 die in `export.json` stehen; eigene Dateien im Ordner bleiben erhalten.
 
@@ -172,15 +188,116 @@ Optional meldet der Blueprint auch den Reisebeginn (Standard an) und manuelle Ex
 Die Nachricht enthält bewusst kein Bild: Das Gesamtbild ist für das Fotobuch so groß, dass iOS es als Anhang
 nicht anzeigt.
 
+## Fahrtenbuch
+
+Das Fahrtenbuch hält Kilometerstand, Füllstände (Kraftstofftank, Gastank 1 und 2) sowie Tank- und Gasstopps fest.
+Ein Eintrag entsteht zu einem **Anlass**:
+
+- **Reisebeginn:** um die Füllstände nach der Standzeit zu bestätigen (die Heizung verbraucht auch im Stand).
+- **Halt:** sobald D+ während einer Reise die Mindestdauer eines Halts aus ist, z. B. an der Tankstelle.
+- **Manuell:** jederzeit über den Knopf „Fahrtenbuch speichern“ ohne offenen Anlass oder die Aktion
+  „Fahrtenbuch-Eintrag anlegen“, z. B. nach dem Gasfüllen auf dem Campingplatz.
+
+Zu jedem Anlass belegt die Integration das Formular vor: Kilometerstand = letzter Stand + gemessene Strecke,
+Füllstände wie zuletzt eingetragen. Sobald ein Durchschnittsverbrauch vorliegt, wird der Kraftstoff aus Strecke,
+Verbrauch und Tankgröße berechnet vorgeschlagen. Liter bei „Diesel getankt“ oder „Gas getankt“ setzen den
+Füllstand auf 100 % (beim Gas beide Tanks). Der Durchschnittsverbrauch ergibt sich aus vollen Tankfüllungen
+(Füllstand 100 %), Teilbetankungen dazwischen werden mitgezählt.
+
+Die Einträge liegen im Speicher der Integration und sind damit im Backup von Home Assistant enthalten.
+`fahrtenbuch.csv` im Ausgabeordner (Semikolon, Dezimalkomma, für Excel) wird nach jeder Änderung neu geschrieben.
+Nach einer Reise stehen Kilometerstand von/bis, getankte Liter, Kosten und Verbrauch auch in Statistik und
+Gesamtbild.
+
+### Erinnerung per Push (Blueprint)
+
+[![Blueprint importieren](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FChrisFerro%2Fha-reiseverlauf%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freiseverlauftracker%2Ffahrtenbuch.yaml)
+
+1. Blueprint über den Knopf importieren.
+2. **Einstellungen → Automationen & Szenen → Blueprints → „Reiseverlauf – Fahrtenbuch-Erinnerung“ → Automation
+   erstellen**.
+3. Fahrzeug und Empfänger wählen, unter **Ansicht beim Tippen** den Pfad der Ansicht mit dem Formular eintragen
+   (Standard `/dashboard-reiseverlauf/fahrtenbuch`, siehe unten) und speichern.
+
+Bei Reisebeginn und jedem Halt kommt dann eine Nachricht wie:
+
+```text
+Fahrtenbuch: Halt in Kiel
+34439 km · Diesel 72 % · Gas 81 % / 60 %
+```
+
+- **Übernehmen** (Knopf in der Nachricht) speichert den Vorschlag; eine Bestätigung ersetzt die Nachricht.
+  Ein Tipp auf eine alte Nachricht, deren Anlass schon gespeichert oder ersetzt ist, speichert nichts.
+- **Tippen** auf die Nachricht öffnet das Formular zum Korrigieren oder für einen Tankstopp.
+
+Reisebeginn, Halt und der Knopf lassen sich einzeln abschalten, die Texte sind änderbar.
+
+### Dashboard-Ansicht
+
+Beispiel für eine Ansicht mit dem Formular und der Auswertung (Dashboard bearbeiten → **Ansicht hinzufügen** →
+⋮ → **YAML bearbeiten**). `wohnmobil_gps` durch den Namen des eigenen Eintrags ersetzen:
+
+```yaml
+title: Fahrtenbuch
+path: fahrtenbuch
+icon: mdi:notebook-edit
+type: sections
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        heading: Eintrag
+      - type: tile
+        entity: sensor.wohnmobil_gps_fahrtenbuch_eintrag
+      - type: entities
+        entities:
+          - number.wohnmobil_gps_fahrtenbuch_kilometerstand
+          - number.wohnmobil_gps_fahrtenbuch_kraftstoff
+          - number.wohnmobil_gps_fahrtenbuch_gas_1
+          - number.wohnmobil_gps_fahrtenbuch_gas_2
+      - type: entities
+        title: Tank- und Gasstopp
+        entities:
+          - number.wohnmobil_gps_fahrtenbuch_diesel_getankt
+          - number.wohnmobil_gps_fahrtenbuch_diesel_betrag
+          - number.wohnmobil_gps_fahrtenbuch_gas_getankt
+          - number.wohnmobil_gps_fahrtenbuch_gas_betrag
+      - type: entities
+        entities:
+          - button.wohnmobil_gps_fahrtenbuch_speichern
+          - button.wohnmobil_gps_fahrtenbuch_verwerfen
+  - type: grid
+    cards:
+      - type: heading
+        heading: Auswertung
+      - type: tile
+        entity: sensor.wohnmobil_gps_kilometerstand
+      - type: tile
+        entity: sensor.wohnmobil_gps_durchschnittsverbrauch
+      - type: tile
+        entity: sensor.wohnmobil_gps_kraftstoff
+      - type: tile
+        entity: sensor.wohnmobil_gps_gas_1
+      - type: tile
+        entity: sensor.wohnmobil_gps_gas_2
+      - type: tile
+        entity: sensor.wohnmobil_gps_tank_und_gaskosten_monat
+      - type: tile
+        entity: sensor.wohnmobil_gps_tank_und_gaskosten_jahr
+```
+
+Der Pfad der Ansicht ist dann `/<Dashboard>/fahrtenbuch`, z. B. `/dashboard-reiseverlauf/fahrtenbuch`.
+
 ## Events
 
 Für eigene Automationen:
 
-| Event                            | Wann                                    | Daten                                                                                                                                                                              |
-| -------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reiseverlauftracker_gestartet`  | Reise beginnt oder wird fortgesetzt     | `entry_id`, `start`, `resumed`, `startort`                                                                                                                                         |
-| `reiseverlauftracker_beendet`    | Auswertung einer beendeten Reise fertig | `entry_id`, `titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `halte`, `fortgesetzt` |
-| `reiseverlauftracker_exportiert` | Manueller Export fertig                 | wie `_beendet`, ohne `fortgesetzt`                                                                                                                                                 |
+| Event                             | Wann                                      | Daten                                                                                                                                                                                             |
+| --------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reiseverlauftracker_gestartet`   | Reise beginnt oder wird fortgesetzt       | `entry_id`, `start`, `resumed`, `startort`                                                                                                                                                        |
+| `reiseverlauftracker_beendet`     | Auswertung einer beendeten Reise fertig   | `entry_id`, `titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `halte`, `fortgesetzt`, `fahrtenbuch` |
+| `reiseverlauftracker_exportiert`  | Manueller Export fertig                   | wie `_beendet`, ohne `fortgesetzt`                                                                                                                                                                |
+| `reiseverlauftracker_fahrtenbuch` | Fahrtenbuch-Anlass: Reisebeginn oder Halt | `entry_id`, `anlass` (`reisestart`, `halt`), `zeit`, `ort`, `reise_start`, `halt_start`, `vorschlag` (`kilometerstand`, `kraftstoff`, `gas_1`, `gas_2`)                                           |
 
 ## Datenschutz
 
@@ -213,8 +330,8 @@ simulierte Fahrzeugsensoren mit (`config/packages/simulation.yaml`). Siehe [CONT
 > - **KI-Anteil:** überwiegend
 > - **Prüfung durch Menschen:** Anforderungen und Entscheidungen vom Maintainer; jede Ausbaustufe in einer
 >   Entwicklungsinstanz geprüft
-> - **Automatische Tests:** rund 200 Tests (Reiseerkennung, Auswertung, Einrichtung, Entitäten, Aktionen,
->   Blueprint)
+> - **Automatische Tests:** rund 370 Tests (Reiseerkennung, Auswertung, Fahrtenbuch, Einrichtung, Entitäten, Aktionen,
+>   Blueprints)
 > - **Test mit echtem Fahrzeug:** noch nicht erfolgt, bisher nur mit simulierten Sensoren
 > - **Reifegrad:** frühe Version (0.x); Einstellungen und Entitäten können sich noch ändern
 >

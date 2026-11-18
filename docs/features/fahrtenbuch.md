@@ -1,6 +1,6 @@
 # Fahrtenbuch (Etappe 6)
 
-Stand: 17.11.2026, Entwurf freigegeben, Umsetzung läuft (Teilschritte 1 bis 4 von 6.7 erledigt).
+Stand: 18.11.2026, umgesetzt (Teilschritte 1 bis 5 von 6.7); offen ist der Test mit dem echten Fahrzeug.
 Übergeordnete Anforderungen, Entscheidungen und Begriffe: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
 
 ## 1. Ziel
@@ -93,6 +93,11 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
   schätzbar) und Herausrechnen des Heizungsverbrauchs im Stand (Differenz zwischen letztem Halt und nächstem
   Reisestart). Für Gas gibt es keinen berechneten Vorschlag (Verbrauch unabhängig von der Strecke).
 
+- **5.9 Knopf in der Push-Nachricht** – entschieden (18.11.2026): Die Erinnerung (6.3) bekommt einen Knopf
+  „Übernehmen“, der den Vorschlag ohne Dashboard speichert; Tippen auf die Nachricht öffnet weiterhin das Formular.
+  Der Knopf nennt den Anlass (Zeit), damit eine alte Nachricht nichts für einen späteren Anlass oder als manuellen
+  Eintrag speichert. Nach dem Speichern ersetzt eine Bestätigung die Erinnerung. Im Blueprint abschaltbar.
+
 ## 6. Entwurf der Umsetzung (zur Freigabe)
 
 Stand: 17.11.2026, freigegeben.
@@ -145,14 +150,17 @@ ginge die seitdem gefahrene Strecke für den Kilometerstand verloren. Für Autom
   zweites Event aus. Die Ankunft am Ziel ist ebenfalls ein Halt; bei der Standardverzögerung von 60 min liegt der
   Eintrag in der Regel vor dem Export.
 - **Push:** neuer Blueprint `fahrtenbuch.yaml` (Fahrzeug, Empfänger, Dashboard-Ansicht, Schalter für Reisestart und
-  Halt). Tippen auf die Nachricht öffnet die Ansicht mit dem Formular. Die bestehende Reise-Nachricht bleibt
-  unverändert.
+  Halt, Knopf „Übernehmen“, siehe 5.9). Tippen auf die Nachricht öffnet die Ansicht mit dem Formular. Die
+  bestehende Reise-Nachricht bleibt unverändert.
 
 ### 6.4 Dienste
 
 - `fahrtenbuch_eintragen` (`zeit`, `kilometerstand`, `kraftstoff`, `gas_1`, `gas_2`, `diesel_liter`,
   `diesel_betrag`, `gas_liter`, `gas_betrag`, alle optional): Eintrag ohne Formular, z. B. aus einer Automation.
   Ohne `kilometerstand` gilt der fortgeschriebene Stand. Antwort: der neue Eintrag.
+- `fahrtenbuch_speichern` (`anlass_zeit` optional): speichert das Formular wie der Knopf. Mit `anlass_zeit` (Feld
+  `zeit` des Events) nur, solange genau dieser Anlass offen ist, sonst Fehler `logbook_occasion_not_pending`;
+  gebraucht für den Knopf in der Push-Nachricht (5.9). Antwort: der neue Eintrag.
 - `fahrtenbuch_aendern` (`eintrag`, Felder) und `fahrtenbuch_loeschen` (`eintrag`): Korrekturen (5.6). Liter 0
   entfernen einen Tank-/Gasstopp, ein Betrag allein ändert nur den Betrag.
 - `fahrtenbuch_csv`: schreibt `fahrtenbuch.csv` in den Ausgabeordner (UTF-8 mit BOM für Excel). Antwort: Pfad,

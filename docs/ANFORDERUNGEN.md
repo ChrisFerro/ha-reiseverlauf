@@ -1,6 +1,6 @@
 # Reiseverlauf – Anforderungen und Übergabe
 
-Stand: 17.11.2026. Übersicht über die Home-Assistant-Integration `reiseverlauftracker`: Ziel, Umgebung,
+Stand: 18.11.2026. Übersicht über die Home-Assistant-Integration `reiseverlauftracker`: Ziel, Umgebung,
 Datenquellen, Entitäten und Einstellungen. Die einzelnen Features stehen in eigenen Dokumenten (siehe 11).
 
 ## 1. Ziel
@@ -80,7 +80,7 @@ Dienste (alle mit Pflichtfeld `config_entry_id`):
   ohne `export` gilt die Export-Auswahl; nur im Ausgabeordner, nur Dateien aus `export.json` (Gesamtbild, Karte,
   Profil, GPX, Statistik, Rohdaten)
 - `reiseverlauftracker.reise_starten` / `reise_beenden` (manuell, siehe [Reiseerkennung](features/reiseerkennung.md) 5.2)
-- `reiseverlauftracker.fahrtenbuch_eintragen` / `_aendern` / `_loeschen` / `_csv` (siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.4)
+- `reiseverlauftracker.fahrtenbuch_eintragen` / `_speichern` / `_aendern` / `_loeschen` / `_csv` (siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.4)
 
 Events:
 
@@ -92,7 +92,8 @@ Events:
   Reise- und Halt-Start, Vorschlag (Kilometerstand, Kraftstoff, Gas 1, Gas 2), siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.3
 
 Push-Nachricht: **nicht** in der Integration, sondern als Automation aus einem mitgelieferten Blueprint, siehe
-[features/push-benachrichtigung.md](features/push-benachrichtigung.md).
+[features/push-benachrichtigung.md](features/push-benachrichtigung.md); die Fahrtenbuch-Erinnerung hat einen eigenen
+Blueprint (siehe [Fahrtenbuch](features/fahrtenbuch.md) 5.9).
 
 ## 7. Einstellungen (Config-/Options-Flow)
 
@@ -134,7 +135,7 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 3. Integrationsrahmen: Config-Flow, Koordinator, Entitäten, Dienste, Events, Übersetzungen.
 4. Automations-Blueprint für die Push-Nachricht, README (deutsch), HACS-Metadaten.
 5. Migration des Dashboards und Abbau der alten Helfer/des Dienstes (erst nach Freigabe). – erledigt 09.10.2026
-6. Fahrtenbuch (siehe [features/fahrtenbuch.md](features/fahrtenbuch.md)), erst nach der ersten echten Fahrt und nach Klärung der offenen Fragen.
+6. Fahrtenbuch (siehe [features/fahrtenbuch.md](features/fahrtenbuch.md)). – umgesetzt 18.11.2026
 
 ## 11. Feature-Dokumente
 
@@ -149,4 +150,4 @@ offenen Fragen und Entscheidungen. Dieses Dokument bleibt die Übersicht und ent
 | Export und Verwaltung   | [export.md](features/export.md)                               | 2, 3   | umgesetzt                |
 | Push-Benachrichtigung   | [push-benachrichtigung.md](features/push-benachrichtigung.md) | 4      | umgesetzt                |
 | Dashboard und Migration | [dashboard.md](features/dashboard.md)                         | 5      | umgesetzt                |
-| Fahrtenbuch             | [fahrtenbuch.md](features/fahrtenbuch.md)                     | 6      | entschieden, offen       |
+| Fahrtenbuch             | [fahrtenbuch.md](features/fahrtenbuch.md)                     | 6      | umgesetzt                |

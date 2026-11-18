@@ -151,6 +151,9 @@
     "fahrtenbuch_eintragen": {
       "service": "mdi:notebook-plus"
     },
+    "fahrtenbuch_speichern": {
+      "service": "mdi:notebook-check"
+    },
     "fahrtenbuch_aendern": {
       "service": "mdi:notebook-edit"
     },

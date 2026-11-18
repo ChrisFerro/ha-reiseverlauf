@@ -1,0 +1,198 @@
+blueprint:
+  name: Reiseverlauf – Fahrtenbuch-Erinnerung
+  description: >-
+    Erinnert per Push-Nachricht an die Companion-App an den Fahrtenbuch-Eintrag: beim Reisebeginn und bei jedem Halt
+    ab der Mindestdauer. Die Nachricht zeigt den Vorschlag (berechneter Kilometerstand, Füllstände von Kraftstoff
+    und Gas). Der Knopf „Übernehmen“ speichert ihn direkt; Tippen auf die Nachricht öffnet die Dashboard-Ansicht mit
+    dem Formular zum Korrigieren. Eine neue Erinnerung ersetzt die vorige.
+  domain: automation
+  author: ChrisFerro
+  homeassistant:
+    min_version: "2026.8.0"
+  source_url: https://github.com/ChrisFerro/ha-reiseverlauf/blob/main/blueprints/automation/reiseverlauftracker/fahrtenbuch.yaml
+  input:
+    allgemein:
+      name: Fahrzeug und Empfänger
+      icon: mdi:rv-truck
+      input:
+        fahrzeug:
+          name: Fahrzeug
+          description: Der Eintrag der Reiseaufzeichnung, dessen Fahrtenbuch gemeint ist.
+          selector:
+            config_entry:
+              integration: reiseverlauftracker
+        geraete:
+          name: Empfänger
+          description: Handys mit der Home-Assistant-Companion-App, die die Erinnerung bekommen.
+          selector:
+            device:
+              multiple: true
+              filter:
+                - integration: mobile_app
+    anlaesse:
+      name: Wann erinnern
+      icon: mdi:bell-cog
+      input:
+        bei_start:
+          name: Bei Reisebeginn
+          description: Erinnern, wenn eine Reise beginnt, um die Füllstände nach der Standzeit zu bestätigen.
+          default: true
+          selector:
+            boolean:
+        bei_halt:
+          name: Bei jedem Halt
+          description: Erinnern, sobald ein Halt die Mindestdauer erreicht (z. B. Tankstopp, Ankunft).
+          default: true
+          selector:
+            boolean:
+        mit_knopf:
+          name: Knopf „Übernehmen“
+          description: >-
+            Knopf in der Nachricht, der den Vorschlag ohne Dashboard speichert. Eine Bestätigung ersetzt danach die
+            Erinnerung.
+          default: true
+          selector:
+            boolean:
+        dashboard:
+          name: Ansicht beim Tippen
+          description: >-
+            Pfad der Dashboard-Ansicht mit dem Fahrtenbuch-Formular, die sich beim Tippen auf die Nachricht öffnet.
+            Leer lassen, damit Tippen nur die App öffnet.
+          default: /dashboard-reiseverlauf/fahrtenbuch
+          selector:
+            text:
+    texte:
+      name: Texte
+      icon: mdi:format-title
+      collapsed: true
+      input:
+        titel_start:
+          name: Überschrift bei Reisebeginn
+          default: "Fahrtenbuch: Reisebeginn"
+          selector:
+            text:
+        titel_halt:
+          name: Überschrift bei Halt
+          default: "Fahrtenbuch: Halt"
+          selector:
+            text:
+        titel_gespeichert:
+          name: Überschrift der Bestätigung
+          default: Fahrtenbuch gespeichert
+          selector:
+            text:
+        knopf_text:
+          name: Beschriftung des Knopfs
+          default: Übernehmen
+          selector:
+            text:
+
+mode: queued
+max_exceeded: silent
+
+triggers:
+  - trigger: event
+    event_type: reiseverlauftracker_fahrtenbuch
+    event_data:
+      entry_id: !input fahrzeug
+      anlass: reisestart
+    id: anlass
+    enabled: !input bei_start
+  - trigger: event
+    event_type: reiseverlauftracker_fahrtenbuch
+    event_data:
+      entry_id: !input fahrzeug
+      anlass: halt
+    id: anlass
+    enabled: !input bei_halt
+  - trigger: event
+    event_type: mobile_app_notification_action
+    id: knopf
+    enabled: !input mit_knopf
+
+variables:
+  fahrzeug: !input fahrzeug
+  geraete: !input geraete
+  mit_knopf: !input mit_knopf
+  dashboard: !input dashboard
+  titel_start: !input titel_start
+  titel_halt: !input titel_halt
+  titel_gespeichert: !input titel_gespeichert
+  knopf_text: !input knopf_text
+  # The action carries vehicle and occasion, so that only this automation answers and an old
+  # notification cannot save the form for a later occasion.
+  aktion_prefix: "REISEVERLAUF_FAHRTENBUCH_{{ fahrzeug }}_"
+  tag: "reiseverlauf_fahrtenbuch_{{ fahrzeug }}"
+
+conditions:
+  - condition: template
+    value_template: >-
+      {{ trigger.id != 'knopf' or (trigger.event.data.action | default('')).startswith(aktion_prefix) }}
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: anlass
+        sequence:
+          - variables:
+              daten: "{{ trigger.event.data }}"
+              v: "{{ daten.vorschlag }}"
+              ueberschrift: >-
+                {{ titel_start if daten.anlass == 'reisestart' else titel_halt }}{% if daten.ort %} in {{ daten.ort }}{% endif %}
+              nachricht: >-
+                {% set teile = [] %}
+                {% if v.kilometerstand is not none %}{% set teile = teile + ['%d km' | format(v.kilometerstand | round(0))] %}{% endif %}
+                {% if v.kraftstoff is not none %}{% set teile = teile + ['Diesel %d %%' | format(v.kraftstoff | round(0))] %}{% endif %}
+                {% set gas = [v.gas_1, v.gas_2] | reject('none') | map('round', 0) | map('int') | map('string') | list %}
+                {% if gas %}{% set teile = teile + ['Gas ' ~ gas | join(' % / ') ~ ' %'] %}{% endif %}
+                {{ teile | join(' · ') if teile else 'Noch keine Werte – bitte im Formular eintragen' }}
+              zusatz: >-
+                {% set d = {'tag': tag} %}
+                {% if dashboard %}{% set d = dict(d, clickAction=dashboard, url=dashboard) %}{% endif %}
+                {% if mit_knopf %}
+                  {% set d = dict(d, actions=[{'action': aktion_prefix ~ daten.zeit, 'title': knopf_text}]) %}
+                {% endif %}
+                {{ d }}
+          - repeat:
+              for_each: "{{ geraete }}"
+              sequence:
+                - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+                  data:
+                    title: "{{ ueberschrift }}"
+                    message: "{{ nachricht }}"
+                    data: "{{ zusatz }}"
+      - conditions:
+          - condition: trigger
+            id: knopf
+        sequence:
+          - action: reiseverlauftracker.fahrtenbuch_speichern
+            data:
+              config_entry_id: "{{ fahrzeug }}"
+              anlass_zeit: "{{ trigger.event.data.action[aktion_prefix | length:] }}"
+            response_variable: gespeichert
+            # The occasion may have been saved or replaced meanwhile; then there is nothing to confirm.
+            continue_on_error: true
+          - condition: template
+            value_template: "{{ gespeichert is defined and gespeichert.eintrag is defined }}"
+          - variables:
+              e: "{{ gespeichert.eintrag }}"
+              nachricht: >-
+                {% set teile = [] %}
+                {% if e.kilometerstand is not none %}{% set teile = teile + ['%d km' | format(e.kilometerstand | round(0))] %}{% endif %}
+                {% if e.kraftstoff is not none %}{% set teile = teile + ['Diesel %d %%' | format(e.kraftstoff | round(0))] %}{% endif %}
+                {% set gas = [e.gas_1, e.gas_2] | reject('none') | map('round', 0) | map('int') | map('string') | list %}
+                {% if gas %}{% set teile = teile + ['Gas ' ~ gas | join(' % / ') ~ ' %'] %}{% endif %}
+                {{ teile | join(' · ') }}
+              zusatz: >-
+                {% set d = {'tag': tag} %}
+                {% if dashboard %}{% set d = dict(d, clickAction=dashboard, url=dashboard) %}{% endif %}
+                {{ d }}
+          - repeat:
+              for_each: "{{ geraete }}"
+              sequence:
+                - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+                  data:
+                    title: "{{ titel_gespeichert }}"
+                    message: "{{ nachricht }}"
+                    data: "{{ zusatz }}"
