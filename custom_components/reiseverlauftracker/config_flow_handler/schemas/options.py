@@ -14,6 +14,7 @@ from custom_components.reiseverlauftracker.const import (
     CONF_PLACE_NAMES,
     CONF_SCALE,
     CONF_STANDSTILL_SPEED,
+    CONF_TANK_SIZE,
     CONF_TITLE_FORMAT,
     DEFAULT_ELEVATION_HYSTERESIS_M,
     DEFAULT_END_DELAY_MIN,
@@ -26,9 +27,11 @@ from custom_components.reiseverlauftracker.const import (
     DEFAULT_PLACE_NAMES,
     DEFAULT_SCALE,
     DEFAULT_STANDSTILL_SPEED_KMH,
+    DEFAULT_TANK_LITRES,
     DEFAULT_TITLE_FORMAT,
     SECTION_DETECTION,
     SECTION_EXPORT,
+    SECTION_LOGBOOK,
     SECTION_THRESHOLDS,
     TITLE_FORMATS,
 )
@@ -48,7 +51,7 @@ def get_options_schema() -> probatio.Schema:
     Build the options form schema; current values are filled in by the flow.
 
     Returns:
-        The probatio schema with the detection, export and threshold sections.
+        The probatio schema with the detection, export, logbook and threshold sections.
 
     """
     detection = probatio.Schema(
@@ -79,10 +82,16 @@ def get_options_schema() -> probatio.Schema:
             probatio.Required(CONF_MIN_STOP_DURATION, default=DEFAULT_MIN_STOP_DURATION_MIN): _number(1, 120, 1, "min"),
         },
     )
+    logbook = probatio.Schema(
+        {
+            probatio.Required(CONF_TANK_SIZE, default=DEFAULT_TANK_LITRES): _number(10, 500, 1, "L"),
+        },
+    )
     return probatio.Schema(
         {
             probatio.Required(SECTION_DETECTION): section(detection),
             probatio.Required(SECTION_EXPORT): section(export),
+            probatio.Required(SECTION_LOGBOOK): section(logbook),
             probatio.Required(SECTION_THRESHOLDS): section(thresholds, {"collapsed": True}),
         },
     )

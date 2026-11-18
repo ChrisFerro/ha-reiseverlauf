@@ -99,6 +99,15 @@
               "elevation_hysteresis": "Kleinere Höhenänderungen zählen nicht zu den Höhenmetern.",
               "min_stop_duration": "So lange muss D+ während einer Reise aus sein, damit der Stopp als Halt mit Ort gezählt wird."
             }
+          },
+          "logbook": {
+            "name": "Fahrtenbuch",
+            "data": {
+              "tank_size": "Tankgröße"
+            },
+            "data_description": {
+              "tank_size": "Inhalt des Kraftstofftanks. Daraus wird der Füllstand berechnet vorgeschlagen, sobald ein Durchschnittsverbrauch vorliegt."
+            }
           }
         }
       }
@@ -215,6 +224,82 @@
       },
       "trip_average_speed": {
         "name": "Durchschnitt laufende Reise"
+      },
+      "logbook_entry": {
+        "name": "Fahrtenbuch Eintrag",
+        "state": {
+          "offen": "Offen",
+          "gespeichert": "Gespeichert"
+        },
+        "state_attributes": {
+          "anlass": {
+            "name": "Anlass"
+          },
+          "ort": {
+            "name": "Ort"
+          },
+          "halt_start": {
+            "name": "Halt seit"
+          },
+          "letzte_eintraege": {
+            "name": "Letzte Einträge"
+          }
+        }
+      },
+      "odometer": {
+        "name": "Kilometerstand"
+      },
+      "fuel_level": {
+        "name": "Kraftstoff"
+      },
+      "gas_1_level": {
+        "name": "Gas 1"
+      },
+      "gas_2_level": {
+        "name": "Gas 2"
+      },
+      "average_consumption": {
+        "name": "Durchschnittsverbrauch"
+      },
+      "costs_month": {
+        "name": "Tank- und Gaskosten Monat"
+      },
+      "costs_year": {
+        "name": "Tank- und Gaskosten Jahr"
+      }
+    },
+    "number": {
+      "logbook_odometer": {
+        "name": "Fahrtenbuch Kilometerstand"
+      },
+      "logbook_fuel": {
+        "name": "Fahrtenbuch Kraftstoff"
+      },
+      "logbook_gas_1": {
+        "name": "Fahrtenbuch Gas 1"
+      },
+      "logbook_gas_2": {
+        "name": "Fahrtenbuch Gas 2"
+      },
+      "logbook_fuel_litres": {
+        "name": "Fahrtenbuch Diesel getankt"
+      },
+      "logbook_fuel_amount": {
+        "name": "Fahrtenbuch Diesel Betrag"
+      },
+      "logbook_gas_litres": {
+        "name": "Fahrtenbuch Gas getankt"
+      },
+      "logbook_gas_amount": {
+        "name": "Fahrtenbuch Gas Betrag"
+      }
+    },
+    "button": {
+      "logbook_save": {
+        "name": "Fahrtenbuch speichern"
+      },
+      "logbook_discard": {
+        "name": "Fahrtenbuch verwerfen"
       }
     }
   },
@@ -286,6 +371,140 @@
           "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
         }
       }
+    },
+    "fahrtenbuch_eintragen": {
+      "name": "Fahrtenbuch-Eintrag anlegen",
+      "description": "Legt einen Eintrag ohne Formular an, z. B. aus einer Automation. Position und Ort kommen vom Fahrzeug.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "zeit": {
+          "name": "Zeit",
+          "description": "Zeitpunkt des Eintrags. Leer lassen für jetzt."
+        },
+        "kilometerstand": {
+          "name": "Kilometerstand",
+          "description": "Stand des Tachos in km. Leer lassen für den fortgeschriebenen Stand."
+        },
+        "kraftstoff": {
+          "name": "Kraftstoff",
+          "description": "Füllstand des Kraftstofftanks in Prozent."
+        },
+        "gas_1": {
+          "name": "Gas 1",
+          "description": "Füllstand des ersten Gastanks in Prozent."
+        },
+        "gas_2": {
+          "name": "Gas 2",
+          "description": "Füllstand des zweiten Gastanks in Prozent."
+        },
+        "diesel_liter": {
+          "name": "Diesel getankt",
+          "description": "Getankte Liter. 0 entfernt den Tankstopp."
+        },
+        "diesel_betrag": {
+          "name": "Diesel Betrag",
+          "description": "Bezahlter Betrag für den Diesel."
+        },
+        "gas_liter": {
+          "name": "Gas getankt",
+          "description": "Getankte Liter Gas für beide Tanks zusammen. 0 entfernt den Gasstopp."
+        },
+        "gas_betrag": {
+          "name": "Gas Betrag",
+          "description": "Bezahlter Betrag für das Gas."
+        }
+      }
+    },
+    "fahrtenbuch_speichern": {
+      "name": "Fahrtenbuch-Formular speichern",
+      "description": "Speichert das Fahrtenbuch-Formular wie der Knopf „Fahrtenbuch speichern“, z. B. aus einer Push-Nachricht.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "anlass_zeit": {
+          "name": "Zeit des Anlasses",
+          "description": "Feld „zeit“ aus dem Event reiseverlauftracker_fahrtenbuch. Dann wird nur gespeichert, solange dieser Anlass noch offen ist; ohne Angabe wie der Knopf."
+        }
+      }
+    },
+    "fahrtenbuch_aendern": {
+      "name": "Fahrtenbuch-Eintrag ändern",
+      "description": "Ändert einzelne Werte eines Eintrags. Nicht angegebene Werte bleiben.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "eintrag": {
+          "name": "Eintrag",
+          "description": "ID des Eintrags, z. B. aus dem Attribut „Letzte Einträge“ des Sensors Fahrtenbuch Eintrag."
+        },
+        "zeit": {
+          "name": "Zeit",
+          "description": "Zeitpunkt des Eintrags. Leer lassen für jetzt."
+        },
+        "kilometerstand": {
+          "name": "Kilometerstand",
+          "description": "Stand des Tachos in km. Leer lassen für den fortgeschriebenen Stand."
+        },
+        "kraftstoff": {
+          "name": "Kraftstoff",
+          "description": "Füllstand des Kraftstofftanks in Prozent."
+        },
+        "gas_1": {
+          "name": "Gas 1",
+          "description": "Füllstand des ersten Gastanks in Prozent."
+        },
+        "gas_2": {
+          "name": "Gas 2",
+          "description": "Füllstand des zweiten Gastanks in Prozent."
+        },
+        "diesel_liter": {
+          "name": "Diesel getankt",
+          "description": "Getankte Liter. 0 entfernt den Tankstopp."
+        },
+        "diesel_betrag": {
+          "name": "Diesel Betrag",
+          "description": "Bezahlter Betrag für den Diesel."
+        },
+        "gas_liter": {
+          "name": "Gas getankt",
+          "description": "Getankte Liter Gas für beide Tanks zusammen. 0 entfernt den Gasstopp."
+        },
+        "gas_betrag": {
+          "name": "Gas Betrag",
+          "description": "Bezahlter Betrag für das Gas."
+        }
+      }
+    },
+    "fahrtenbuch_loeschen": {
+      "name": "Fahrtenbuch-Eintrag löschen",
+      "description": "Löscht einen Eintrag aus dem Fahrtenbuch.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "eintrag": {
+          "name": "Eintrag",
+          "description": "ID des Eintrags, z. B. aus dem Attribut „Letzte Einträge“ des Sensors Fahrtenbuch Eintrag."
+        }
+      }
+    },
+    "fahrtenbuch_csv": {
+      "name": "Fahrtenbuch als CSV",
+      "description": "Schreibt das ganze Fahrtenbuch als fahrtenbuch.csv in den Ausgabeordner. Die Datei wird außerdem nach jeder Änderung neu geschrieben.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        }
+      }
     }
   },
   "exceptions": {
@@ -321,6 +540,18 @@
     },
     "no_trip": {
       "message": "Es läuft keine Reise."
+    },
+    "logbook_entry_not_found": {
+      "message": "Es gibt keinen Fahrtenbuch-Eintrag {id}."
+    },
+    "amount_without_litres": {
+      "message": "Ein Betrag braucht die getankten Liter."
+    },
+    "csv_failed": {
+      "message": "Die CSV-Datei konnte nicht geschrieben werden: {error}"
+    },
+    "logbook_occasion_not_pending": {
+      "message": "Der Fahrtenbuch-Anlass von {time} ist nicht mehr offen."
     }
   }
 }

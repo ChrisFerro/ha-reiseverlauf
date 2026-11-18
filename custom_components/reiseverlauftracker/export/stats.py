@@ -7,8 +7,8 @@ from itertools import pairwise
 
 from custom_components.reiseverlauftracker.utils.geo import distance_m
 
-from .model import ExportOptions, StepSeries, Stop, TrackPoint
-from .texts import Texts, format_duration, format_number, format_period
+from .model import ExportOptions, LogbookFigures, StepSeries, Stop, TrackPoint
+from .texts import Texts, format_duration, format_money, format_number, format_period
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +109,30 @@ def stats_rows(stats: TripStats, texts: Texts, tz: tzinfo) -> list[tuple[str, st
                 f"+{format_number(texts, stats.ascent_m)} / -{format_number(texts, stats.descent_m)} m",
             )
         )
+    return rows
+
+
+def logbook_rows(figures: LogbookFigures | None, texts: Texts, currency: str) -> list[tuple[str, str]]:
+    """Return (label, value) rows of the logbook figures; empty rows are left out."""
+    if figures is None:
+        return []
+    rows: list[tuple[str, str]] = []
+    start, end = figures.odometer_start_km, figures.odometer_end_km
+    if start is not None and end is not None:
+        rows.append((texts.odometer, f"{format_number(texts, start)} – {format_number(texts, end)} km"))
+    elif end is not None:
+        rows.append((texts.odometer, f"{format_number(texts, end)} km"))
+    refuelled = [
+        f"{format_number(texts, litres, 1)} l {name}"
+        for litres, name in ((figures.fuel_litres, texts.diesel), (figures.gas_litres, texts.gas))
+        if litres > 0
+    ]
+    if refuelled:
+        rows.append((texts.refuelled, " · ".join(refuelled)))
+    if figures.cost > 0:
+        rows.append((texts.costs, format_money(texts, figures.cost, currency)))
+    if figures.consumption_l_100km is not None:
+        rows.append((texts.consumption, f"{format_number(texts, figures.consumption_l_100km, 1)} l/100 km"))
     return rows
 
 

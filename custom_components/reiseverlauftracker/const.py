@@ -16,6 +16,7 @@ CONF_TRACKER_ENTITY = "tracker_entity"
 SECTION_DETECTION = "detection"
 SECTION_EXPORT = "export"
 SECTION_THRESHOLDS = "thresholds"
+SECTION_LOGBOOK = "logbook"
 
 CONF_ELEVATION_HYSTERESIS = "elevation_hysteresis"
 CONF_END_DELAY = "end_delay"
@@ -26,6 +27,7 @@ CONF_MIN_MOVEMENT = "min_movement"
 CONF_MIN_POINT_DISTANCE = "min_point_distance"
 CONF_MIN_STOP_DURATION = "min_stop_duration"
 CONF_PLACE_NAMES = "place_names"
+CONF_TANK_SIZE = "tank_size"
 CONF_SCALE = "scale"
 CONF_STANDSTILL_SPEED = "standstill_speed"
 CONF_TITLE_FORMAT = "title_format"
@@ -48,10 +50,12 @@ DEFAULT_OUTPUT_DIR = "reiseverlauf"
 DEFAULT_PLACE_NAMES = True
 DEFAULT_SCALE = 1.0
 DEFAULT_STANDSTILL_SPEED_KMH = 3.0
+DEFAULT_TANK_LITRES = 90.0
 DEFAULT_TITLE_FORMAT = TITLE_FORMAT_DATE_PLACE
 
 EVENT_TRIP_ENDED = f"{DOMAIN}_beendet"
 EVENT_TRIP_EXPORTED = f"{DOMAIN}_exportiert"
+EVENT_LOGBOOK = f"{DOMAIN}_fahrtenbuch"
 EVENT_TRIP_STARTED = f"{DOMAIN}_gestartet"
 
 EXPORT_CHOICE_ALL = "all"

@@ -21,6 +21,24 @@ from .export import (
     async_handle_cleanup,
     async_handle_export,
 )
+from .logbook import (
+    ATTR_ENTRY,
+    ATTR_FUEL,
+    ATTR_FUEL_AMOUNT,
+    ATTR_FUEL_LITRES,
+    ATTR_GAS_1,
+    ATTR_GAS_2,
+    ATTR_GAS_AMOUNT,
+    ATTR_GAS_LITRES,
+    ATTR_OCCASION_TIME,
+    ATTR_ODOMETER,
+    ATTR_TIME,
+    async_handle_add,
+    async_handle_csv,
+    async_handle_remove,
+    async_handle_save_form,
+    async_handle_update,
+)
 from .trip import async_handle_end_trip, async_handle_start_trip
 
 if TYPE_CHECKING:
@@ -30,6 +48,11 @@ SERVICE_CLEANUP = "aufraeumen"
 SERVICE_END_TRIP = "reise_beenden"
 SERVICE_EXPORT = "exportieren"
 SERVICE_START_TRIP = "reise_starten"
+SERVICE_LOGBOOK_ADD = "fahrtenbuch_eintragen"
+SERVICE_LOGBOOK_UPDATE = "fahrtenbuch_aendern"
+SERVICE_LOGBOOK_REMOVE = "fahrtenbuch_loeschen"
+SERVICE_LOGBOOK_CSV = "fahrtenbuch_csv"
+SERVICE_LOGBOOK_SAVE_FORM = "fahrtenbuch_speichern"
 
 ENTRY_SCHEMA = probatio.Schema({probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string})
 
@@ -53,6 +76,27 @@ CLEANUP_SCHEMA = ENTRY_SCHEMA.extend(
 )
 
 
+def _range(maximum: float) -> Any:
+    return probatio.All(probatio.Coerce(float), probatio.Range(min=0, max=maximum))
+
+
+LOGBOOK_FIELDS = {
+    probatio.Optional(ATTR_TIME): cv.datetime,
+    probatio.Optional(ATTR_ODOMETER): _range(9_999_999),
+    probatio.Optional(ATTR_FUEL): _range(100),
+    probatio.Optional(ATTR_GAS_1): _range(100),
+    probatio.Optional(ATTR_GAS_2): _range(100),
+    probatio.Optional(ATTR_FUEL_LITRES): _range(1000),
+    probatio.Optional(ATTR_FUEL_AMOUNT): _range(10000),
+    probatio.Optional(ATTR_GAS_LITRES): _range(1000),
+    probatio.Optional(ATTR_GAS_AMOUNT): _range(10000),
+}
+LOGBOOK_ADD_SCHEMA = ENTRY_SCHEMA.extend(LOGBOOK_FIELDS)
+LOGBOOK_ENTRY_SCHEMA = ENTRY_SCHEMA.extend({probatio.Required(ATTR_ENTRY): cv.string})
+LOGBOOK_UPDATE_SCHEMA = LOGBOOK_ENTRY_SCHEMA.extend(LOGBOOK_FIELDS)
+LOGBOOK_SAVE_FORM_SCHEMA = ENTRY_SCHEMA.extend({probatio.Optional(ATTR_OCCASION_TIME): cv.datetime})
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register the service actions of the integration once, at component level."""
 
@@ -68,11 +112,31 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_end_trip(call: ServiceCall) -> None:
         await async_handle_end_trip(hass, call)
 
+    async def handle_logbook_add(call: ServiceCall) -> ServiceResponse:
+        return await async_handle_add(hass, call)
+
+    async def handle_logbook_save_form(call: ServiceCall) -> ServiceResponse:
+        return await async_handle_save_form(hass, call)
+
+    async def handle_logbook_update(call: ServiceCall) -> ServiceResponse:
+        return await async_handle_update(hass, call)
+
+    async def handle_logbook_remove(call: ServiceCall) -> None:
+        await async_handle_remove(hass, call)
+
+    async def handle_logbook_csv(call: ServiceCall) -> ServiceResponse:
+        return await async_handle_csv(hass, call)
+
     actions: tuple[tuple[str, Any, probatio.Schema, SupportsResponse], ...] = (
         (SERVICE_EXPORT, handle_export, EXPORT_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_CLEANUP, handle_cleanup, CLEANUP_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_START_TRIP, handle_start_trip, ENTRY_SCHEMA, SupportsResponse.NONE),
         (SERVICE_END_TRIP, handle_end_trip, ENTRY_SCHEMA, SupportsResponse.NONE),
+        (SERVICE_LOGBOOK_ADD, handle_logbook_add, LOGBOOK_ADD_SCHEMA, SupportsResponse.OPTIONAL),
+        (SERVICE_LOGBOOK_SAVE_FORM, handle_logbook_save_form, LOGBOOK_SAVE_FORM_SCHEMA, SupportsResponse.OPTIONAL),
+        (SERVICE_LOGBOOK_UPDATE, handle_logbook_update, LOGBOOK_UPDATE_SCHEMA, SupportsResponse.OPTIONAL),
+        (SERVICE_LOGBOOK_REMOVE, handle_logbook_remove, LOGBOOK_ENTRY_SCHEMA, SupportsResponse.NONE),
+        (SERVICE_LOGBOOK_CSV, handle_logbook_csv, ENTRY_SCHEMA, SupportsResponse.OPTIONAL),
     )
     for name, handler, schema, supports_response in actions:
         if not hass.services.has_service(DOMAIN, name):

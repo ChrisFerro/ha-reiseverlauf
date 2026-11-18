@@ -1,6 +1,6 @@
 # Reiseverlauf – Anforderungen und Übergabe
 
-Stand: 17.11.2026. Übersicht über die Home-Assistant-Integration `reiseverlauftracker`: Ziel, Umgebung,
+Stand: 18.11.2026. Übersicht über die Home-Assistant-Integration `reiseverlauftracker`: Ziel, Umgebung,
 Datenquellen, Entitäten und Einstellungen. Die einzelnen Features stehen in eigenen Dokumenten (siehe 11).
 
 ## 1. Ziel
@@ -66,6 +66,11 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
 - Letzte Reise: `sensor.…_letzte_reise` (Titel; Attribute `dateien`, `statistik`, `ordner`, `start`),
   `…_letzte_reise_strecke`, `…_fahrzeit`, `…_dauer`, `…_ende`; `image.…_letzte_reise_gesamtbild` (siehe 9.11)
 - `select.…_export_auswahl` (siehe [Export](features/export.md) 2.4)
+- Fahrtenbuch-Formular: `number.…_fahrtenbuch_*` (Kilometerstand, Kraftstoff, Gas 1/2, Diesel und Gas getankt und
+  Betrag), `button.…_fahrtenbuch_speichern`/`_verwerfen`, `sensor.…_fahrtenbuch_eintrag` (siehe
+  [Fahrtenbuch](features/fahrtenbuch.md) 6.2)
+- Fahrtenbuch-Auswertung: `sensor.…_kilometerstand`, `…_kraftstoff`, `…_gas_1`, `…_gas_2`, `…_durchschnittsverbrauch`,
+  `…_tank_und_gaskosten_monat`, `…_tank_und_gaskosten_jahr` (siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.5)
 
 Dienste (alle mit Pflichtfeld `config_entry_id`):
 
@@ -75,22 +80,27 @@ Dienste (alle mit Pflichtfeld `config_entry_id`):
   ohne `export` gilt die Export-Auswahl; nur im Ausgabeordner, nur Dateien aus `export.json` (Gesamtbild, Karte,
   Profil, GPX, Statistik, Rohdaten)
 - `reiseverlauftracker.reise_starten` / `reise_beenden` (manuell, siehe [Reiseerkennung](features/reiseerkennung.md) 5.2)
+- `reiseverlauftracker.fahrtenbuch_eintragen` / `_speichern` / `_aendern` / `_loeschen` / `_csv` (siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.4)
 
 Events:
 
 - `reiseverlauftracker_gestartet`
 - `reiseverlauftracker_exportiert` nach manuellem Export (Daten wie `_beendet`, siehe [Export](features/export.md) 5.5)
 - `reiseverlauftracker_beendet` mit Daten: Titel, Start, Ende, Strecke_km, Fahrzeit, Dateiliste (Name, URL),
-  Statistiktext, Pfad des Gesamtbilds, Halte
+  Statistiktext, Pfad des Gesamtbilds, Halte, Fahrtenbuch (Kilometerstand, Liter, Kosten, Verbrauch)
+- `reiseverlauftracker_fahrtenbuch` bei Reisestart und bei jedem Halt ab der Mindestdauer: Anlass, Zeit, Ort,
+  Reise- und Halt-Start, Vorschlag (Kilometerstand, Kraftstoff, Gas 1, Gas 2), siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.3
 
 Push-Nachricht: **nicht** in der Integration, sondern als Automation aus einem mitgelieferten Blueprint, siehe
-[features/push-benachrichtigung.md](features/push-benachrichtigung.md).
+[features/push-benachrichtigung.md](features/push-benachrichtigung.md); die Fahrtenbuch-Erinnerung hat einen eigenen
+Blueprint (siehe [Fahrtenbuch](features/fahrtenbuch.md) 5.9).
 
 ## 7. Einstellungen (Config-/Options-Flow)
 
 D+-Entität und „Ein“-Wert, Verzögerung (min), Zusammenführungsfenster (h), Mindestbewegung (m), Positions-Tracker, Geschwindigkeits-
 und Höhensensor (Höhe optional), Ausgabeordner, Standard-Skala, Standard-Rand (min), Schwellen:
 Stillstand 3 km/h, GPS-Genauigkeit 50 m, Punktabstand 15 m, Höhen-Hysterese 5 m, Mindestdauer eines Halts 5 min.
+Fahrtenbuch: Tankgröße (Liter, Standard 90, siehe [Fahrtenbuch](features/fahrtenbuch.md) 5.8).
 
 ## 8. Bisheriger Aufbau (abgelöst)
 
@@ -116,7 +126,7 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 | 9.13, 9.14, 9.15              | Inhalt, Empfänger, weitere Benachrichtigungen           | [push-benachrichtigung.md](features/push-benachrichtigung.md) |
 | 9.17, 9.18, 9.21              | Export-Formular, Aufbau, Knöpfe                         | [dashboard.md](features/dashboard.md)                         |
 | 9.19, 9.20                    | Live-Werte, Halte                                       | [halte.md](features/halte.md)                                 |
-| 9.22                          | Fahrtenbuch (offen)                                     | [fahrtenbuch.md](features/fahrtenbuch.md)                     |
+| 9.22                          | Fahrtenbuch (entschieden)                               | [fahrtenbuch.md](features/fahrtenbuch.md)                     |
 
 ## 10. Empfohlene Reihenfolge
 
@@ -125,7 +135,7 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 3. Integrationsrahmen: Config-Flow, Koordinator, Entitäten, Dienste, Events, Übersetzungen.
 4. Automations-Blueprint für die Push-Nachricht, README (deutsch), HACS-Metadaten.
 5. Migration des Dashboards und Abbau der alten Helfer/des Dienstes (erst nach Freigabe). – erledigt 09.10.2026
-6. Fahrtenbuch (siehe [features/fahrtenbuch.md](features/fahrtenbuch.md)), erst nach der ersten echten Fahrt und nach Klärung der offenen Fragen.
+6. Fahrtenbuch (siehe [features/fahrtenbuch.md](features/fahrtenbuch.md)). – umgesetzt 18.11.2026
 
 ## 11. Feature-Dokumente
 
@@ -140,4 +150,4 @@ offenen Fragen und Entscheidungen. Dieses Dokument bleibt die Übersicht und ent
 | Export und Verwaltung   | [export.md](features/export.md)                               | 2, 3   | umgesetzt                |
 | Push-Benachrichtigung   | [push-benachrichtigung.md](features/push-benachrichtigung.md) | 4      | umgesetzt                |
 | Dashboard und Migration | [dashboard.md](features/dashboard.md)                         | 5      | umgesetzt                |
-| Fahrtenbuch             | [fahrtenbuch.md](features/fahrtenbuch.md)                     | 6      | Anforderungen, offen     |
+| Fahrtenbuch             | [fahrtenbuch.md](features/fahrtenbuch.md)                     | 6      | umgesetzt                |

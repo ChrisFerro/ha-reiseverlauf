@@ -11,6 +11,7 @@ from custom_components.reiseverlauftracker.export import (
     FILE_SUFFIXES,
     ExportFile,
     ExportOptions,
+    LogbookFigures,
     StepSeries,
     Stop,
     TrackPoint,
@@ -54,6 +55,7 @@ async def async_export(
     automatic: bool = True,
     folder: str | None = None,
     stops: tuple[Stop, ...] = (),
+    logbook: LogbookFigures | None = None,
 ) -> ExportInfo:
     """
     Export one trip; an earlier export in the same folder is replaced.
@@ -87,6 +89,8 @@ async def async_export(
         elevation_hysteresis_m=settings.elevation_hysteresis_m,
         user_agent=agent,
         stops=stops,
+        logbook=logbook,
+        currency=hass.config.currency,
     )
     folder = folder or f"{start.astimezone(tz):%Y-%m-%d_%H%M}"
     return await hass.async_add_executor_job(
@@ -114,6 +118,7 @@ def event_data(settings: ReiseverlaufSettings, info: ExportInfo, base: Path) -> 
         "gesamtbild": str(base / info.folder / composite) if composite else None,
         "gesamtbild_url": media_url(settings, info.folder, composite) if composite else None,
         "halte": [stop_data(s.place, s.start, s.end) for s in info.stops],
+        "fahrtenbuch": info.logbook.as_dict() if info.logbook else None,
     }
 
 
@@ -173,6 +178,7 @@ def _export_sync(
         departure=result.stats.departure,
         arrival=result.stats.arrival,
         stops=options.stops,
+        logbook=options.logbook,
     )
     write_metadata(base, info)
     return info

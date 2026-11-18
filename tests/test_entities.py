@@ -79,7 +79,7 @@ async def test_entities_belong_to_one_service_device(hass: HomeAssistant, loaded
     entities = er.async_entries_for_config_entry(er.async_get(hass), loaded.entry_id)
     devices = dr.async_entries_for_config_entry(dr.async_get(hass), loaded.entry_id)
 
-    assert len(entities) == 14
+    assert len(entities) == 32
     assert len(devices) == 1
     assert devices[0].entry_type is dr.DeviceEntryType.SERVICE
     assert {e.device_id for e in entities} == {devices[0].id}

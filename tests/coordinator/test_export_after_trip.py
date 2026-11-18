@@ -11,6 +11,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 
 from custom_components.reiseverlauftracker.const import EVENT_TRIP_ENDED, SECTION_EXPORT
 from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUpdateCoordinator
+from custom_components.reiseverlauftracker.coordinator.logbook import FormField, Occasion
 from custom_components.reiseverlauftracker.coordinator.models import TripStatus
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
@@ -229,3 +230,35 @@ async def test_pause_time_and_average_update_while_standing(
     await advance(hass, freezer, timedelta(minutes=5))
 
     assert coordinator.data.pause_time == pause + timedelta(minutes=5)
+
+
+async def test_export_contains_the_logbook_of_the_trip(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+    media_dir: Path,
+) -> None:
+    hass.config.language = "de"
+    events = async_capture_events(hass, EVENT_TRIP_ENDED)
+    coordinator = await setup(hass, config_entry)
+    keeper = coordinator.logbook
+    keeper.logbook.add(dt_util.utcnow(), Occasion.MANUAL, odometer_km=34299, fuel_percent=50)
+    await drive(hass, freezer, 0, 5000)
+    await advance(hass, freezer, timedelta(minutes=6))
+    assert keeper.pending is not None
+    assert keeper.pending.occasion is Occasion.STOP
+    keeper.set_field(FormField.FUEL_LITRES, 40)
+    keeper.set_field(FormField.FUEL_AMOUNT, 70)
+    await coordinator.async_save_logbook_form()
+
+    await advance(hass, freezer, timedelta(minutes=60))
+
+    info = coordinator.data.last_export
+    assert info is not None
+    assert info.logbook is not None
+    assert info.logbook.odometer_end_km == 34304
+    assert info.logbook.fuel_litres == 40
+    assert "Kosten:          70,00 €" in info.stats_text
+    stored = json.loads((media_dir / "reiseverlauf" / info.folder / "export.json").read_text(encoding="utf-8"))
+    assert stored["logbook"]["kilometerstand_ende"] == 34304
+    assert events[0].data["fahrtenbuch"]["kosten"] == 70

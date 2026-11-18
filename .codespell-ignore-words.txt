@@ -7,8 +7,11 @@ ende
 feld
 ist
 lokale
+manuell
 oder
+offen
 ordner
 sie
 titel
 unter
+vor
