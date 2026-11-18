@@ -31,6 +31,8 @@ Ausführliche Anforderungen und der Ist-Zustand stehen in der importierten Datei
 5. Migration des Dashboards und Abbau der alten Helfer/des Hintergrunddienstes (erst nach Freigabe).
 6. Fahrtenbuch (Kilometerstand, Tank- und Gasfüllstände je Halt, Tank-/Gasstopps mit Menge und Betrag);
    Anforderungen und offene Fragen in `docs/features/fahrtenbuch.md`.
+7. Geschützter Download aller Dateien (GPX, Statistik, CSV …); Anforderungen und offene Fragen in
+   `docs/features/downloads.md`.
 
 Jedes Feature hat ein eigenes Dokument in `docs/features/` (Verzeichnis in `docs/ANFORDERUNGEN.md` Abschnitt 11).
 Vor der Arbeit an einem Feature dessen Dokument lesen; neue Anforderungen und Entscheidungen dort eintragen.

@@ -91,7 +91,9 @@ last levels, average consumption and fuel and gas costs of the month and year.
 
 Each trip gets its own folder named after its start time (for example `2026-10-12_1000`; manual exports
 `2026-10-12_1000-1130`) with the composite image, map, profile, GPX, statistics, raw points and an `export.json`
-the integration uses to manage the export. Only files listed there are ever deleted.
+the integration uses to manage the export. Only files listed there are ever deleted. The media browser of Home Assistant shows
+only the images; GPX, statistics, raw points and `fahrtenbuch.csv` are reachable through an app with file access
+(for example Studio Code Server or Samba, folder `/media/reiseverlauf`) for now.
 
 ## Push notification (blueprint)
 

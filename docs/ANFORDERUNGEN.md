@@ -136,6 +136,7 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 4. Automations-Blueprint für die Push-Nachricht, README (deutsch), HACS-Metadaten.
 5. Migration des Dashboards und Abbau der alten Helfer/des Dienstes (erst nach Freigabe). – erledigt 09.10.2026
 6. Fahrtenbuch (siehe [features/fahrtenbuch.md](features/fahrtenbuch.md)). – umgesetzt 18.11.2026
+7. Geschützter Download aller Dateien (siehe [features/downloads.md](features/downloads.md)).
 
 ## 11. Feature-Dokumente
 
@@ -151,3 +152,4 @@ offenen Fragen und Entscheidungen. Dieses Dokument bleibt die Übersicht und ent
 | Push-Benachrichtigung   | [push-benachrichtigung.md](features/push-benachrichtigung.md) | 4      | umgesetzt                |
 | Dashboard und Migration | [dashboard.md](features/dashboard.md)                         | 5      | umgesetzt                |
 | Fahrtenbuch             | [fahrtenbuch.md](features/fahrtenbuch.md)                     | 6      | umgesetzt                |
+| Geschützter Download    | [downloads.md](features/downloads.md)                         | 7      | geplant, Fragen offen    |

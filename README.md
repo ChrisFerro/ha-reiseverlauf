@@ -160,7 +160,9 @@ manuelle Exporte `2026-10-12_1000-1130`). Darin liegen:
 
 Im Ausgabeordner selbst liegt außerdem `fahrtenbuch.csv` (siehe [Fahrtenbuch](#fahrtenbuch)).
 
-Die Dateien sind im Medienbrowser unter **Medien → Lokale Medien** zu finden. Die Integration löscht nur Dateien,
+Die Bilder sind im Medienbrowser unter **Medien → Lokale Medien** zu finden. GPX, Statistik, Rohdaten und
+`fahrtenbuch.csv` zeigt der Medienbrowser von Home Assistant nicht an; sie sind bis auf Weiteres über eine App mit
+Dateizugriff erreichbar (z. B. Studio Code Server oder Samba, Ordner `/media/reiseverlauf`). Die Integration löscht nur Dateien,
 die in `export.json` stehen; eigene Dateien im Ordner bleiben erhalten.
 
 ## Push-Nachricht (Blueprint)
