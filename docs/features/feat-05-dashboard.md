@@ -1,4 +1,4 @@
-# Dashboard und Migration der alten Lösung
+# Feat-05: Dashboard und Migration
 
 Stand: 17.11.2026, umgesetzt (Etappe 5, Migration erledigt am 09.10.2026 mit v0.1.3).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
@@ -20,7 +20,7 @@ Hintergrunddienst entfallen.
 
 ### 3.1 Bisheriger Aufbau (abgelöst)
 
-- `reference/ha_track.py`: Export als Kommandozeilenskript (Logik wiederverwendet, siehe [export.md](export.md)).
+- `reference/ha_track.py`: Export als Kommandozeilenskript (Logik wiederverwendet, siehe [feat-03-export.md](feat-03-export.md)).
 - `reference/track_daemon.py`: Hintergrunddienst in der SSH-App; reagierte auf Knopf-Helfer, startete
   das Skript, meldete `sensor.track_export`/`sensor.track_aufraeumen`. Enthielt das Aufräum-Verhalten
   (Auswahlliste der Exporte, Löschen nach Dateityp, Bereinigen der angezeigten Ergebnisse).

@@ -45,32 +45,32 @@ Wichtig:
   Zustand, der erste mit neuer Breite und alter Länge. Die Integration fasst Positionen innerhalb von 3 s zu
   einem Punkt zusammen; sonst ergibt sich eine Treppenspur (31.10.2026: 109 km statt 84 km laut Tacho).
 - Der Recorder behält standardmäßig nur 10 Tage. Die Integration speichert die Reisepunkte daher selbst
-  (siehe [features/export.md](features/export.md) 5.1).
+  (siehe [features/feat-03-export.md](features/feat-03-export.md) 5.1).
 
 ## 4. Reiseerkennung
 
-Siehe [features/reiseerkennung.md](features/reiseerkennung.md).
+Siehe [features/feat-01-reiseerkennung.md](features/feat-01-reiseerkennung.md).
 
 ## 5. Auswertung (Export)
 
-Siehe [features/export.md](features/export.md).
+Siehe [features/feat-03-export.md](features/feat-03-export.md).
 
 ## 6. Entitäten, Dienste, Events der Integration
 
 Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `sensor.arto88b_gps_reisestatus`):
 
 - `binary_sensor.…_reise_aktiv`
-- `sensor.…_reisestatus` (`bereit`, `unterwegs`, `pause`, `auswertung`, `zusammenfuehrbar`, `fehler`, siehe [Reiseerkennung](features/reiseerkennung.md) 5.3)
+- `sensor.…_reisestatus` (`bereit`, `unterwegs`, `pause`, `auswertung`, `zusammenfuehrbar`, `fehler`, siehe [Reiseerkennung](features/feat-01-reiseerkennung.md) 5.3)
 - Laufende Reise: `sensor.…_reisebeginn` (Attribut `startort`), `…_strecke_laufende_reise`, `…_fahrzeit_laufende_reise`,
-  `…_pausenzeit_laufende_reise` (Attribut `halte`), `…_durchschnitt_laufende_reise` (siehe [Halte](features/halte.md))
+  `…_pausenzeit_laufende_reise` (Attribut `halte`), `…_durchschnitt_laufende_reise` (siehe [Halte](features/feat-02-halte.md))
 - Letzte Reise: `sensor.…_letzte_reise` (Titel; Attribute `dateien`, `statistik`, `ordner`, `start`),
   `…_letzte_reise_strecke`, `…_fahrzeit`, `…_dauer`, `…_ende`; `image.…_letzte_reise_gesamtbild` (siehe 9.11)
-- `select.…_export_auswahl` (siehe [Export](features/export.md) 2.4)
+- `select.…_export_auswahl` (siehe [Export](features/feat-03-export.md) 2.4)
 - Fahrtenbuch-Formular: `number.…_fahrtenbuch_*` (Kilometerstand, Kraftstoff, Gas 1/2, Diesel und Gas getankt und
   Betrag), `button.…_fahrtenbuch_speichern`/`_verwerfen`, `sensor.…_fahrtenbuch_eintrag` (siehe
-  [Fahrtenbuch](features/fahrtenbuch.md) 6.2)
+  [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.2)
 - Fahrtenbuch-Auswertung: `sensor.…_kilometerstand`, `…_kraftstoff`, `…_gas_1`, `…_gas_2`, `…_durchschnittsverbrauch`,
-  `…_tank_und_gaskosten_monat`, `…_tank_und_gaskosten_jahr` (siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.5)
+  `…_tank_und_gaskosten_monat`, `…_tank_und_gaskosten_jahr` (siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.5)
 
 Dienste (alle mit Pflichtfeld `config_entry_id`):
 
@@ -79,33 +79,33 @@ Dienste (alle mit Pflichtfeld `config_entry_id`):
 - `reiseverlauftracker.aufraeumen` (export, dateitypen): löscht Dateien eines Exports oder aller Exporte (`all`);
   ohne `export` gilt die Export-Auswahl; nur im Ausgabeordner, nur Dateien aus `export.json` (Gesamtbild, Karte,
   Profil, GPX, Statistik, Rohdaten)
-- `reiseverlauftracker.reise_starten` / `reise_beenden` (manuell, siehe [Reiseerkennung](features/reiseerkennung.md) 5.2)
-- `reiseverlauftracker.fahrtenbuch_eintragen` / `_speichern` / `_aendern` / `_loeschen` / `_csv` (siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.4)
+- `reiseverlauftracker.reise_starten` / `reise_beenden` (manuell, siehe [Reiseerkennung](features/feat-01-reiseerkennung.md) 5.2)
+- `reiseverlauftracker.fahrtenbuch_eintragen` / `_speichern` / `_aendern` / `_loeschen` / `_csv` (siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.4)
 
 Events:
 
 - `reiseverlauftracker_gestartet`
-- `reiseverlauftracker_exportiert` nach manuellem Export (Daten wie `_beendet`, siehe [Export](features/export.md) 5.5)
+- `reiseverlauftracker_exportiert` nach manuellem Export (Daten wie `_beendet`, siehe [Export](features/feat-03-export.md) 5.5)
 - `reiseverlauftracker_beendet` mit Daten: Titel, Start, Ende, Strecke_km, Fahrzeit, Dateiliste (Name, URL),
   Statistiktext, Pfad des Gesamtbilds, Halte, Fahrtenbuch (Kilometerstand, Liter, Kosten, Verbrauch)
 - `reiseverlauftracker_fahrtenbuch` bei Reisestart und bei jedem Halt ab der Mindestdauer: Anlass, Zeit, Ort,
-  Reise- und Halt-Start, Vorschlag (Kilometerstand, Kraftstoff, Gas 1, Gas 2), siehe [Fahrtenbuch](features/fahrtenbuch.md) 6.3
+  Reise- und Halt-Start, Vorschlag (Kilometerstand, Kraftstoff, Gas 1, Gas 2), siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.3
 
 Push-Nachricht: **nicht** in der Integration, sondern als Automation aus einem mitgelieferten Blueprint, siehe
-[features/push-benachrichtigung.md](features/push-benachrichtigung.md); die Fahrtenbuch-Erinnerung hat einen eigenen
-Blueprint (siehe [Fahrtenbuch](features/fahrtenbuch.md) 5.9).
+[features/feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md); die Fahrtenbuch-Erinnerung hat einen eigenen
+Blueprint (siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 5.9).
 
 ## 7. Einstellungen (Config-/Options-Flow)
 
 D+-Entität und „Ein“-Wert, Verzögerung (min), Zusammenführungsfenster (h), Mindestbewegung (m), Positions-Tracker, Geschwindigkeits-
 und Höhensensor (Höhe optional), Ausgabeordner, Standard-Skala, Standard-Rand (min), Schwellen:
 Stillstand 3 km/h, GPS-Genauigkeit 50 m, Punktabstand 15 m, Höhen-Hysterese 5 m, Mindestdauer eines Halts 5 min.
-Fahrtenbuch: Tankgröße (Liter, Standard 90, siehe [Fahrtenbuch](features/fahrtenbuch.md) 5.8).
+Fahrtenbuch: Tankgröße (Liter, Standard 90, siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 5.8).
 
 ## 8. Bisheriger Aufbau (abgelöst)
 
 Skripte, Helfer, Hintergrunddienst und das alte Dashboard sowie die Migration (erledigt am 09.10.2026, v0.1.3)
-stehen in [features/dashboard.md](features/dashboard.md) 3. Das Router-Skript für die Höhe bleibt bestehen.
+stehen in [features/feat-05-dashboard.md](features/feat-05-dashboard.md) 3. Das Router-Skript für die Höhe bleibt bestehen.
 
 ## 9. Offene Entscheidungen
 
@@ -119,14 +119,14 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
   Strecke ohne Langzeitstatistik (Wert pro Reise); Gesamtkilometer ggf. später.
 - **9.16** ~~Sprache der README~~ – entschieden (09.10.2026): `README.md` auf Deutsch und `README.en.md` auf Englisch.
 
-| Frühere Nummer                | Thema                                                   | Jetzt in                                                      |
-| ----------------------------- | ------------------------------------------------------- | ------------------------------------------------------------- |
-| 9.1, 9.2, 9.4, 9.7, 9.9, 9.12 | Datenhaltung, Ausgabeort, Höhe, Titel, Event, Aufräumen | [export.md](features/export.md)                               |
-| 9.5, 9.8, 9.10                | Pausen, manueller Start/Ende, Statuswerte               | [reiseerkennung.md](features/reiseerkennung.md)               |
-| 9.13, 9.14, 9.15              | Inhalt, Empfänger, weitere Benachrichtigungen           | [push-benachrichtigung.md](features/push-benachrichtigung.md) |
-| 9.17, 9.18, 9.21              | Export-Formular, Aufbau, Knöpfe                         | [dashboard.md](features/dashboard.md)                         |
-| 9.19, 9.20                    | Live-Werte, Halte                                       | [halte.md](features/halte.md)                                 |
-| 9.22                          | Fahrtenbuch (entschieden)                               | [fahrtenbuch.md](features/fahrtenbuch.md)                     |
+| Frühere Nummer                | Thema                                                   | Jetzt in                                                                      |
+| ----------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 9.1, 9.2, 9.4, 9.7, 9.9, 9.12 | Datenhaltung, Ausgabeort, Höhe, Titel, Event, Aufräumen | [feat-03-export.md](features/feat-03-export.md)                               |
+| 9.5, 9.8, 9.10                | Pausen, manueller Start/Ende, Statuswerte               | [feat-01-reiseerkennung.md](features/feat-01-reiseerkennung.md)               |
+| 9.13, 9.14, 9.15              | Inhalt, Empfänger, weitere Benachrichtigungen           | [feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md) |
+| 9.17, 9.18, 9.21              | Export-Formular, Aufbau, Knöpfe                         | [feat-05-dashboard.md](features/feat-05-dashboard.md)                         |
+| 9.19, 9.20                    | Live-Werte, Halte                                       | [feat-02-halte.md](features/feat-02-halte.md)                                 |
+| 9.22                          | Fahrtenbuch (entschieden)                               | [feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)                     |
 
 ## 10. Empfohlene Reihenfolge
 
@@ -135,7 +135,10 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 3. Integrationsrahmen: Config-Flow, Koordinator, Entitäten, Dienste, Events, Übersetzungen.
 4. Automations-Blueprint für die Push-Nachricht, README (deutsch), HACS-Metadaten.
 5. Migration des Dashboards und Abbau der alten Helfer/des Dienstes (erst nach Freigabe). – erledigt 09.10.2026
-6. Fahrtenbuch (siehe [features/fahrtenbuch.md](features/fahrtenbuch.md)). – umgesetzt 18.11.2026
+6. Fahrtenbuch (siehe [features/feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)). – umgesetzt 18.11.2026
+7. Geschützter Download aller Dateien (siehe [features/feat-07-downloads.md](features/feat-07-downloads.md)).
+8. Verbrauchsmodell mit Höhenmetern und Heizung im Stand (siehe [features/feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)),
+   erst wenn genug Fahrtenbuch-Daten vorliegen.
 
 ## 11. Feature-Dokumente
 
@@ -143,11 +146,16 @@ Jedes Feature hat ein eigenes Dokument in [`docs/features/`](features/) mit Ziel
 offenen Fragen und Entscheidungen. Dieses Dokument bleibt die Übersicht und enthält, was alle Features betrifft
 (Umgebung, Datenquellen, Entitäten, Einstellungen).
 
-| Feature                 | Dokument                                                      | Etappe | Stand                    |
-| ----------------------- | ------------------------------------------------------------- | ------ | ------------------------ |
-| Reiseerkennung          | [reiseerkennung.md](features/reiseerkennung.md)               | 1, 3   | umgesetzt                |
-| Halte und Live-Werte    | [halte.md](features/halte.md)                                 | 3      | umgesetzt, 1 Frage offen |
-| Export und Verwaltung   | [export.md](features/export.md)                               | 2, 3   | umgesetzt                |
-| Push-Benachrichtigung   | [push-benachrichtigung.md](features/push-benachrichtigung.md) | 4      | umgesetzt                |
-| Dashboard und Migration | [dashboard.md](features/dashboard.md)                         | 5      | umgesetzt                |
-| Fahrtenbuch             | [fahrtenbuch.md](features/fahrtenbuch.md)                     | 6      | umgesetzt                |
+Die Dokumente sind fortlaufend nummeriert: Dateiname `feat-<NN>-<name>.md`, Überschrift `Feat-<NN>: <Name>`. Ein
+neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeben.
+
+| Nr.     | Feature                 | Dokument                                                                      | Etappe | Stand                    |
+| ------- | ----------------------- | ----------------------------------------------------------------------------- | ------ | ------------------------ |
+| Feat-01 | Reiseerkennung          | [feat-01-reiseerkennung.md](features/feat-01-reiseerkennung.md)               | 1, 3   | umgesetzt                |
+| Feat-02 | Halte und Live-Werte    | [feat-02-halte.md](features/feat-02-halte.md)                                 | 3      | umgesetzt, 1 Frage offen |
+| Feat-03 | Export und Verwaltung   | [feat-03-export.md](features/feat-03-export.md)                               | 2, 3   | umgesetzt                |
+| Feat-04 | Push-Benachrichtigung   | [feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md) | 4      | umgesetzt                |
+| Feat-05 | Dashboard und Migration | [feat-05-dashboard.md](features/feat-05-dashboard.md)                         | 5      | umgesetzt                |
+| Feat-06 | Fahrtenbuch             | [feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)                     | 6      | umgesetzt                |
+| Feat-07 | Geschützter Download    | [feat-07-downloads.md](features/feat-07-downloads.md)                         | 7      | geplant, Fragen offen    |
+| Feat-08 | Verbrauchsmodell        | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | entschieden, offen       |

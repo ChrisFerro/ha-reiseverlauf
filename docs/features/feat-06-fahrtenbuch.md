@@ -1,4 +1,4 @@
-# Fahrtenbuch (Etappe 6)
+# Feat-06: Fahrtenbuch
 
 Stand: 18.11.2026, umgesetzt (Teilschritte 1 bis 5 von 6.7); offen ist der Test mit dem echten Fahrzeug.
 Übergeordnete Anforderungen, Entscheidungen und Begriffe: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
@@ -188,7 +188,8 @@ ginge die seitdem gefahrene Strecke für den Kilometerstand verloren. Für Autom
 
 - Nicht in dieser Etappe: die einzelnen D+-Aus-Phasen innerhalb eines Halts (Abschnitt 3), Sensoren als Quelle
   (5.1), Gasverbrauch je Tag (5.4), Fahrtenbuch-Daten in manuellen Exporten, Höhenmeter im Kraftstoff-Vorschlag
-  und Herausrechnen des Heizungsverbrauchs (5.8).
+  und Herausrechnen des Heizungsverbrauchs (5.8); die beiden letzten sind als eigenes Feature geplant, siehe
+  [feat-08-verbrauchsmodell.md](feat-08-verbrauchsmodell.md).
 
 ### 6.7 Teilschritte
 

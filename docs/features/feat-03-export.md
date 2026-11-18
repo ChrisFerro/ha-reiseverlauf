@@ -1,11 +1,11 @@
-# Export (Auswertung) und Verwaltung der Exporte
+# Feat-03: Export und Verwaltung
 
 Stand: 17.11.2026, umgesetzt (Etappe 2 und 3).
 Übergeordnete Anforderungen, Datenquellen und Einstellungen: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
 
 ## 1. Ziel
 
-Nach jeder Reise (automatisch, siehe [reiseerkennung.md](reiseerkennung.md)) oder auf Anfrage (Dienst
+Nach jeder Reise (automatisch, siehe [feat-01-reiseerkennung.md](feat-01-reiseerkennung.md)) oder auf Anfrage (Dienst
 `exportieren`) entstehen Statistik, Kartenbild, Höhen-/Geschwindigkeitsprofil, GPX und ein Gesamtbild
 (Verwendung: Fotobuch). Exporte lassen sich auswählen und aufräumen.
 
@@ -30,7 +30,7 @@ Zeitraum (von/bis), Titel (optional), Skala (1–4), Rand in Minuten für das Ge
 5. Punkte mit weniger als 15 m Abstand ausdünnen (Karte/GPX).
 6. Statistik: Zeitraum (Abfahrt/Ankunft), Strecke (km), Fahrzeit (Abschnitte ab 3 km/h, Lücken über 5 min
    zählen nicht), Höchstgeschwindigkeit, Ø in Bewegung (Sensorwerte ab 3 km/h), Höhe min/max,
-   Höhenmeter mit Hysterese (5 m), Halte (siehe [halte.md](halte.md)).
+   Höhenmeter mit Hysterese (5 m), Halte (siehe [feat-02-halte.md](feat-02-halte.md)).
 
 ### 2.3 Ausgaben
 
@@ -62,7 +62,7 @@ Die Skalierung wirkt auf alle Bilder. Dateinamen: `<slug des Titels>` oder `trac
 
 - Fahrt vom 31.10.2026: Strecke bis v0.1.4 109,2 km, seit v0.1.5 84,2 km (Tacho 84 km; OSRM-Abgleich 84,0 km).
 - Höhe geprüft gegen EU-DEM (25 m): GPS-Höhe weicht im Mittel 1,4 m ab (80 % innerhalb ±6 m).
-- Ein manueller Export enthält keine Halte (siehe [halte.md](halte.md) 4).
+- Ein manueller Export enthält keine Halte (siehe [feat-02-halte.md](feat-02-halte.md) 4).
 
 ## 4. Offene Fragen
 

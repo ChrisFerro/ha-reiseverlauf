@@ -1,4 +1,4 @@
-# Halte und Live-Werte der laufenden Reise
+# Feat-02: Halte und Live-Werte
 
 Stand: 17.11.2026, umgesetzt (v0.1.4, Zusammenfassen seit v0.1.5).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
@@ -6,7 +6,7 @@ Stand: 17.11.2026, umgesetzt (v0.1.4, Zusammenfassen seit v0.1.5).
 ## 1. Ziel
 
 Während einer Reise zeigt die Integration laufende Werte (Startort, Strecke, Fahrzeit, Pausenzeit, Ø) und
-erfasst Halte mit Ort und Dauer. Halte sind die Grundlage für das [Fahrtenbuch](fahrtenbuch.md).
+erfasst Halte mit Ort und Dauer. Halte sind die Grundlage für das [Fahrtenbuch](feat-06-fahrtenbuch.md).
 
 ## 2. Anforderungen
 
@@ -26,12 +26,12 @@ erfasst Halte mit Ort und Dauer. Halte sind die Grundlage für das [Fahrtenbuch]
 ## 3. Ausgangslage
 
 - Halte und laufende Statistik in `coordinator/trip_log.py`, Anbindung in `coordinator/base.py`.
-- Positionen innerhalb von 3 s werden zu einem Punkt zusammengefasst (siehe [export.md](export.md) 2.2), damit die
+- Positionen innerhalb von 3 s werden zu einem Punkt zusammengefasst (siehe [feat-03-export.md](feat-03-export.md) 2.2), damit die
   Live-Strecke stimmt.
 - Fahrt vom 31.10.2026: Tanken mit zweimal Umparken (D+-Aus von 4, 4 und 7 min am selben Ort) ergab bis v0.1.4 nur
   einen Halt von 7 min, seit v0.1.5 einen Halt von 20 min.
 - Ein manueller Export ermittelt keine Halte (D+ wird aus dem Recorder nicht ausgewertet).
-- Die einzelnen D+-Aus-Phasen eines Halts werden nicht gespeichert (siehe [fahrtenbuch.md](fahrtenbuch.md) 3).
+- Die einzelnen D+-Aus-Phasen eines Halts werden nicht gespeichert (siehe [feat-06-fahrtenbuch.md](feat-06-fahrtenbuch.md) 3).
 
 ## 4. Offene Fragen
 

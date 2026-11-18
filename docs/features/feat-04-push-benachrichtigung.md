@@ -1,4 +1,4 @@
-# Push-Benachrichtigung (Blueprint)
+# Feat-04: Push-Benachrichtigung
 
 Stand: 17.11.2026, umgesetzt (Etappe 4, live seit 09.10.2026).
 Übergeordnete Anforderungen und Events: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
