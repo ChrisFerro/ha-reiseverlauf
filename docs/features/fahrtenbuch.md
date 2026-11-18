@@ -188,7 +188,8 @@ ginge die seitdem gefahrene Strecke für den Kilometerstand verloren. Für Autom
 
 - Nicht in dieser Etappe: die einzelnen D+-Aus-Phasen innerhalb eines Halts (Abschnitt 3), Sensoren als Quelle
   (5.1), Gasverbrauch je Tag (5.4), Fahrtenbuch-Daten in manuellen Exporten, Höhenmeter im Kraftstoff-Vorschlag
-  und Herausrechnen des Heizungsverbrauchs (5.8).
+  und Herausrechnen des Heizungsverbrauchs (5.8); die beiden letzten sind als eigenes Feature geplant, siehe
+  [verbrauchsmodell.md](verbrauchsmodell.md).
 
 ### 6.7 Teilschritte
 

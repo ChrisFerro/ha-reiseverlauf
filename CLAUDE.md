@@ -33,6 +33,8 @@ Ausführliche Anforderungen und der Ist-Zustand stehen in der importierten Datei
    Anforderungen und offene Fragen in `docs/features/fahrtenbuch.md`.
 7. Geschützter Download aller Dateien (GPX, Statistik, CSV …); Anforderungen und offene Fragen in
    `docs/features/downloads.md`.
+8. Verbrauchsmodell (Höhenmeter, Heizung im Stand) für Ø-Verbrauch und Kraftstoff-Vorschlag; erst mit genug
+   Fahrtenbuch-Daten. Anforderungen und offene Fragen in `docs/features/verbrauchsmodell.md`.
 
 Jedes Feature hat ein eigenes Dokument in `docs/features/` (Verzeichnis in `docs/ANFORDERUNGEN.md` Abschnitt 11).
 Vor der Arbeit an einem Feature dessen Dokument lesen; neue Anforderungen und Entscheidungen dort eintragen.

@@ -137,6 +137,8 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 5. Migration des Dashboards und Abbau der alten Helfer/des Dienstes (erst nach Freigabe). – erledigt 09.10.2026
 6. Fahrtenbuch (siehe [features/fahrtenbuch.md](features/fahrtenbuch.md)). – umgesetzt 18.11.2026
 7. Geschützter Download aller Dateien (siehe [features/downloads.md](features/downloads.md)).
+8. Verbrauchsmodell mit Höhenmetern und Heizung im Stand (siehe [features/verbrauchsmodell.md](features/verbrauchsmodell.md)),
+   erst wenn genug Fahrtenbuch-Daten vorliegen.
 
 ## 11. Feature-Dokumente
 
@@ -153,3 +155,4 @@ offenen Fragen und Entscheidungen. Dieses Dokument bleibt die Übersicht und ent
 | Dashboard und Migration | [dashboard.md](features/dashboard.md)                         | 5      | umgesetzt                |
 | Fahrtenbuch             | [fahrtenbuch.md](features/fahrtenbuch.md)                     | 6      | umgesetzt                |
 | Geschützter Download    | [downloads.md](features/downloads.md)                         | 7      | geplant, Fragen offen    |
+| Verbrauchsmodell        | [verbrauchsmodell.md](features/verbrauchsmodell.md)           | 8      | geplant, Fragen offen    |
