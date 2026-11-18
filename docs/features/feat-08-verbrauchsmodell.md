@@ -53,8 +53,8 @@ Der Kraftstoff-Vorschlag und der Durchschnittsverbrauch des Fahrtenbuchs werden 
    Truma iNet/CP plus), aus denen sich die Laufzeit statt nur der Standtage ergibt?~~ – entschieden, siehe 5.2.
 3. ~~**Tankanzeige:** Wie fein ist die Tankanzeige (Prozent, Achtel, Balken)? Davon hängt ab, ab wie vielen
    Standtagen eine Differenz aussagekräftig ist.~~ – entschieden, siehe 5.3.
-4. **Anzeige:** Welche Werte sollen sichtbar sein (Sensor „Verbrauch im Stand“, bereinigter Ø-Verbrauch, Zusatz je
-   Höhenmeter) und wo (Dashboard, Reise-Export)?
+4. ~~**Anzeige:** Welche Werte sollen sichtbar sein (Sensor „Verbrauch im Stand“, bereinigter Ø-Verbrauch, Zusatz je
+   Höhenmeter) und wo (Dashboard, Reise-Export)?~~ – entschieden, siehe 5.4.
 5. **Zwischenschritt:** Soll der Sensor „Verbrauch im Stand“ schon vorab kommen, bevor das Modell den Vorschlag
    verändert?
 
@@ -73,6 +73,12 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
   Die Heizung verbraucht typischerweise wenige Liter am Tag, eine einzelne Standzeit liegt daher meist unter der
   Ablesegenauigkeit. Grundlage der Schätzung sind deshalb die genau gemessenen Liter an der Zapfsäule zwischen zwei
   vollen Tankfüllungen (Abschnitt 6); die abgelesenen Füllstände dienen nur zur Kontrolle und für den Vorschlag.
+- **5.4 Anzeige** – entschieden (18.11.2026): Alle drei Werte des Modells werden angezeigt, jeweils als Sensor und im
+  Reise-Export (Statistik und Gesamtbild):
+  - **Grundverbrauch** in l/100 km (ohne Heizung und Steigungen),
+  - **Zusatz für Steigungen** in l je 1000 Höhenmeter bergauf,
+  - **Heizung im Stand** in l je Tag.
+    Solange das Modell noch nicht genug Daten hat, sind die Sensoren „unbekannt“ und der Export zeigt die Werte nicht.
 
 ## 6. Mögliche Umsetzung (zur Diskussion)
 
