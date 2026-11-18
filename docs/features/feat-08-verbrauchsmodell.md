@@ -46,8 +46,9 @@ Der Kraftstoff-Vorschlag und der Durchschnittsverbrauch des Fahrtenbuchs werden 
 
 ## 4. Offene Fragen (vor der Umsetzung einzeln klären)
 
-1. **Heizung:** Zieht die Heizung (z. B. Truma Combi D) den Diesel aus dem Fahrzeugtank oder hat sie einen eigenen
-   Tank? Gibt es weitere Verbraucher aus dem Fahrzeugtank (z. B. Standheizung des Fahrerhauses)?
+1. ~~**Heizung:** Zieht die Heizung (z. B. Truma Combi D) den Diesel aus dem Fahrzeugtank oder hat sie einen eigenen
+   Tank? Gibt es weitere Verbraucher aus dem Fahrzeugtank (z. B. Standheizung des Fahrerhauses)?~~ – entschieden,
+   siehe 5.1.
 2. **Heizung als Sensor:** Gibt es in Home Assistant Werte zur Heizung (Betriebszustand, Leistungsstufe, z. B. über
    Truma iNet/CP plus), aus denen sich die Laufzeit statt nur der Standtage ergibt?
 3. **Tankanzeige:** Wie fein ist die Tankanzeige (Prozent, Achtel, Balken)? Davon hängt ab, ab wie vielen
@@ -59,7 +60,11 @@ Der Kraftstoff-Vorschlag und der Durchschnittsverbrauch des Fahrtenbuchs werden 
 
 ## 5. Entscheidungen
 
-Noch keine. Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird dann durchgestrichen.
+Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird dann durchgestrichen.
+
+- **5.1 Heizung am Fahrzeugtank** – entschieden (18.11.2026): Die Heizung bezieht ihren Diesel aus dem
+  Fahrzeugtank. Ein sinkender Kraftstoff-Füllstand im Stand ist daher Heizungsverbrauch und wird vom Fahrverbrauch
+  getrennt (Abschnitt 2). Weitere Verbraucher aus dem Fahrzeugtank sind nicht bekannt.
 
 ## 6. Mögliche Umsetzung (zur Diskussion)
 
