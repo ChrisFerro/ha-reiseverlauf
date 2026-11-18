@@ -4,7 +4,7 @@ Logbook of odometer readings, tank levels and refills.
 The logbook has no Home Assistant dependencies. The coordinator persists
 `as_dict()` in its own `Store`, which outlives the per-trip log, and feeds the
 distance measured during trips into it, so that the odometer can be carried
-forward between readings (see docs/features/fahrtenbuch.md).
+forward between readings (see docs/features/feat-06-fahrtenbuch.md).
 """
 
 from dataclasses import dataclass, field, replace

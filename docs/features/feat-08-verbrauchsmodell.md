@@ -1,9 +1,9 @@
-# Verbrauchsmodell (Höhenmeter und Heizung)
+# Feat-08: Verbrauchsmodell
 
 Stand: 18.11.2026, geplant (Etappe 8), offene Fragen in Abschnitt 4. Umsetzung erst, wenn genug Fahrtenbuch-Daten
 vorliegen.
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
-[Fahrtenbuch](fahrtenbuch.md).
+[Fahrtenbuch](feat-06-fahrtenbuch.md).
 
 ## 1. Ziel
 
@@ -26,7 +26,7 @@ Der Kraftstoff-Vorschlag und der Durchschnittsverbrauch des Fahrtenbuchs werden 
 - **Vorschlag:** Kraftstoff-Vorschlag beim Halt mit Strecke und Höhenmetern der Reise; beim Reisebeginn zusätzlich
   abzüglich des geschätzten Verbrauchs im Stand.
 - **Rückfall:** Solange zu wenige Daten vorliegen, bleibt das bisherige Verfahren (Volltank-Methode,
-  [fahrtenbuch.md](fahrtenbuch.md) 5.8). Ein Modell wird erst genutzt, wenn es auf den vorhandenen Daten besser
+  [feat-06-fahrtenbuch.md](feat-06-fahrtenbuch.md) 5.8). Ein Modell wird erst genutzt, wenn es auf den vorhandenen Daten besser
   schätzt als das bisherige.
 - **Nachvollziehbar:** Die geschätzten Werte (Grundverbrauch, Zusatz je Höhenmeter, Verbrauch im Stand je Tag)
   sind als Sensoren oder Attribute sichtbar.
@@ -42,7 +42,7 @@ Der Kraftstoff-Vorschlag und der Durchschnittsverbrauch des Fahrtenbuchs werden 
   erst seit 04.10.2026.
 - Füllstände werden von Hand von der Tankanzeige abgelesen (ganze Prozent, Anzeige ggf. grob); das begrenzt die
   Genauigkeit des Verbrauchs im Stand.
-- Zurückgestellt im Fahrtenbuch: [fahrtenbuch.md](fahrtenbuch.md) 5.8 und 6.6.
+- Zurückgestellt im Fahrtenbuch: [feat-06-fahrtenbuch.md](feat-06-fahrtenbuch.md) 5.8 und 6.6.
 
 ## 4. Offene Fragen (vor der Umsetzung einzeln klären)
 

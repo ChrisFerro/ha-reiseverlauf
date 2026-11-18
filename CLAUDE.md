@@ -30,13 +30,14 @@ Ausführliche Anforderungen und der Ist-Zustand stehen in der importierten Datei
 4. Automations-Blueprint für die Push-Nachricht, README, HACS-Metadaten.
 5. Migration des Dashboards und Abbau der alten Helfer/des Hintergrunddienstes (erst nach Freigabe).
 6. Fahrtenbuch (Kilometerstand, Tank- und Gasfüllstände je Halt, Tank-/Gasstopps mit Menge und Betrag);
-   Anforderungen und offene Fragen in `docs/features/fahrtenbuch.md`.
+   Anforderungen und offene Fragen in `docs/features/feat-06-fahrtenbuch.md`.
 7. Geschützter Download aller Dateien (GPX, Statistik, CSV …); Anforderungen und offene Fragen in
-   `docs/features/downloads.md`.
+   `docs/features/feat-07-downloads.md`.
 8. Verbrauchsmodell (Höhenmeter, Heizung im Stand) für Ø-Verbrauch und Kraftstoff-Vorschlag; erst mit genug
-   Fahrtenbuch-Daten. Anforderungen und offene Fragen in `docs/features/verbrauchsmodell.md`.
+   Fahrtenbuch-Daten. Anforderungen und offene Fragen in `docs/features/feat-08-verbrauchsmodell.md`.
 
-Jedes Feature hat ein eigenes Dokument in `docs/features/` (Verzeichnis in `docs/ANFORDERUNGEN.md` Abschnitt 11).
+Jedes Feature hat ein eigenes Dokument in `docs/features/` (Verzeichnis in `docs/ANFORDERUNGEN.md` Abschnitt 11),
+fortlaufend nummeriert: Dateiname `feat-<NN>-<name>.md`, Überschrift `Feat-<NN>: <Name>` (nächste freie Nummer).
 Vor der Arbeit an einem Feature dessen Dokument lesen; neue Anforderungen und Entscheidungen dort eintragen.
 
 Vor jeder Etappe kurz die offenen Entscheidungen in `docs/ANFORDERUNGEN.md` (Abschnitt 9) und die offenen Fragen

@@ -1,4 +1,4 @@
-# Geschützter Download der Dateien
+# Feat-07: Geschützter Download
 
 Stand: 18.11.2026, geplant (Etappe 7), offene Fragen in Abschnitt 4.
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
@@ -24,12 +24,12 @@ Anmeldung.
 
 ## 3. Ausgangslage (Stand v0.2.1)
 
-- Alle Dateien liegen im lokalen Medienordner (`/media/reiseverlauf/...`, siehe [export.md](export.md) 5.2).
+- Alle Dateien liegen im lokalen Medienordner (`/media/reiseverlauf/...`, siehe [feat-03-export.md](feat-03-export.md) 5.2).
 - Der Medienbrowser von Home Assistant zeigt und liefert nur Bilder, Videos und Audio
   (`media_source/local_source.py`: Prüfung auf `MEDIA_MIME_TYPES`). GPX, Statistik-Text, Rohdaten, `export.json`
   und `fahrtenbuch.csv` erscheinen dort nicht; ihre Links `/media/local/...` liefern „nicht gefunden“.
 - Betroffen sind das Attribut `dateien` der letzten Reise, die Event-Daten, die Antwort von
-  `fahrtenbuch_csv` sowie Hinweise in README, Dashboard-Texten und [dashboard.md](dashboard.md).
+  `fahrtenbuch_csv` sowie Hinweise in README, Dashboard-Texten und [feat-05-dashboard.md](feat-05-dashboard.md).
   Aufgefallen beim Live-Test des Fahrtenbuchs am 18.11.2026.
 - Zugriff heute nur über Apps mit Dateizugriff (z. B. Studio Code Server, Advanced SSH & Web Terminal, Samba).
 
@@ -56,4 +56,4 @@ Noch keine. Entscheidungen werden hier mit Datum eingetragen, die Frage in Absch
 - Signierte Links (`async_sign_path`, wie Backups) für Push-Nachricht und Dashboard; ohne Signatur nur mit
   Anmelde-Header (Companion-App, API).
 - Optional eine eigene Medienquelle, damit die Dateien im Medienbrowser erscheinen.
-- Nicht gewählt: Kopie nach `/config/www` (`/local`), weil ohne Anmeldung abrufbar (siehe [export.md](export.md)).
+- Nicht gewählt: Kopie nach `/config/www` (`/local`), weil ohne Anmeldung abrufbar (siehe [feat-03-export.md](feat-03-export.md)).

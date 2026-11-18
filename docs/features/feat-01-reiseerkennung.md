@@ -1,4 +1,4 @@
-# Reiseerkennung
+# Feat-01: Reiseerkennung
 
 Stand: 17.11.2026, umgesetzt (Etappe 1 und 3).
 Übergeordnete Anforderungen, Datenquellen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
@@ -6,7 +6,7 @@ Stand: 17.11.2026, umgesetzt (Etappe 1 und 3).
 ## 1. Ziel
 
 Die Integration erkennt **automatisch** über das D+-Signal, wann eine Reise beginnt und endet, und stößt danach den
-[Export](export.md) an. Halte innerhalb einer Reise beschreibt [halte.md](halte.md).
+[Export](feat-03-export.md) an. Halte innerhalb einer Reise beschreibt [feat-02-halte.md](feat-02-halte.md).
 
 ## 2. Anforderungen
 
@@ -29,7 +29,7 @@ Standard `ON`/`on`). `unavailable`/`unknown` (z. B. bei jedem HA-Neustart) gelte
   damit ein HA-Neustart die Erkennung nicht zerstört. Beim Start: Countdown aus gespeicherten Zeiten
   neu berechnen; war D+ eingeschaltet und gibt es keinen gespeicherten Zustand, ist `last_changed` des
   D+-Sensors der Start.
-- Bewegungsbeginn/-ende innerhalb der Reise werden aus den Positionen bestimmt (siehe [export.md](export.md) 2.2).
+- Bewegungsbeginn/-ende innerhalb der Reise werden aus den Positionen bestimmt (siehe [feat-03-export.md](feat-03-export.md) 2.2).
 
 ## 3. Ausgangslage
 
