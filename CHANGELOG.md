@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.1...v0.2.2) (2026-11-19)
+
+
+### Features
+
+* **downloads:** protected downloads of all files in the dashboard ([#28](https://github.com/ChrisFerro/ha-reiseverlauf/issues/28)) ([f523385](https://github.com/ChrisFerro/ha-reiseverlauf/commit/f523385b8d2f0ccde7780e779ab7171d5306be17))
+
 ## [0.2.1](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.0...v0.2.1) (2026-11-18)
 
 
