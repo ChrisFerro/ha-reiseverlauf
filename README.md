@@ -29,6 +29,8 @@ mit dem Gesamtbild aufs Handy.
   Daten behält.
 - **Geschützte Ablage:** Alle Dateien liegen im Medienordner von Home Assistant und sind nur mit Anmeldung
   abrufbar.
+- **Downloads im Dashboard:** GPX, Statistik, Rohdaten, Bilder, alles einer Reise als ZIP und `fahrtenbuch.csv`
+  über signierte Links, die 24 h gelten und stündlich erneuert werden.
 - **Bedienung über die Oberfläche:** Einrichtung, Optionen, Entitäten und Aktionen; kein YAML nötig.
 
 ## Voraussetzungen
@@ -97,20 +99,20 @@ Integration fragt den Ort ab und listet den Halt live und später in der Statist
 Alle Entitäten gehören zu einem Gerät mit dem Namen des Eintrags. Die Entity-IDs beginnen mit diesem Namen,
 z. B. `sensor.wohnmobil_gps_reisestatus`.
 
-| Entität                                                                                                             | Inhalt                                                                                                              |
-| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Reise aktiv                                                                                                         | An, solange eine Reise läuft (auch in Pausen)                                                                       |
-| Reisestatus                                                                                                         | Bereit, Unterwegs, Pause, Auswertung, Fortsetzbar, Fehler; Attribute „Voraussichtliches Ende“ und „Fortsetzbar bis“ |
-| Reisebeginn (Attribut `startort`), Strecke, Fahrzeit, Pausenzeit (Attribut `halte`) und Durchschnitt laufende Reise | Werte der laufenden Reise; Durchschnitt = Ø in Bewegung, Pausenzeit = Zeit seit Start minus Fahrzeit                |
-| Letzte Reise                                                                                                        | Titel; Attribute `dateien` (Typ, Name, URL), `statistik`, `ordner`, `start`                                         |
-| Letzte Reise Strecke, Fahrzeit, Dauer, Ende                                                                         | Kennzahlen der letzten automatisch erkannten Reise                                                                  |
-| Letzte Reise Gesamtbild                                                                                             | Bild-Entität, zeigt das Gesamtbild auf dem Dashboard                                                                |
-| Fahrtenbuch Kilometerstand, Kraftstoff, Gas 1, Gas 2, Diesel getankt, Diesel Betrag, Gas getankt, Gas Betrag        | Formular für den nächsten Fahrtenbuch-Eintrag, vorbelegt mit dem Vorschlag (siehe [Fahrtenbuch](#fahrtenbuch))      |
-| Fahrtenbuch speichern, Fahrtenbuch verwerfen                                                                        | Knöpfe des Formulars                                                                                                |
-| Fahrtenbuch Eintrag                                                                                                 | „Offen“, solange ein Anlass auf den Eintrag wartet, sonst „Gespeichert“; Attribute Anlass, Ort, `letzte_eintraege`  |
-| Kilometerstand, Kraftstoff, Gas 1, Gas 2                                                                            | Aktueller Kilometerstand und letzte Füllstände                                                                      |
-| Durchschnittsverbrauch, Tank- und Gaskosten Monat und Jahr                                                          | Auswertung des Fahrtenbuchs (Verbrauch ab dem zweiten vollen Tank)                                                  |
-| Export-Auswahl                                                                                                      | Alle Exporte (neueste zuerst) und „Alle Exporte“; wird von „Exporte aufräumen“ genutzt                              |
+| Entität                                                                                                             | Inhalt                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Reise aktiv                                                                                                         | An, solange eine Reise läuft (auch in Pausen)                                                                                      |
+| Reisestatus                                                                                                         | Bereit, Unterwegs, Pause, Auswertung, Fortsetzbar, Fehler; Attribute „Voraussichtliches Ende“ und „Fortsetzbar bis“                |
+| Reisebeginn (Attribut `startort`), Strecke, Fahrzeit, Pausenzeit (Attribut `halte`) und Durchschnitt laufende Reise | Werte der laufenden Reise; Durchschnitt = Ø in Bewegung, Pausenzeit = Zeit seit Start minus Fahrzeit                               |
+| Letzte Reise                                                                                                        | Titel; Attribute `dateien` (Typ, Name, URL), `downloads` (siehe [Downloads](#downloads)), `statistik`, `ordner`, `start`           |
+| Letzte Reise Strecke, Fahrzeit, Dauer, Ende                                                                         | Kennzahlen der letzten automatisch erkannten Reise                                                                                 |
+| Letzte Reise Gesamtbild                                                                                             | Bild-Entität, zeigt das Gesamtbild auf dem Dashboard                                                                               |
+| Fahrtenbuch Kilometerstand, Kraftstoff, Gas 1, Gas 2, Diesel getankt, Diesel Betrag, Gas getankt, Gas Betrag        | Formular für den nächsten Fahrtenbuch-Eintrag, vorbelegt mit dem Vorschlag (siehe [Fahrtenbuch](#fahrtenbuch))                     |
+| Fahrtenbuch speichern, Fahrtenbuch verwerfen                                                                        | Knöpfe des Formulars                                                                                                               |
+| Fahrtenbuch Eintrag                                                                                                 | „Offen“, solange ein Anlass auf den Eintrag wartet, sonst „Gespeichert“; Attribute Anlass, Ort, `letzte_eintraege`, `downloads`    |
+| Kilometerstand, Kraftstoff, Gas 1, Gas 2                                                                            | Aktueller Kilometerstand und letzte Füllstände                                                                                     |
+| Durchschnittsverbrauch, Tank- und Gaskosten Monat und Jahr                                                          | Auswertung des Fahrtenbuchs (Verbrauch ab dem zweiten vollen Tank)                                                                 |
+| Export-Auswahl                                                                                                      | Alle Exporte (neueste zuerst) und „Alle Exporte“; wird von „Exporte aufräumen“ genutzt; Attribut `downloads` des gewählten Exports |
 
 ## Aktionen
 
@@ -161,9 +163,43 @@ manuelle Exporte `2026-10-12_1000-1130`). Darin liegen:
 Im Ausgabeordner selbst liegt außerdem `fahrtenbuch.csv` (siehe [Fahrtenbuch](#fahrtenbuch)).
 
 Die Bilder sind im Medienbrowser unter **Medien → Lokale Medien** zu finden. GPX, Statistik, Rohdaten und
-`fahrtenbuch.csv` zeigt der Medienbrowser von Home Assistant nicht an; sie sind bis auf Weiteres über eine App mit
-Dateizugriff erreichbar (z. B. Studio Code Server oder Samba, Ordner `/media/reiseverlauf`). Die Integration löscht nur Dateien,
-die in `export.json` stehen; eigene Dateien im Ordner bleiben erhalten.
+`fahrtenbuch.csv` zeigt der Medienbrowser von Home Assistant nicht an; sie lassen sich über das Dashboard
+herunterladen (siehe [Downloads](#downloads)). Die Integration löscht nur Dateien, die in `export.json` stehen;
+eigene Dateien im Ordner bleiben erhalten.
+
+### Downloads
+
+Die Entitäten „Letzte Reise“, „Export-Auswahl“ und „Fahrtenbuch Eintrag“ haben ein Attribut `downloads`: eine Liste
+mit `typ`, `name` und `url` für jede Datei, bei Reisen zusätzlich `zip` mit allen Dateien der Reise. Ein Link gilt
+24 h und wird stündlich erneuert, nach einem Neustart sofort; im Dashboard ist er daher immer gültig. Wer einen
+Link kopiert, kann ihn bis zu einen Tag ohne Anmeldung öffnen. Ohne gültigen Link liefert Home Assistant nichts.
+Die Links landen nicht in der History, und das ZIP wird beim Abruf erzeugt und nicht gespeichert.
+
+Beispiel für eine Markdown-Karte. Die Links brauchen `target="_blank"`, sonst öffnet das Dashboard sie als eigene
+Seite statt als Download:
+
+```yaml
+type: markdown
+title: Downloads
+content: >-
+  **Letzte Reise**
+
+  {% for d in state_attr('sensor.wohnmobil_gps_letzte_reise', 'downloads') or [] %}
+  - <a href="{{ d.url }}" target="_blank">{{ d.name }}</a>
+  {% endfor %}
+
+  **Export-Auswahl:** {{ states('select.wohnmobil_gps_export_auswahl') }}
+
+  {% for d in state_attr('select.wohnmobil_gps_export_auswahl', 'downloads') or [] %}
+  - <a href="{{ d.url }}" target="_blank">{{ d.name }}</a>
+  {% endfor %}
+
+  **Fahrtenbuch**
+
+  {% for d in state_attr('sensor.wohnmobil_gps_fahrtenbuch_eintrag', 'downloads') or [] %}
+  - <a href="{{ d.url }}" target="_blank">{{ d.name }}</a>
+  {% endfor %}
+```
 
 ## Push-Nachricht (Blueprint)
 
@@ -332,8 +368,8 @@ simulierte Fahrzeugsensoren mit (`config/packages/simulation.yaml`). Siehe [CONT
 > - **KI-Anteil:** überwiegend
 > - **Prüfung durch Menschen:** Anforderungen und Entscheidungen vom Maintainer; jede Ausbaustufe in einer
 >   Entwicklungsinstanz geprüft
-> - **Automatische Tests:** rund 370 Tests (Reiseerkennung, Auswertung, Fahrtenbuch, Einrichtung, Entitäten, Aktionen,
->   Blueprints)
+> - **Automatische Tests:** rund 380 Tests (Reiseerkennung, Auswertung, Fahrtenbuch, Downloads, Einrichtung, Entitäten,
+>   Aktionen, Blueprints)
 > - **Test mit echtem Fahrzeug:** noch nicht erfolgt, bisher nur mit simulierten Sensoren
 > - **Reifegrad:** frühe Version (0.x); Einstellungen und Entitäten können sich noch ändern
 >

@@ -1,6 +1,6 @@
 # Feat-07: Geschützter Download
 
-Stand: 18.11.2026, Fragen geklärt (Abschnitt 5), Umsetzung offen (Etappe 7).
+Stand: 19.11.2026, umgesetzt (Etappe 7, Abschnitt 6).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md).
 
 ## 1. Ziel
@@ -62,17 +62,31 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
 - **5.4 Berechtigung** (18.11.2026): Alle angemeldeten Benutzer, die das Dashboard sehen. Ohne gültigen Link gibt
   es nichts; wer den Zugriff einschränken will, schränkt die Sichtbarkeit des Dashboards ein.
 
-## 6. Mögliche Umsetzung (zur Diskussion)
+- **5.5 Signatur** (19.11.2026): `async_sign_path` mit dem schreibgeschützten Systembenutzer „Home Assistant
+  Content“, den Home Assistant selbst anlegt (`use_content_user=True`); kein eigener Benutzer, kein eigenes Token.
+  Der Signierschlüssel liegt nur im Arbeitsspeicher, nach einem Neustart sind alte Links ungültig.
+- **5.6 Kein Cache** (19.11.2026): Alle Downloads senden `Cache-Control: no-store, private`. Beim Test lieferte der
+  Browser einen alten Link nach dem Neustart sonst aus dem Cache, ohne den Server zu fragen.
 
-- Eigener HTTP-Endpunkt der Integration (`HomeAssistantView`), z. B.
-  `/api/reiseverlauftracker/datei/<eintrag>/<ordner>/<datei>` und `…/zip/<eintrag>/<ordner>`, prüft Pfad und
-  `export.json` und liefert die Datei mit `Content-Disposition: attachment`; das ZIP wird gestreamt, nicht
-  gespeichert.
-- Signatur der Links, zwei Wege (vor der Umsetzung prüfen):
-  - `async_sign_path` wie bei Backups; braucht ein Refresh-Token, im Hintergrund also einen eigenen
-    Systembenutzer der Integration.
-  - Eigenes, stündlich wechselndes Zugriffstoken im Link, wie es Kamera- und Bild-Entitäten für `entity_picture`
-    machen; das aktuelle und das vorige Token gelten, insgesamt höchstens 24 h.
-- Links in eigenen Attributen (z. B. `downloads` an `sensor.…_letzte_reise`, `select.…_export_auswahl` und
-  `sensor.…_fahrtenbuch_eintrag`), vom Recorder ausgenommen (`_unrecorded_attributes`).
-- Nicht gewählt: eigene Medienquelle (siehe 5.1); Kopie nach `/config/www` (`/local`), weil ohne Anmeldung abrufbar (siehe [feat-03-export.md](feat-03-export.md)).
+## 6. Umsetzung
+
+- `download.py`: drei Views (`HomeAssistantView`, Anmeldung per Header oder signiertem Link):
+  - `/api/reiseverlauftracker/<eintrag>/datei/<ordner>/<datei>`: eine Datei, nur wenn der Ordner ein bekannter
+    Export ist und `export.json` die Datei nennt; der Pfad wird nachgeschlagen, nie aus der Anfrage
+    zusammengesetzt. `../` weist schon der Sicherheitsfilter von Home Assistant ab.
+  - `/api/reiseverlauftracker/<eintrag>/zip/<ordner>`: alle vorhandenen Dateien des Exports als ZIP im
+    Unterordner `<ordner>/`, im Executor in eine temporäre Datei geschrieben (bis 8 MB im Speicher) und gestreamt;
+    Bilder ungepackt, Text komprimiert.
+  - `/api/reiseverlauftracker/<eintrag>/fahrtenbuch`: `fahrtenbuch.csv`.
+  - Antwort mit passendem Inhaltstyp (GPX `application/gpx+xml`, Text und CSV mit `charset=utf-8`),
+    `Content-Disposition: attachment` (Dateiname auch mit Umlauten) und `Cache-Control: no-store, private`.
+- `coordinator/download_links.py`: Pfade und `DownloadLinks`, das jeden Link bis zur nächsten Erneuerung
+  zwischenspeichert, damit sich die Attribute nicht bei jedem Schreiben ändern; der Koordinator erneuert stündlich.
+- Attribut `downloads` (Liste mit `typ`, `name`, `url`, bei Reisen zusätzlich `zip`) an `sensor.…_letzte_reise`,
+  `select.…_export_auswahl` (gewählter Export, leer bei „Alle Exporte“) und `sensor.…_fahrtenbuch_eintrag`
+  (sobald es Einträge gibt), jeweils in `_unrecorded_attributes`.
+- Das Attribut `dateien` und die Event-Daten bleiben unverändert (`/media/local/...`).
+- Dashboard: Markdown-Karte mit `<a href="…" target="_blank">`; ohne `target` fängt das Frontend Links auf dieselbe
+  Adresse ab und öffnet sie als Dashboard-Seite (README, Abschnitt „Downloads“).
+- Nicht gewählt: eigene Medienquelle (siehe 5.1); eigenes wechselndes Token wie bei `entity_picture` (unnötig, siehe
+  5.5); Kopie nach `/config/www` (`/local`), weil ohne Anmeldung abrufbar (siehe [feat-03-export.md](feat-03-export.md)).

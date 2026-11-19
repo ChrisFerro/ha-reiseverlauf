@@ -13,7 +13,8 @@ Hintergrunddienst entfallen.
 
 - Ansichten: „Aktuelle Reise“, „Letzte Reise“ (Ziel der Push-Nachricht), „Export“, „Aufräumen“, „Tracker“.
 - Export-Formular über das Skript „Reise exportieren“ (keine Helfer).
-- Downloads über den Medienbrowser (Ausgaben liegen geschützt in `/media`).
+- Downloads über den Medienbrowser (Ausgaben liegen geschützt in `/media`); seit Feat-07 alle Dateien über signierte
+  Links im Dashboard (siehe [feat-07-downloads.md](feat-07-downloads.md)).
 - Knöpfe „Reise jetzt beenden“ und „Reise starten / fortsetzen“.
 
 ## 3. Ausgangslage
