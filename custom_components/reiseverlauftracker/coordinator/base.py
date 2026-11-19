@@ -36,6 +36,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.loader import async_get_loaded_integration
 from homeassistant.util import dt as dt_util
 
+from .download_links import RENEW_INTERVAL, DownloadLinks
 from .export_runner import async_export, event_data, media_base
 from .exports import ExportInfo, list_exports, remove_files
 from .logbook import LogbookEntry, Occasion
@@ -89,6 +90,8 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self._unsub_states: Callable[[], None] | None = None
         self._unsub_refresh: Callable[[], None] | None = None
         self._unsub_stop_check: Callable[[], None] | None = None
+        self._unsub_links: Callable[[], None] | None = None
+        self.download_links = DownloadLinks(hass, entry.entry_id)
         self._export_lock = asyncio.Lock()
         self._exporting = False
         self._export_failed = False
@@ -132,15 +135,23 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             entities.append(self.settings.altitude_entity)
         self._unsub_states = async_track_state_change_event(self.hass, entities, self._on_state_change)
         self._unsub_refresh = async_track_time_interval(self.hass, self._on_refresh, REFRESH_INTERVAL)
+        self._unsub_links = async_track_time_interval(self.hass, self._on_renew_links, RENEW_INTERVAL)
         self._schedule_stop_check()
         self._publish()
 
     async def async_stop(self) -> None:
         """Unsubscribe and write pending state immediately."""
-        for unsub in (self._unsub_states, self._unsub_deadline, self._unsub_refresh, self._unsub_stop_check):
+        for unsub in (
+            self._unsub_states,
+            self._unsub_deadline,
+            self._unsub_refresh,
+            self._unsub_stop_check,
+            self._unsub_links,
+        ):
             if unsub is not None:
                 unsub()
         self._unsub_states = self._unsub_deadline = self._unsub_refresh = self._unsub_stop_check = None
+        self._unsub_links = None
         await self._detector_store.async_save(self.detector.as_dict())
         if self.log is not None:
             await self._log_store.async_save(self.log.as_dict())
@@ -355,6 +366,11 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
     def _on_refresh(self, _now: datetime) -> None:
         if self.detector.phase is TripPhase.ACTIVE:
             self._publish()
+
+    @callback
+    def _on_renew_links(self, _now: datetime) -> None:
+        self.download_links.renew()
+        self.async_update_listeners()
 
     @callback
     def _on_deadline(self, now: datetime) -> None:

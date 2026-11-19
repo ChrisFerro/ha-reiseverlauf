@@ -26,6 +26,8 @@ blueprint then sends a push notification with the composite image to your phone.
 - **Titles with place names:** such as "Hamburg – Kiel, 2026-10-12"; or date only, or places only.
 - **Own recording:** the points of each trip are stored, independent of how long the recorder keeps data.
 - **Protected storage:** all files are written to the Home Assistant media folder and need a login to open.
+- **Downloads in the dashboard:** GPX, statistics, raw points, images, a ZIP of each trip and `fahrtenbuch.csv`
+  through signed links, valid for 24 h and renewed hourly.
 - **UI only:** setup, options, entities and actions; no YAML required.
 
 ## Requirements
@@ -92,8 +94,16 @@ last levels, average consumption and fuel and gas costs of the month and year.
 Each trip gets its own folder named after its start time (for example `2026-10-12_1000`; manual exports
 `2026-10-12_1000-1130`) with the composite image, map, profile, GPX, statistics, raw points and an `export.json`
 the integration uses to manage the export. Only files listed there are ever deleted. The media browser of Home Assistant shows
-only the images; GPX, statistics, raw points and `fahrtenbuch.csv` are reachable through an app with file access
-(for example Studio Code Server or Samba, folder `/media/reiseverlauf`) for now.
+only the images; all files can be downloaded from the dashboard.
+
+### Downloads
+
+The entities last trip, export selection and logbook entry have an attribute `downloads`: a list with `typ`, `name`
+and `url` for each file, and for trips also `zip` with all files of the trip. A link is valid for 24 h and renewed
+every hour and right after a restart, so it always works in the dashboard; a copied link opens without login for
+at most a day. The links are not recorded in the history. In a markdown card, write the links as
+`<a href="{{ d.url }}" target="_blank">{{ d.name }}</a>`; without `target` the dashboard opens them as a page
+instead of downloading them. A full example is in the [German README](README.md#downloads).
 
 ## Push notification (blueprint)
 
@@ -151,8 +161,8 @@ positions.
 
 > [!NOTE]
 > This integration was developed predominantly with AI coding assistants (Claude). Requirements and decisions
-> come from the maintainer, and every stage was checked in a development instance. About 370 automated tests
-> cover detection, export, logbook, setup, entities, actions and the blueprints. It has not yet been tested with a real
+> come from the maintainer, and every stage was checked in a development instance. About 380 automated tests
+> cover detection, export, logbook, downloads, setup, entities, actions and the blueprints. It has not yet been tested with a real
 > vehicle, only with simulated sensors. This is an early 0.x version; settings and entities may still change.
 
 ## License

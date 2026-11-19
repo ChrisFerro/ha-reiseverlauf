@@ -63,9 +63,10 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
 - `sensor.…_reisestatus` (`bereit`, `unterwegs`, `pause`, `auswertung`, `zusammenfuehrbar`, `fehler`, siehe [Reiseerkennung](features/feat-01-reiseerkennung.md) 5.3)
 - Laufende Reise: `sensor.…_reisebeginn` (Attribut `startort`), `…_strecke_laufende_reise`, `…_fahrzeit_laufende_reise`,
   `…_pausenzeit_laufende_reise` (Attribut `halte`), `…_durchschnitt_laufende_reise` (siehe [Halte](features/feat-02-halte.md))
-- Letzte Reise: `sensor.…_letzte_reise` (Titel; Attribute `dateien`, `statistik`, `ordner`, `start`),
+- Letzte Reise: `sensor.…_letzte_reise` (Titel; Attribute `dateien`, `downloads`, `statistik`, `ordner`, `start`),
   `…_letzte_reise_strecke`, `…_fahrzeit`, `…_dauer`, `…_ende`; `image.…_letzte_reise_gesamtbild` (siehe 9.11)
-- `select.…_export_auswahl` (siehe [Export](features/feat-03-export.md) 2.4)
+- `select.…_export_auswahl` (siehe [Export](features/feat-03-export.md) 2.4); `downloads` an Letzte Reise, Export-Auswahl und
+  Fahrtenbuch-Eintrag: signierte Links (siehe [Downloads](features/feat-07-downloads.md))
 - Fahrtenbuch-Formular: `number.…_fahrtenbuch_*` (Kilometerstand, Kraftstoff, Gas 1/2, Diesel und Gas getankt und
   Betrag), `button.…_fahrtenbuch_speichern`/`_verwerfen`, `sensor.…_fahrtenbuch_eintrag` (siehe
   [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.2)
@@ -136,7 +137,7 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 4. Automations-Blueprint für die Push-Nachricht, README (deutsch), HACS-Metadaten.
 5. Migration des Dashboards und Abbau der alten Helfer/des Dienstes (erst nach Freigabe). – erledigt 09.10.2026
 6. Fahrtenbuch (siehe [features/feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)). – umgesetzt 18.11.2026
-7. Geschützter Download aller Dateien (siehe [features/feat-07-downloads.md](features/feat-07-downloads.md)).
+7. Geschützter Download aller Dateien (siehe [features/feat-07-downloads.md](features/feat-07-downloads.md)). – umgesetzt 19.11.2026
 8. Verbrauchsmodell mit Höhenmetern und Heizung im Stand (siehe [features/feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)),
    erst wenn genug Fahrtenbuch-Daten vorliegen.
 
@@ -157,5 +158,5 @@ neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeb
 | Feat-04 | Push-Benachrichtigung   | [feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md) | 4      | umgesetzt                |
 | Feat-05 | Dashboard und Migration | [feat-05-dashboard.md](features/feat-05-dashboard.md)                         | 5      | umgesetzt                |
 | Feat-06 | Fahrtenbuch             | [feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)                     | 6      | umgesetzt                |
-| Feat-07 | Geschützter Download    | [feat-07-downloads.md](features/feat-07-downloads.md)                         | 7      | entschieden, offen       |
+| Feat-07 | Geschützter Download    | [feat-07-downloads.md](features/feat-07-downloads.md)                         | 7      | umgesetzt                |
 | Feat-08 | Verbrauchsmodell        | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | entschieden, offen       |
