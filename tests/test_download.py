@@ -20,6 +20,7 @@ from custom_components.reiseverlauftracker.coordinator.download_links import (
 )
 from custom_components.reiseverlauftracker.coordinator.exports import ExportInfo, write_metadata
 from custom_components.reiseverlauftracker.export import ExportFile
+from homeassistant.components.http.auth import DATA_SIGN_SECRET, async_sign_path
 from homeassistant.core import HomeAssistant
 
 FOLDER = "2026-10-12_1000"
@@ -351,3 +352,41 @@ async def test_links_are_not_recorded(hass: HomeAssistant, config_entry: MockCon
         entity = component.get_entity(entity_id)
         assert entity is not None
         assert ATTR_DOWNLOADS in entity._unrecorded_attributes, entity_id  # noqa: SLF001
+
+
+async def test_responses_are_not_cached(
+    hass: HomeAssistant, config_entry: MockConfigEntry, media_dir: Path, hass_client: ClientSessionGenerator
+) -> None:
+    make_export(media_dir)
+    entry = await setup(hass, config_entry)
+    csv = media_dir / "reiseverlauf" / "fahrtenbuch.csv"
+    csv.write_text("Datum\n", encoding="utf-8")
+    client = await hass_client()
+
+    for path in (
+        file_path(entry.entry_id, FOLDER, "trip.gpx"),
+        zip_path(entry.entry_id, FOLDER),
+        logbook_path(entry.entry_id),
+    ):
+        response = await client.get(path)
+        assert response.status == 200, path
+        assert response.headers["Cache-Control"] == "no-store, private", path
+
+
+async def test_links_stop_working_after_a_restart(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    media_dir: Path,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    make_export(media_dir)
+    await setup(hass, config_entry)
+    client = await hass_client_no_auth()
+    gpx = next(link["url"] for link in downloads(hass, LAST_TRIP) if link["typ"] == "gpx")
+    assert (await client.get(gpx)).status == 200
+
+    # A restart starts with a new signing secret; dropping it here has the same effect.
+    hass.data.pop(DATA_SIGN_SECRET)
+    async_sign_path(hass, "/", timedelta(seconds=1), use_content_user=True)
+
+    assert (await client.get(gpx)).status == 401

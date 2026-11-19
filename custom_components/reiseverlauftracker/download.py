@@ -38,6 +38,8 @@ CONTENT_TYPES: Final = {
 ZIP_CHUNK_BYTES: Final = 256 * 1024
 ZIP_SPOOL_BYTES: Final = 8 * 1024 * 1024
 COMPRESSED_SUFFIXES: Final = {".png", ".jpg", ".jpeg"}
+# Browsers must ask again every time, so an expired or old link never opens a cached copy.
+NO_STORE: Final = "no-store, private"
 
 
 def async_register_views(hass: HomeAssistant) -> None:
@@ -74,7 +76,11 @@ def _content_type(name: str) -> str:
 def _file_response(path: Path, name: str) -> web.FileResponse:
     return web.FileResponse(
         path,
-        headers={hdrs.CONTENT_TYPE: _content_type(name), hdrs.CONTENT_DISPOSITION: _content_disposition(name)},
+        headers={
+            hdrs.CONTENT_TYPE: _content_type(name),
+            hdrs.CONTENT_DISPOSITION: _content_disposition(name),
+            hdrs.CACHE_CONTROL: NO_STORE,
+        },
     )
 
 
@@ -116,6 +122,7 @@ class ExportZipView(HomeAssistantView):
                 headers={
                     hdrs.CONTENT_TYPE: "application/zip",
                     hdrs.CONTENT_DISPOSITION: _content_disposition(f"{info.folder}.zip"),
+                    hdrs.CACHE_CONTROL: NO_STORE,
                 }
             )
             response.content_length = await hass.async_add_executor_job(_size, archive)
