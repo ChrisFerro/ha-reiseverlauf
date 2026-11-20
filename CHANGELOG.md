@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.2...v0.2.3) (2026-11-20)
+
+
+### Bug Fixes
+
+* **downloads:** answer HEAD requests and record live test ([#30](https://github.com/ChrisFerro/ha-reiseverlauf/issues/30)) ([62ecfe7](https://github.com/ChrisFerro/ha-reiseverlauf/commit/62ecfe78b4cc42981dd6987eb5486bd64e46129b))
+
 ## [0.2.2](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.1...v0.2.2) (2026-11-19)
 
 
