@@ -101,6 +101,9 @@ class ExportFileView(HomeAssistantView):
             raise web.HTTPNotFound
         return _file_response(path, name)
 
+    # Download managers may ask for size and type first; the signature is valid for HEAD as well.
+    head = get
+
 
 class ExportZipView(HomeAssistantView):
     """All existing files of an export as one ZIP, built on request and not stored."""
@@ -127,13 +130,17 @@ class ExportZipView(HomeAssistantView):
             )
             response.content_length = await hass.async_add_executor_job(_size, archive)
             await response.prepare(request)
-            chunks = _chunks(archive)
-            while chunk := await hass.async_add_executor_job(next, chunks, b""):
-                await response.write(chunk)
+            if request.method != hdrs.METH_HEAD:
+                chunks = _chunks(archive)
+                while chunk := await hass.async_add_executor_job(next, chunks, b""):
+                    await response.write(chunk)
             await response.write_eof()
             return response
         finally:
             await hass.async_add_executor_job(archive.close)
+
+    # Download managers may ask for size and type first; the signature is valid for HEAD as well.
+    head = get
 
 
 class LogbookCsvView(HomeAssistantView):
@@ -149,6 +156,9 @@ class LogbookCsvView(HomeAssistantView):
         if not await coordinator.hass.async_add_executor_job(path.is_file):
             raise web.HTTPNotFound
         return _file_response(path, path.name)
+
+    # Download managers may ask for size and type first; the signature is valid for HEAD as well.
+    head = get
 
 
 def _build_zip(folder: Path, names: list[str]) -> IO[bytes] | None:
