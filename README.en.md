@@ -131,7 +131,7 @@ to 100 % (for gas both tanks). The average consumption comes from full tanks.
 between the last entry before a parked period and the next trip start, summed over all parked periods without
 refuelling or driving in between, divided by the parked days. As the gauge is read coarsely, the value becomes
 meaningful only over many parked periods; it changes neither the average consumption nor the suggestion. Each entry
-also keeps the climb uphill driven so far, as the basis for a later consumption model.
+also keeps the metres driven uphill and downhill so far, as the basis for a later consumption model.
 
 Entries are kept in the integration's storage and are part of every Home Assistant backup. `fahrtenbuch.csv` in the
 output folder (German format: semicolon, decimal comma) is rewritten after every change. After a trip, odometer

@@ -91,6 +91,7 @@ class TripLog:
         self.moving_distance_m = 0.0
         self.driving_time = timedelta()
         self.ascent_m = 0.0
+        self.descent_m = 0.0
         self._ascent_reference: float | None = None
         self.start_place: str | None = None
         self.stops: list[TripStop] = []
@@ -223,21 +224,23 @@ class TripLog:
         self.speed.append((time, value))
 
     def add_altitude(self, time: datetime, value: float) -> None:
-        """Append an altitude reading in metres and count the ascent like the export does."""
+        """Append an altitude reading in metres and count ascent and descent like the export does."""
         self.altitude.append((time, value))
-        self._count_ascent(value)
+        self._count_elevation(value)
 
-    def _count_ascent(self, value: float) -> None:
-        """Count climbs of at least the hysteresis, like `elevation_change()`, so GPS noise adds nothing."""
+    def _count_elevation(self, value: float) -> None:
+        """Count changes of at least the hysteresis, like `elevation_change()`, so GPS noise adds nothing."""
         reference = self._ascent_reference
         if reference is None or abs(value - reference) >= self.settings.elevation_hysteresis_m:
             if reference is not None and value > reference:
                 self.ascent_m += value - reference
+            elif reference is not None:
+                self.descent_m += reference - value
             self._ascent_reference = value
 
     def _set_altitude(self, altitude: list[tuple[datetime, float]]) -> None:
         self.altitude = []
-        self.ascent_m, self._ascent_reference = 0.0, None
+        self.ascent_m, self.descent_m, self._ascent_reference = 0.0, 0.0, None
         for time, value in altitude:
             self.add_altitude(time, value)
 

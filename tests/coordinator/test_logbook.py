@@ -261,34 +261,37 @@ def test_entry_saved_later_keeps_the_counter_of_its_occasion() -> None:
     assert book.suggest_odometer() == 1030
 
 
-def test_entries_keep_the_ascent_counter_of_their_occasion() -> None:
+def test_entries_keep_the_elevation_counters_of_their_occasion() -> None:
     book = Logbook()
-    book.set_running_trip(10_000, 120)
+    book.set_running_trip(10_000, 120, 80)
     book.close_trip()
-    book.set_running_trip(5000, 30)
+    book.set_running_trip(5000, 30, 10)
 
-    assert book.ascent_counter_m == pytest.approx(150)
+    assert (book.ascent_counter_m, book.descent_counter_m) == (pytest.approx(150), pytest.approx(90))
     entry = book.add(at(0), Occasion.STOP)
-    later = book.add(at(1), Occasion.STOP, ascent_counter_m=140)
-    assert (entry.ascent_counter_m, later.ascent_counter_m) == (150, 140)
+    later = book.add(at(1), Occasion.STOP, ascent_counter_m=140, descent_counter_m=85)
+    assert (entry.ascent_counter_m, entry.descent_counter_m) == (150, 90)
+    assert (later.ascent_counter_m, later.descent_counter_m) == (140, 85)
 
     restored = Logbook.from_dict(json.loads(json.dumps(book.as_dict())), 90)
-    assert restored.ascent_counter_m == pytest.approx(150)
-    assert restored.get(entry.id).ascent_counter_m == 150
+    assert (restored.ascent_counter_m, restored.descent_counter_m) == (pytest.approx(150), pytest.approx(90))
+    assert restored.get(entry.id).descent_counter_m == 90
 
 
-def test_entries_stored_before_the_ascent_counter_load_without_it() -> None:
+def test_entries_stored_before_the_elevation_counters_load_without_them() -> None:
     book = Logbook()
     book.add(at(0), Occasion.STOP, fuel_percent=50)
     data = book.as_dict()
-    for key in ("closed_trips_ascent_m", "running_trip_ascent_m"):
+    for key in ("closed_trips_ascent_m", "running_trip_ascent_m", "closed_trips_descent_m", "running_trip_descent_m"):
         del data[key]
     del data["entries"][0]["ascent_counter_m"]
+    del data["entries"][0]["descent_counter_m"]
 
     restored = Logbook.from_dict(data, 90)
 
-    assert restored.ascent_counter_m == 0
+    assert (restored.ascent_counter_m, restored.descent_counter_m) == (0, 0)
     assert restored.entries[0].ascent_counter_m is None
+    assert restored.entries[0].descent_counter_m is None
 
 
 def park(book: Logbook, arrival_h: float, departure_h: float, levels: tuple[float, float], km: float = 50) -> None:

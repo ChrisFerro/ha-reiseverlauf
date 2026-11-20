@@ -51,8 +51,8 @@ class LogbookEntry:
 
     `distance_counter_m` is the total distance the integration had measured when
     the entry was made; the difference to a later counter is the distance driven
-    in between. `ascent_counter_m` does the same for the climb uphill; entries
-    from before it was counted have None. Trip and stop are referenced by their start times, because the
+    in between. `ascent_counter_m` and `descent_counter_m` do the same for the
+    metres uphill and downhill; entries from before they were counted have None. Trip and stop are referenced by their start times, because the
     per-trip log is discarded once the trip is closed.
     """
 
@@ -61,6 +61,7 @@ class LogbookEntry:
     occasion: Occasion
     distance_counter_m: float
     ascent_counter_m: float | None = None
+    descent_counter_m: float | None = None
     odometer_km: float | None = None
     odometer_corrected: bool = False
     fuel_percent: float | None = None
@@ -87,6 +88,7 @@ class LogbookEntry:
             "occasion": self.occasion.value,
             "distance_counter_m": self.distance_counter_m,
             "ascent_counter_m": self.ascent_counter_m,
+            "descent_counter_m": self.descent_counter_m,
             "odometer_km": self.odometer_km,
             "odometer_corrected": self.odometer_corrected,
             "fuel_percent": self.fuel_percent,
@@ -110,6 +112,7 @@ class LogbookEntry:
             occasion=Occasion(data["occasion"]),
             distance_counter_m=data["distance_counter_m"],
             ascent_counter_m=data.get("ascent_counter_m"),
+            descent_counter_m=data.get("descent_counter_m"),
             odometer_km=data.get("odometer_km"),
             odometer_corrected=data.get("odometer_corrected", False),
             fuel_percent=data.get("fuel_percent"),
@@ -248,7 +251,7 @@ class ParkedConsumption:
 @dataclass(slots=True)
 class Logbook:
     """
-    All entries of one vehicle, plus the distance and ascent measured so far.
+    All entries of one vehicle, plus the distance, ascent and descent measured so far.
 
     Both are split into closed trips and the running trip: the running trip's
     distance may still shrink (merged GPS fixes) and is only added for good when
@@ -261,6 +264,8 @@ class Logbook:
     running_trip_m: float = 0.0
     closed_trips_ascent_m: float = 0.0
     running_trip_ascent_m: float = 0.0
+    closed_trips_descent_m: float = 0.0
+    running_trip_descent_m: float = 0.0
 
     @property
     def distance_counter_m(self) -> float:
@@ -272,16 +277,23 @@ class Logbook:
         """Return the total climb uphill measured by the integration."""
         return self.closed_trips_ascent_m + self.running_trip_ascent_m
 
-    def set_running_trip(self, metres: float, ascent_m: float = 0.0) -> None:
-        """Set distance and ascent of the running trip so far."""
+    @property
+    def descent_counter_m(self) -> float:
+        """Return the total metres downhill measured by the integration."""
+        return self.closed_trips_descent_m + self.running_trip_descent_m
+
+    def set_running_trip(self, metres: float, ascent_m: float = 0.0, descent_m: float = 0.0) -> None:
+        """Set distance, ascent and descent of the running trip so far."""
         self.running_trip_m = max(metres, 0.0)
         self.running_trip_ascent_m = max(ascent_m, 0.0)
+        self.running_trip_descent_m = max(descent_m, 0.0)
 
     def close_trip(self) -> None:
-        """Add the running trip's distance and ascent to the closed trips."""
+        """Add the running trip's distance, ascent and descent to the closed trips."""
         self.closed_trips_m += self.running_trip_m
         self.closed_trips_ascent_m += self.running_trip_ascent_m
-        self.running_trip_m = self.running_trip_ascent_m = 0.0
+        self.closed_trips_descent_m += self.running_trip_descent_m
+        self.running_trip_m = self.running_trip_ascent_m = self.running_trip_descent_m = 0.0
 
     def get(self, entry_id: str) -> LogbookEntry | None:
         """Return the entry with `entry_id`."""
@@ -312,13 +324,14 @@ class Logbook:
         place: str | None = None,
         distance_counter_m: float | None = None,
         ascent_counter_m: float | None = None,
+        descent_counter_m: float | None = None,
     ) -> LogbookEntry:
         """
         Add an entry and return it.
 
         The entry belongs to `distance_counter_m`, by default the current one; an
         entry saved after its occasion passes the counter of the occasion, so that
-        the distance driven since is not lost; `ascent_counter_m` likewise. The odometer counts as corrected
+        the distance driven since is not lost; `ascent_counter_m` and `descent_counter_m` likewise. The odometer counts as corrected
         when it differs from the carried-forward value at that counter; the
         difference then shows how far off the measured distance was.
         """
@@ -330,6 +343,7 @@ class Logbook:
             occasion=occasion,
             distance_counter_m=counter,
             ascent_counter_m=self.ascent_counter_m if ascent_counter_m is None else ascent_counter_m,
+            descent_counter_m=self.descent_counter_m if descent_counter_m is None else descent_counter_m,
             odometer_km=odometer_km,
             odometer_corrected=odometer_km is not None and suggested is not None and odometer_km != suggested,
             fuel_percent=fuel_percent,
@@ -510,6 +524,8 @@ class Logbook:
             "running_trip_m": self.running_trip_m,
             "closed_trips_ascent_m": self.closed_trips_ascent_m,
             "running_trip_ascent_m": self.running_trip_ascent_m,
+            "closed_trips_descent_m": self.closed_trips_descent_m,
+            "running_trip_descent_m": self.running_trip_descent_m,
             "entries": [e.as_dict() for e in self.entries],
         }
 
@@ -523,6 +539,8 @@ class Logbook:
             running_trip_m=data.get("running_trip_m", 0.0),
             closed_trips_ascent_m=data.get("closed_trips_ascent_m", 0.0),
             running_trip_ascent_m=data.get("running_trip_ascent_m", 0.0),
+            closed_trips_descent_m=data.get("closed_trips_descent_m", 0.0),
+            running_trip_descent_m=data.get("running_trip_descent_m", 0.0),
         )
 
 
