@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.4...v0.2.5) (2026-11-20)
+
+
+### Features
+
+* **logbook:** count descent alongside ascent ([#34](https://github.com/ChrisFerro/ha-reiseverlauf/issues/34)) ([76b04d1](https://github.com/ChrisFerro/ha-reiseverlauf/commit/76b04d18ca26a7530699ea96cf6752c3462024fb))
+
 ## [0.2.4](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.3...v0.2.4) (2026-11-20)
 
 
