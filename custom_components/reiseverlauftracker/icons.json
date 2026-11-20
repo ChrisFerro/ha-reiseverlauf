@@ -93,6 +93,9 @@
       "average_consumption": {
         "default": "mdi:fuel"
       },
+      "parked_heating_read": {
+        "default": "mdi:radiator"
+      },
       "costs_month": {
         "default": "mdi:cash-multiple"
       },

@@ -261,6 +261,9 @@
       "average_consumption": {
         "name": "Average consumption"
       },
+      "parked_heating_read": {
+        "name": "Heating while parked (read)"
+      },
       "costs_month": {
         "name": "Fuel and gas costs month"
       },

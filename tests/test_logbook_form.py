@@ -214,7 +214,7 @@ async def test_added_entry_defaults_to_the_carried_forward_odometer(
 ) -> None:
     base = {"config_entry_id": loaded.entry_id}
     await call(hass, "fahrtenbuch_eintragen", {**base, "kilometerstand": 1000})
-    coordinator_of(loaded).logbook.set_running_trip_distance(12_400)
+    coordinator_of(loaded).logbook.set_running_trip(12_400)
 
     added = await call(hass, "fahrtenbuch_eintragen", {**base, "gas_liter": 25, "gas_betrag": 24})
 
@@ -292,7 +292,7 @@ async def test_evaluation_sensors(hass: HomeAssistant, loaded: MockConfigEntry, 
     await call(hass, "fahrtenbuch_eintragen", {**base, **october, "gas_1": 100, "gas_2": 100})
     november = {"diesel_liter": 60, "diesel_betrag": 102.5, "kraftstoff": 100, "kilometerstand": 1500}
     await call(hass, "fahrtenbuch_eintragen", {**base, **november})
-    coordinator_of(loaded).logbook.set_running_trip_distance(25_000)
+    coordinator_of(loaded).logbook.set_running_trip(25_000)
     coordinator_of(loaded).async_update_listeners()
     await hass.async_block_till_done()
 

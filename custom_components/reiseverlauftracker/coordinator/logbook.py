@@ -8,13 +8,15 @@ forward between readings (see docs/features/feat-06-fahrtenbuch.md).
 """
 
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 import uuid
 
 LOGBOOK_VERSION = 1
 FULL_PERCENT = 100.0
+# A parked period ends at the next trip start; more distance in between means a trip without entries.
+MAX_PARKED_DISTANCE_M = 1000.0
 
 
 class Occasion(StrEnum):
@@ -49,7 +51,8 @@ class LogbookEntry:
 
     `distance_counter_m` is the total distance the integration had measured when
     the entry was made; the difference to a later counter is the distance driven
-    in between. Trip and stop are referenced by their start times, because the
+    in between. `ascent_counter_m` does the same for the climb uphill; entries
+    from before it was counted have None. Trip and stop are referenced by their start times, because the
     per-trip log is discarded once the trip is closed.
     """
 
@@ -57,6 +60,7 @@ class LogbookEntry:
     time: datetime
     occasion: Occasion
     distance_counter_m: float
+    ascent_counter_m: float | None = None
     odometer_km: float | None = None
     odometer_corrected: bool = False
     fuel_percent: float | None = None
@@ -82,6 +86,7 @@ class LogbookEntry:
             "time": self.time.isoformat(),
             "occasion": self.occasion.value,
             "distance_counter_m": self.distance_counter_m,
+            "ascent_counter_m": self.ascent_counter_m,
             "odometer_km": self.odometer_km,
             "odometer_corrected": self.odometer_corrected,
             "fuel_percent": self.fuel_percent,
@@ -104,6 +109,7 @@ class LogbookEntry:
             time=datetime.fromisoformat(data["time"]),
             occasion=Occasion(data["occasion"]),
             distance_counter_m=data["distance_counter_m"],
+            ascent_counter_m=data.get("ascent_counter_m"),
             odometer_km=data.get("odometer_km"),
             odometer_corrected=data.get("odometer_corrected", False),
             fuel_percent=data.get("fuel_percent"),
@@ -220,34 +226,62 @@ class TripSummary:
         return self.fuel_cost + self.gas_cost
 
 
+@dataclass(frozen=True, slots=True)
+class ParkedConsumption:
+    """
+    Fuel the heating used while parked, from the levels read off the gauge.
+
+    Sums over all parked periods; the levels are coarse, so single periods mostly
+    lie below the reading accuracy (docs/features/feat-08-verbrauchsmodell.md 5.3).
+    """
+
+    periods: int
+    days: float
+    litres: float
+
+    @property
+    def litres_per_day(self) -> float | None:
+        """Return the litres used per parked day, or None without parked time."""
+        return max(self.litres, 0.0) / self.days if self.days > 0 else None
+
+
 @dataclass(slots=True)
 class Logbook:
     """
-    All entries of one vehicle, plus the distance measured so far.
+    All entries of one vehicle, plus the distance and ascent measured so far.
 
-    The measured distance is split into closed trips and the running trip: the
-    running trip's distance may still shrink (merged GPS fixes) and is only added
-    for good when the trip's log is discarded.
+    Both are split into closed trips and the running trip: the running trip's
+    distance may still shrink (merged GPS fixes) and is only added for good when
+    the trip's log is discarded.
     """
 
     tank_litres: float = 90.0
     entries: list[LogbookEntry] = field(default_factory=list)
     closed_trips_m: float = 0.0
     running_trip_m: float = 0.0
+    closed_trips_ascent_m: float = 0.0
+    running_trip_ascent_m: float = 0.0
 
     @property
     def distance_counter_m(self) -> float:
         """Return the total distance measured by the integration."""
         return self.closed_trips_m + self.running_trip_m
 
-    def set_running_trip_distance(self, metres: float) -> None:
-        """Set the distance of the running trip so far."""
+    @property
+    def ascent_counter_m(self) -> float:
+        """Return the total climb uphill measured by the integration."""
+        return self.closed_trips_ascent_m + self.running_trip_ascent_m
+
+    def set_running_trip(self, metres: float, ascent_m: float = 0.0) -> None:
+        """Set distance and ascent of the running trip so far."""
         self.running_trip_m = max(metres, 0.0)
+        self.running_trip_ascent_m = max(ascent_m, 0.0)
 
     def close_trip(self) -> None:
-        """Add the running trip's distance to the closed trips."""
+        """Add the running trip's distance and ascent to the closed trips."""
         self.closed_trips_m += self.running_trip_m
-        self.running_trip_m = 0.0
+        self.closed_trips_ascent_m += self.running_trip_ascent_m
+        self.running_trip_m = self.running_trip_ascent_m = 0.0
 
     def get(self, entry_id: str) -> LogbookEntry | None:
         """Return the entry with `entry_id`."""
@@ -277,13 +311,14 @@ class Logbook:
         lon: float | None = None,
         place: str | None = None,
         distance_counter_m: float | None = None,
+        ascent_counter_m: float | None = None,
     ) -> LogbookEntry:
         """
         Add an entry and return it.
 
         The entry belongs to `distance_counter_m`, by default the current one; an
         entry saved after its occasion passes the counter of the occasion, so that
-        the distance driven since is not lost. The odometer counts as corrected
+        the distance driven since is not lost; `ascent_counter_m` likewise. The odometer counts as corrected
         when it differs from the carried-forward value at that counter; the
         difference then shows how far off the measured distance was.
         """
@@ -294,6 +329,7 @@ class Logbook:
             time=time,
             occasion=occasion,
             distance_counter_m=counter,
+            ascent_counter_m=self.ascent_counter_m if ascent_counter_m is None else ascent_counter_m,
             odometer_km=odometer_km,
             odometer_corrected=odometer_km is not None and suggested is not None and odometer_km != suggested,
             fuel_percent=fuel_percent,
@@ -381,6 +417,43 @@ class Logbook:
             previous_full, litres_open = entry, 0.0
         return litres_total / km_total * 100 if km_total > 0 else None
 
+    def parked_consumption(self) -> ParkedConsumption | None:
+        """
+        Return what the levels read off the gauge say the heating used while parked.
+
+        A parked period runs from the last entry with a fuel level before a trip
+        start to the trip start, if that has a level too, no fuel was bought in
+        between or at the start, and the vehicle did not move. Differences are
+        summed with their sign, so that readings too high and too low cancel out.
+
+        Returns:
+            The sums over all parked periods, or None before there is one.
+
+        """
+        periods, days, percent = 0, 0.0, 0.0
+        previous: LogbookEntry | None = None
+        refilled = False
+        for entry in self.entries:
+            refilled = refilled or entry.fuel is not None
+            if entry.fuel_percent is None:
+                continue
+            if (
+                entry.occasion is Occasion.TRIP_START
+                and previous is not None
+                and previous.fuel_percent is not None
+                and not refilled
+                and entry.distance_counter_m - previous.distance_counter_m <= MAX_PARKED_DISTANCE_M
+                and entry.time > previous.time
+            ):
+                periods += 1
+                days += (entry.time - previous.time) / timedelta(days=1)
+                percent += previous.fuel_percent - entry.fuel_percent
+            # A refill at this entry is part of its level, which starts the next period.
+            previous, refilled = entry, False
+        if periods == 0:
+            return None
+        return ParkedConsumption(periods=periods, days=days, litres=percent / 100 * self.tank_litres)
+
     def suggest_fuel_percent(self) -> float | None:
         """Return the last fuel level minus what the distance since has used, in whole percent."""
         last = self.last(having="fuel_percent")
@@ -435,6 +508,8 @@ class Logbook:
             "version": LOGBOOK_VERSION,
             "closed_trips_m": self.closed_trips_m,
             "running_trip_m": self.running_trip_m,
+            "closed_trips_ascent_m": self.closed_trips_ascent_m,
+            "running_trip_ascent_m": self.running_trip_ascent_m,
             "entries": [e.as_dict() for e in self.entries],
         }
 
@@ -446,6 +521,8 @@ class Logbook:
             entries=sorted((LogbookEntry.from_dict(e) for e in data.get("entries", [])), key=lambda e: e.time),
             closed_trips_m=data.get("closed_trips_m", 0.0),
             running_trip_m=data.get("running_trip_m", 0.0),
+            closed_trips_ascent_m=data.get("closed_trips_ascent_m", 0.0),
+            running_trip_ascent_m=data.get("running_trip_ascent_m", 0.0),
         )
 
 

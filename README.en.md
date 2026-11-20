@@ -73,7 +73,7 @@ time, duration and end of the last trip (the title carries the file list with UR
 attributes), an image entity with the composite image, and an export selection used by the cleanup action.
 For the logbook there are the form (numbers for odometer, fuel, gas 1 and 2, litres and amounts refuelled, buttons to
 save and discard), a logbook entry sensor (pending or saved, with the latest entries), and sensors for odometer,
-last levels, average consumption and fuel and gas costs of the month and year.
+last levels, average consumption, heating while parked (read) and fuel and gas costs of the month and year.
 
 ## Actions
 
@@ -126,6 +126,12 @@ each **stop** of at least the minimum stop duration, or a **manual** entry at an
 is prefilled with a suggestion: last odometer plus the measured distance, the last levels, and once an average
 consumption is known, a fuel level computed from distance, consumption and tank size. Litres refuelled set the level
 to 100 % (for gas both tanks). The average consumption comes from full tanks.
+
+“Heating while parked (read)” estimates the diesel the heating uses per parked day: the drop of the fuel level
+between the last entry before a parked period and the next trip start, summed over all parked periods without
+refuelling or driving in between, divided by the parked days. As the gauge is read coarsely, the value becomes
+meaningful only over many parked periods; it changes neither the average consumption nor the suggestion. Each entry
+also keeps the climb uphill driven so far, as the basis for a later consumption model.
 
 Entries are kept in the integration's storage and are part of every Home Assistant backup. `fahrtenbuch.csv` in the
 output folder (German format: semicolon, decimal comma) is rewritten after every change. After a trip, odometer

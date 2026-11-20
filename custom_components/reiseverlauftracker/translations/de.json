@@ -261,6 +261,9 @@
       "average_consumption": {
         "name": "Durchschnittsverbrauch"
       },
+      "parked_heating_read": {
+        "name": "Heizung im Stand (abgelesen)"
+      },
       "costs_month": {
         "name": "Tank- und Gaskosten Monat"
       },

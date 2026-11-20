@@ -112,6 +112,7 @@ z. B. `sensor.wohnmobil_gps_reisestatus`.
 | Fahrtenbuch Eintrag                                                                                                 | „Offen“, solange ein Anlass auf den Eintrag wartet, sonst „Gespeichert“; Attribute Anlass, Ort, `letzte_eintraege`, `downloads`    |
 | Kilometerstand, Kraftstoff, Gas 1, Gas 2                                                                            | Aktueller Kilometerstand und letzte Füllstände                                                                                     |
 | Durchschnittsverbrauch, Tank- und Gaskosten Monat und Jahr                                                          | Auswertung des Fahrtenbuchs (Verbrauch ab dem zweiten vollen Tank)                                                                 |
+| Heizung im Stand (abgelesen)                                                                                        | Diesel der Heizung je Standtag aus den abgelesenen Füllständen (grob); Attribute `standzeiten`, `standtage`, `abnahme_liter`       |
 | Export-Auswahl                                                                                                      | Alle Exporte (neueste zuerst) und „Alle Exporte“; wird von „Exporte aufräumen“ genutzt; Attribut `downloads` des gewählten Exports |
 
 ## Aktionen
@@ -241,6 +242,13 @@ Füllstände wie zuletzt eingetragen. Sobald ein Durchschnittsverbrauch vorliegt
 Verbrauch und Tankgröße berechnet vorgeschlagen. Liter bei „Diesel getankt“ oder „Gas getankt“ setzen den
 Füllstand auf 100 % (beim Gas beide Tanks). Der Durchschnittsverbrauch ergibt sich aus vollen Tankfüllungen
 (Füllstand 100 %), Teilbetankungen dazwischen werden mitgezählt.
+
+„Heizung im Stand (abgelesen)“ schätzt, wie viel Diesel die Heizung je Standtag verbraucht: die Abnahme des
+Kraftstoffs zwischen dem letzten Eintrag vor einer Standzeit und dem nächsten Reisebeginn, summiert über alle
+Standzeiten ohne Tanken und ohne Fahrt dazwischen, geteilt durch die Standtage. Weil die Tankanzeige nur grob
+abgelesen wird, wird der Wert erst über viele Standzeiten aussagekräftig; er verändert weder den
+Durchschnittsverbrauch noch den Vorschlag. Außerdem merkt sich jeder Eintrag die bisher gefahrenen Höhenmeter
+bergauf, als Grundlage für ein späteres Verbrauchsmodell.
 
 Die Einträge liegen im Speicher der Integration und sind damit im Backup von Home Assistant enthalten.
 `fahrtenbuch.csv` im Ausgabeordner (Semikolon, Dezimalkomma, für Excel) wird nach jeder Änderung neu geschrieben.

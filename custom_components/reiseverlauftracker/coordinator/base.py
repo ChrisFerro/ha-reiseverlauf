@@ -113,7 +113,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             except KeyError, ValueError, TypeError:
                 LOGGER.warning("Stored trip points are unreadable, recording continues without them")
         if self.log is not None:
-            self.logbook.set_running_trip_distance(self.log.distance_m)
+            self.logbook.set_running_trip(self.log.distance_m, self.log.ascent_m)
         elif self.logbook.logbook.running_trip_m:
             self.logbook.close_trip()
 
@@ -292,6 +292,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 self.log.add_speed(state.last_updated, value)
             else:
                 self.log.add_altitude(state.last_updated, value)
+                self.logbook.set_running_trip(self.log.distance_m, self.log.ascent_m)
             self._save_log()
             return
         else:
@@ -308,7 +309,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             self._handle(self.detector.update_position(Position(lat, lon), at))
         if record and self.log is not None:
             self.log.add_position(at, lat, lon, accuracy)
-            self.logbook.set_running_trip_distance(self.log.distance_m)
+            self.logbook.set_running_trip(self.log.distance_m, self.log.ascent_m)
             self._save_log()
 
     def _on_dplus_for_stops(self, dplus_on: bool, at: datetime) -> None:
@@ -533,6 +534,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             max_accuracy_m=self.settings.max_accuracy_m,
             standstill_kmh=self.settings.standstill_kmh,
             min_movement_m=self.settings.min_movement_m,
+            elevation_hysteresis_m=self.settings.elevation_hysteresis_m,
         )
 
 

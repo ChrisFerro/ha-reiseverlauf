@@ -26,15 +26,15 @@ def at(hours: float) -> datetime:
 
 def drive(book: Logbook, km: float) -> None:
     """Measure a closed trip of `km`."""
-    book.set_running_trip_distance(km * 1000)
+    book.set_running_trip(km * 1000)
     book.close_trip()
 
 
 def test_distance_counter_adds_running_trip_to_closed_trips() -> None:
     book = Logbook()
     drive(book, 84.2)
-    book.set_running_trip_distance(5000)
-    book.set_running_trip_distance(4900)
+    book.set_running_trip(5000)
+    book.set_running_trip(4900)
 
     assert book.distance_counter_m == pytest.approx(89100)
 
@@ -54,7 +54,7 @@ def test_no_odometer_suggestion_before_the_first_reading() -> None:
 def test_odometer_is_carried_forward_by_the_measured_distance() -> None:
     book = Logbook()
     book.add(at(0), Occasion.TRIP_START, odometer_km=34299)
-    book.set_running_trip_distance(84_200)
+    book.set_running_trip(84_200)
 
     assert book.suggest_odometer() == 34383
 
@@ -114,7 +114,7 @@ def test_fuel_suggestion_subtracts_consumption_over_the_distance() -> None:
     book = Logbook(tank_litres=90)
     full_tank(book, 0, 1000, 50)
     full_tank(book, 10, 1500, 60)
-    book.set_running_trip_distance(150_000)
+    book.set_running_trip(150_000)
 
     # 150 km at 12 l/100 km = 18 l = 20 % of 90 l
     assert book.suggest_fuel_percent() == 80
@@ -172,9 +172,9 @@ def test_trip_summary_collects_the_trip_including_its_arrival() -> None:
     trip = at(0)
     book.add(at(-24), Occasion.STOP, odometer_km=34000, fuel=Refill(10, 17))
     book.add(trip, Occasion.TRIP_START, odometer_km=34299, trip_start=trip)
-    book.set_running_trip_distance(40_000)
+    book.set_running_trip(40_000)
     book.add(at(1), Occasion.STOP, trip_start=trip, stop_start=at(1), fuel=Refill(55, 95.0), fuel_percent=100)
-    book.set_running_trip_distance(84_200)
+    book.set_running_trip(84_200)
     book.add(at(3), Occasion.STOP, trip_start=trip, stop_start=at(3), gas=Refill(20, 19.8))
 
     summary = book.trip_summary(trip)
@@ -213,7 +213,7 @@ def test_round_trip_through_json() -> None:
         place="Tankstelle",
     )
     drive(book, 84.2)
-    book.set_running_trip_distance(1000)
+    book.set_running_trip(1000)
 
     restored = Logbook.from_dict(json.loads(json.dumps(book.as_dict())), tank_litres=80)
 
@@ -251,11 +251,106 @@ def test_draft_round_trip_through_json() -> None:
 def test_entry_saved_later_keeps_the_counter_of_its_occasion() -> None:
     book = Logbook()
     book.add(at(0), Occasion.MANUAL, odometer_km=1000)
-    book.set_running_trip_distance(2000)
+    book.set_running_trip(2000)
     occasion_counter = book.distance_counter_m
-    book.set_running_trip_distance(30_000)
+    book.set_running_trip(30_000)
 
     entry = book.add(at(1), Occasion.TRIP_START, odometer_km=1002, distance_counter_m=occasion_counter)
 
     assert not entry.odometer_corrected
     assert book.suggest_odometer() == 1030
+
+
+def test_entries_keep_the_ascent_counter_of_their_occasion() -> None:
+    book = Logbook()
+    book.set_running_trip(10_000, 120)
+    book.close_trip()
+    book.set_running_trip(5000, 30)
+
+    assert book.ascent_counter_m == pytest.approx(150)
+    entry = book.add(at(0), Occasion.STOP)
+    later = book.add(at(1), Occasion.STOP, ascent_counter_m=140)
+    assert (entry.ascent_counter_m, later.ascent_counter_m) == (150, 140)
+
+    restored = Logbook.from_dict(json.loads(json.dumps(book.as_dict())), 90)
+    assert restored.ascent_counter_m == pytest.approx(150)
+    assert restored.get(entry.id).ascent_counter_m == 150
+
+
+def test_entries_stored_before_the_ascent_counter_load_without_it() -> None:
+    book = Logbook()
+    book.add(at(0), Occasion.STOP, fuel_percent=50)
+    data = book.as_dict()
+    for key in ("closed_trips_ascent_m", "running_trip_ascent_m"):
+        del data[key]
+    del data["entries"][0]["ascent_counter_m"]
+
+    restored = Logbook.from_dict(data, 90)
+
+    assert restored.ascent_counter_m == 0
+    assert restored.entries[0].ascent_counter_m is None
+
+
+def park(book: Logbook, arrival_h: float, departure_h: float, levels: tuple[float, float], km: float = 50) -> None:
+    """Drive `km`, arrive with the first level and start the next trip with the second."""
+    drive(book, km)
+    book.add(at(arrival_h), Occasion.STOP, fuel_percent=levels[0])
+    book.add(at(departure_h), Occasion.TRIP_START, fuel_percent=levels[1])
+
+
+def test_no_parked_consumption_without_a_parked_period() -> None:
+    book = Logbook()
+    book.add(at(0), Occasion.TRIP_START, fuel_percent=80)
+    drive(book, 50)
+    book.add(at(2), Occasion.STOP, fuel_percent=70)
+
+    assert book.parked_consumption() is None
+
+
+def test_parked_consumption_sums_all_parked_periods() -> None:
+    book = Logbook(tank_litres=90)
+    park(book, 0, 48, (80, 75))
+    park(book, 50, 98, (70, 70))
+    park(book, 100, 148, (65, 70))  # read too high once, which the other readings balance
+
+    parked = book.parked_consumption()
+
+    assert parked is not None
+    assert parked.periods == 3
+    assert parked.days == pytest.approx(6)
+    assert parked.litres == pytest.approx(0)
+    assert parked.litres_per_day == pytest.approx(0)
+    park(book, 150, 198, (70, 60))
+    assert book.parked_consumption().litres_per_day == pytest.approx(9 / 8)
+
+
+def test_parked_consumption_is_never_negative() -> None:
+    book = Logbook()
+    park(book, 0, 24, (60, 65))
+
+    assert book.parked_consumption().litres_per_day == 0
+
+
+def test_parked_periods_with_refills_or_driving_are_left_out() -> None:
+    book = Logbook()
+    drive(book, 50)
+    book.add(at(0), Occasion.STOP, fuel_percent=40)
+    book.add(at(10), Occasion.MANUAL, fuel=Refill(50))  # a refill without a level read
+    book.add(at(24), Occasion.TRIP_START, fuel_percent=100)  # refill in between: not counted
+    drive(book, 5)
+    book.add(at(48), Occasion.TRIP_START, fuel_percent=90)  # a trip without entries in between
+    book.add(at(72), Occasion.TRIP_START, fuel=Refill(10), fuel_percent=100)  # refill at the start
+
+    assert book.parked_consumption() is None
+
+
+def test_a_refill_at_the_last_stop_starts_the_parked_period() -> None:
+    book = Logbook(tank_litres=90)
+    drive(book, 50)
+    book.add(at(0), Occasion.STOP, fuel=Refill(60), fuel_percent=100)
+    book.add(at(24), Occasion.TRIP_START, fuel_percent=95)
+
+    parked = book.parked_consumption()
+
+    assert parked.periods == 1
+    assert parked.litres_per_day == pytest.approx(4.5)

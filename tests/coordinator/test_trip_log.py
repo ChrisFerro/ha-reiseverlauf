@@ -233,3 +233,14 @@ def test_logs_stored_by_older_versions_still_load() -> None:
 
     assert log.start_place is None
     assert log.stops == []
+
+
+def test_ascent_counts_climbs_beyond_the_hysteresis() -> None:
+    log = TripLog(T0, RunningStatsSettings(elevation_hysteresis_m=5))
+    for minute, metres in enumerate((100, 103, 98, 110, 108, 104, 120)):
+        log.add_altitude(T0 + timedelta(minutes=minute), metres)
+
+    # 100 → 110 (+10), 110 → 104 (down), 104 → 120 (+16); the noise of 3 m adds nothing.
+    assert log.ascent_m == pytest.approx(26)
+    restored = TripLog.from_dict(json.loads(json.dumps(log.as_dict())), log.settings)
+    assert restored.ascent_m == pytest.approx(26)

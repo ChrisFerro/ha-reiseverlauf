@@ -1,7 +1,7 @@
 # Feat-08: Verbrauchsmodell
 
-Stand: 18.11.2026, Fragen geklärt (Abschnitt 5). Zwischenschritt (5.5) zuerst; das Modell erst, wenn genug
-Fahrtenbuch-Daten vorliegen.
+Stand: 20.11.2026, Fragen geklärt (Abschnitt 5). Zwischenschritt (5.5) und Höhenmeter-Zähler (5.6) umgesetzt; das
+Modell erst, wenn genug Fahrtenbuch-Daten vorliegen.
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Fahrtenbuch](feat-06-fahrtenbuch.md).
 
@@ -84,11 +84,25 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
   Reisebeginn (ohne Tankstopp dazwischen) ÷ Summe der Standtage, über alle Standzeiten. Er ist grob (5.3) und
   verändert weder Ø-Verbrauch noch Vorschlag. Sobald das Modell genug Daten hat, ersetzt dessen Wert „Heizung im
   Stand“ (5.4) ihn in Export und Vorschlag; der abgelesene Wert bleibt als Kontrolle.
+  Umgesetzt (20.11.2026) als `sensor.…_heizung_im_stand_abgelesen` (l/d, `Logbook.parked_consumption`), Attribute
+  `standzeiten`, `standtage`, `abnahme_liter`. Festlegungen dazu:
+  - Eine Standzeit beginnt beim letzten Eintrag mit Kraftstoff-Füllstand vor einem Reisebeginn (meist die Ankunft,
+    auch ein manueller Eintrag oder ein Tankeintrag mit 100 %) und endet beim Reisebeginn mit Füllstand.
+  - Sie zählt nicht, wenn dazwischen oder beim Reisebeginn getankt wurde oder mehr als 1 km gefahren wurde (Reise
+    ohne Einträge).
+  - Die Differenzen werden **mit Vorzeichen** summiert, damit zu hoch und zu niedrig abgelesene Werte sich
+    ausgleichen; erst das Ergebnis wird auf mindestens 0 begrenzt.
+  - Liter = Prozent × Tankgröße; Standtage = Zeit zwischen den beiden Einträgen.
+- **5.6 Höhenmeter-Zähler** – entschieden (20.11.2026): Wie der Streckenzähler zählt die Integration ab sofort die
+  Höhenmeter bergauf (`ascent_counter_m`, gleiche Hysterese wie im Export) und speichert den Stand an jedem
+  Fahrtenbuch-Eintrag, auch bei Tankstopps mitten in einer Reise. So liegen die Höhenmeter je Tankintervall für das
+  Modell vor, ohne sie aus den Exporten nachzurechnen. Einträge von vor dem 20.11.2026 haben keinen Stand
+  (`None`); Intervalle mit solchen Einträgen bleiben im Modell außen vor oder werden aus den Exporten ergänzt.
 
 ## 6. Mögliche Umsetzung (zur Diskussion)
 
-- Höhenmeter bergauf je Fahrtenbuch-Intervall aus den gespeicherten Reisepunkten bzw. `export.json` der Reisen
-  zwischen zwei Einträgen.
+- Höhenmeter bergauf je Fahrtenbuch-Intervall aus der Differenz der Höhenmeter-Zähler der beiden Einträge (5.6);
+  für ältere Einträge ggf. aus `export.json` der Reisen dazwischen.
 - Schätzung mit kleinster Quadratsumme über die Tankintervalle: getankte Liter ≈ a × km + b × Höhenmeter bergauf
   - c × Standtage (drei Parameter, ohne zusätzliche Bibliothek). Nur wenn genug Intervalle vorliegen, die sich in
     Höhenmetern und Standtagen ausreichend unterscheiden (Richtwert etwa 8 bis 10).
