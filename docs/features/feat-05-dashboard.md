@@ -52,6 +52,7 @@ Keine.
    keine Helfer.
 2. ~~Aufbau des Dashboards~~ – entschieden (09.10.2026, früher 9.18): Ansichten „Letzte Reise“ (neu, erste, Ziel
    der Push-Nachricht), „Export“ (Skript + Exportliste), „Aufräumen“ (Export-Auswahl, Knöpfe „Export löschen“ und
-   „Nur Rohdaten löschen“), „Tracker“ (unverändert). Downloads über den Medienbrowser statt direkter Links.
+   „Nur Rohdaten löschen“), „Tracker“ (unverändert). Downloads anfangs über den Medienbrowser; seit
+   v0.2.2 signierte Links für alle Dateien (siehe [feat-07-downloads.md](feat-07-downloads.md)).
 3. ~~Knöpfe im Dashboard~~ – entschieden (09.10.2026, früher 9.21): „Reise jetzt beenden“ (während einer Reise)
    und „Reise starten / fortsetzen“ (ohne laufende Reise) in der neuen Ansicht „Aktuelle Reise“.

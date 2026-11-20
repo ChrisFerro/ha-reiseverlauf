@@ -78,6 +78,7 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
     Unterordner `<ordner>/`, im Executor in eine temporäre Datei geschrieben (bis 8 MB im Speicher) und gestreamt;
     Bilder ungepackt, Text komprimiert.
   - `/api/reiseverlauftracker/<eintrag>/fahrtenbuch`: `fahrtenbuch.csv`.
+  - Alle drei Views beantworten auch `HEAD` (ohne Inhalt), da Download-Manager zuerst Größe und Typ abfragen.
   - Antwort mit passendem Inhaltstyp (GPX `application/gpx+xml`, Text und CSV mit `charset=utf-8`),
     `Content-Disposition: attachment` (Dateiname auch mit Umlauten) und `Cache-Control: no-store, private`.
 - `coordinator/download_links.py`: Pfade und `DownloadLinks`, das jeden Link bis zur nächsten Erneuerung
@@ -90,3 +91,11 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
   Adresse ab und öffnet sie als Dashboard-Seite (README, Abschnitt „Downloads“).
 - Nicht gewählt: eigene Medienquelle (siehe 5.1); eigenes wechselndes Token wie bei `entity_picture` (unnötig, siehe
   5.5); Kopie nach `/config/www` (`/local`), weil ohne Anmeldung abrufbar (siehe [feat-03-export.md](feat-03-export.md)).
+
+## 7. Test auf der Live-Instanz (19.11.2026)
+
+- PC (Browser): alle Dateien und ZIP laden; nach einem Neustart sind alte Links ungültig (vorher irrtümlich gültig
+  durch den Browser-Cache, daher `no-store`).
+- iPhone (Companion-App): Links öffnen Safari. PNG wird angezeigt; GPX und ZIP gibt Safari an seinen
+  Download-Manager, der über die Mobilfunkverbindung des Fahrzeugs lange ohne Fortschritt bleibt, dann aber
+  vollständig lädt.

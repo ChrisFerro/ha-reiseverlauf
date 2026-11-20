@@ -390,3 +390,27 @@ async def test_links_stop_working_after_a_restart(
     async_sign_path(hass, "/", timedelta(seconds=1), use_content_user=True)
 
     assert (await client.get(gpx)).status == 401
+
+
+async def test_head_answers_without_body(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    media_dir: Path,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    make_export(media_dir)
+    entry = await setup(hass, config_entry)
+    (media_dir / "reiseverlauf" / "fahrtenbuch.csv").write_text("Datum\n", encoding="utf-8")
+    client = await hass_client_no_auth()
+    links = [
+        *downloads(hass, LAST_TRIP),
+        {"url": entry.runtime_data.coordinator.download_links.sign(logbook_path(entry.entry_id))},
+    ]
+
+    for link in links:
+        get = await client.get(link["url"])
+        head = await client.head(link["url"])
+        assert head.status == 200, link["url"]
+        assert head.headers["Content-Type"] == get.headers["Content-Type"]
+        assert head.headers["Content-Length"] == get.headers["Content-Length"]
+        assert await head.read() == b""
