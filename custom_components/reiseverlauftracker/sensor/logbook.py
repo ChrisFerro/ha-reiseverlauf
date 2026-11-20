@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUpdateCoordinator
 
 CONSUMPTION_UNIT = "l/100 km"
+PER_DAY_UNIT = "l/d"
 
 STATE_PENDING = "offen"  # codespell:ignore offen
 STATE_SAVED = "gespeichert"
@@ -63,6 +64,7 @@ class LogbookSensorEntityDescription(SensorEntityDescription):
     """Describes a sensor computed from the logbook."""
 
     value_fn: Callable[[Logbook, datetime], float | None]
+    attributes_fn: Callable[[Logbook], Mapping[str, Any]] | None = None
     currency: bool = False
 
 
@@ -88,6 +90,21 @@ def _cost_this_year(book: Logbook, now: datetime) -> float:
 def _consumption(book: Logbook, _now: datetime) -> float | None:
     value = book.average_consumption()
     return round(value, 1) if value is not None else None
+
+
+def _parked_heating(book: Logbook, _now: datetime) -> float | None:
+    parked = book.parked_consumption()
+    value = parked.litres_per_day if parked else None
+    return round(value, 2) if value is not None else None
+
+
+def _parked_heating_attributes(book: Logbook) -> Mapping[str, Any]:
+    parked = book.parked_consumption()
+    return {
+        "standzeiten": parked.periods if parked else 0,
+        "standtage": round(parked.days, 1) if parked else 0.0,
+        "abnahme_liter": round(parked.litres, 1) if parked else 0.0,
+    }
 
 
 def _level(key: str, field: str) -> LogbookSensorEntityDescription:
@@ -130,6 +147,15 @@ LOGBOOK_DESCRIPTIONS = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=_consumption,
     ),
+    LogbookSensorEntityDescription(
+        key="parked_heating_read",
+        translation_key="parked_heating_read",
+        native_unit_of_measurement=PER_DAY_UNIT,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=_parked_heating,
+        attributes_fn=_parked_heating_attributes,
+    ),
     _cost("costs_month", _cost_this_month),
     _cost("costs_year", _cost_this_year),
 )
@@ -157,3 +183,10 @@ class ReiseverlaufLogbookSensor(SensorEntity, ReiseverlaufEntity):
     def native_value(self) -> float | None:
         """Return the value computed from the logbook."""
         return self.entity_description.value_fn(self.coordinator.logbook.logbook, dt_util.utcnow())
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
+        """Return what the value was computed from, for sensors that explain it."""
+        if (attributes_fn := self.entity_description.attributes_fn) is None:
+            return None
+        return attributes_fn(self.coordinator.logbook.logbook)

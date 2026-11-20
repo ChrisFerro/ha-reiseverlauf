@@ -25,6 +25,7 @@ class RunningStatsSettings:
     standstill_kmh: float = 3.0
     max_gap: timedelta = timedelta(minutes=5)
     min_movement_m: float = 100.0
+    elevation_hysteresis_m: float = 5.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +90,8 @@ class TripLog:
         self.distance_m = 0.0
         self.moving_distance_m = 0.0
         self.driving_time = timedelta()
+        self.ascent_m = 0.0
+        self._ascent_reference: float | None = None
         self.start_place: str | None = None
         self.stops: list[TripStop] = []
         self._last_usable: TrackPoint | None = None
@@ -220,8 +223,23 @@ class TripLog:
         self.speed.append((time, value))
 
     def add_altitude(self, time: datetime, value: float) -> None:
-        """Append an altitude reading in metres."""
+        """Append an altitude reading in metres and count the ascent like the export does."""
         self.altitude.append((time, value))
+        self._count_ascent(value)
+
+    def _count_ascent(self, value: float) -> None:
+        """Count climbs of at least the hysteresis, like `elevation_change()`, so GPS noise adds nothing."""
+        reference = self._ascent_reference
+        if reference is None or abs(value - reference) >= self.settings.elevation_hysteresis_m:
+            if reference is not None and value > reference:
+                self.ascent_m += value - reference
+            self._ascent_reference = value
+
+    def _set_altitude(self, altitude: list[tuple[datetime, float]]) -> None:
+        self.altitude = []
+        self.ascent_m, self._ascent_reference = 0.0, None
+        for time, value in altitude:
+            self.add_altitude(time, value)
 
     def last_position(self) -> Position | None:
         """Return the most recent position, usable or not."""
@@ -261,7 +279,7 @@ class TripLog:
         for point in sorted(positions, key=lambda p: p.time):
             log.add_position(point.time, point.lat, point.lon, point.accuracy)
         log.speed = list(zip(speed.times, speed.values, strict=True)) if speed else []
-        log.altitude = list(zip(altitude.times, altitude.values, strict=True)) if altitude else []
+        log._set_altitude(list(zip(altitude.times, altitude.values, strict=True)) if altitude else [])
         return log
 
     @classmethod
@@ -271,7 +289,7 @@ class TripLog:
         for ts, lat, lon, accuracy in data["positions"]:
             log.add_position(_from_ts(ts), lat, lon, accuracy)
         log.speed = [(_from_ts(ts), v) for ts, v in data["speed"]]
-        log.altitude = [(_from_ts(ts), v) for ts, v in data["altitude"]]
+        log._set_altitude([(_from_ts(ts), v) for ts, v in data["altitude"]])
         log.start_place = data.get("start_place")
         log.stops = [TripStop.from_dict(stop) for stop in data.get("stops", [])]
         return log

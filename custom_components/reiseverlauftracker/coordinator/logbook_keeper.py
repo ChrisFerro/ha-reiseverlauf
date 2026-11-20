@@ -35,6 +35,7 @@ class PendingEntry:
     time: datetime
     suggestion: Suggestion
     distance_counter_m: float = 0.0
+    ascent_counter_m: float | None = None
     trip_start: datetime | None = None
     stop_start: datetime | None = None
     lat: float | None = None
@@ -48,6 +49,7 @@ class PendingEntry:
             "time": self.time.isoformat(),
             "suggestion": asdict(self.suggestion),
             "distance_counter_m": self.distance_counter_m,
+            "ascent_counter_m": self.ascent_counter_m,
             "trip_start": self.trip_start.isoformat() if self.trip_start else None,
             "stop_start": self.stop_start.isoformat() if self.stop_start else None,
             "lat": self.lat,
@@ -63,6 +65,7 @@ class PendingEntry:
             time=datetime.fromisoformat(data["time"]),
             suggestion=Suggestion(**data["suggestion"]),
             distance_counter_m=data.get("distance_counter_m", 0.0),
+            ascent_counter_m=data.get("ascent_counter_m"),
             trip_start=datetime.fromisoformat(data["trip_start"]) if data.get("trip_start") else None,
             stop_start=datetime.fromisoformat(data["stop_start"]) if data.get("stop_start") else None,
             lat=data.get("lat"),
@@ -143,10 +146,10 @@ class LogbookKeeper:
             "draft": self.draft.as_dict(),
         }
 
-    def set_running_trip_distance(self, metres: float) -> None:
-        """Track the distance of the running trip."""
-        if metres != self.logbook.running_trip_m:
-            self.logbook.set_running_trip_distance(metres)
+    def set_running_trip(self, metres: float, ascent_m: float = 0.0) -> None:
+        """Track distance and ascent of the running trip."""
+        if (metres, ascent_m) != (self.logbook.running_trip_m, self.logbook.running_trip_ascent_m):
+            self.logbook.set_running_trip(metres, ascent_m)
             self.save()
 
     def close_trip(self) -> None:
@@ -185,6 +188,7 @@ class LogbookKeeper:
             time=time,
             suggestion=self.logbook.suggestion(),
             distance_counter_m=self.logbook.distance_counter_m,
+            ascent_counter_m=self.logbook.ascent_counter_m,
             trip_start=trip_start,
             stop_start=stop_start,
             lat=lat,
@@ -266,6 +270,7 @@ class LogbookKeeper:
             lon=pending.lon if pending else context.lon,
             place=pending.place if pending else context.place,
             distance_counter_m=pending.distance_counter_m if pending else None,
+            ascent_counter_m=pending.ascent_counter_m if pending else None,
         )
         self.discard()
         await self._async_refresh_csv()
