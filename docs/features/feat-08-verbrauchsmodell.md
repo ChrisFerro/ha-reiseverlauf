@@ -1,6 +1,6 @@
 # Feat-08: Verbrauchsmodell
 
-Stand: 20.11.2026, Fragen geklärt (Abschnitt 5). Zwischenschritt (5.5) und Höhenmeter-Zähler (5.6) umgesetzt; das
+Stand: 20.11.2026, Fragen geklärt (Abschnitt 5). Zwischenschritt (5.5) und Höhenmeter-Zähler (5.6, 5.7) umgesetzt; das
 Modell erst, wenn genug Fahrtenbuch-Daten vorliegen.
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Fahrtenbuch](feat-06-fahrtenbuch.md).
@@ -98,10 +98,24 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
   Fahrtenbuch-Eintrag, auch bei Tankstopps mitten in einer Reise. So liegen die Höhenmeter je Tankintervall für das
   Modell vor, ohne sie aus den Exporten nachzurechnen. Einträge von vor dem 20.11.2026 haben keinen Stand
   (`None`); Intervalle mit solchen Einträgen bleiben im Modell außen vor oder werden aus den Exporten ergänzt.
+- **5.7 Höhenmeter bergab** – entschieden (20.11.2026): Zusätzlich zählt die Integration die Höhenmeter bergab
+  (`descent_counter_m`, gleiche Hysterese) und speichert auch diesen Stand an jedem Eintrag. Überlegung dazu:
+  - Bergab spart Diesel (Schubabschaltung), gibt aber weniger zurück, als bergauf zusätzlich verbraucht wurde: Was
+    über Bremse oder Motorbremse vernichtet wird, ist verloren. Physikalisch kosten 1000 Hm bergauf bei etwa 3,5 t
+    rund 34 MJ, bei etwa 35 % Wirkungsgrad grob 2,5 bis 3 l Diesel.
+  - Über ein Tankintervall sind Auf- und Abstieg fast gleich groß; sie unterscheiden sich nur um den Höhenunterschied
+    zwischen Start und Ziel. Der geschätzte „Zusatz für Steigungen“ (5.4) ist daher ein **Netto-Wert** (Mehrverbrauch
+    bergauf abzüglich Ersparnis beim folgenden Bergab).
+  - Ein eigener Faktor für bergab ist mit 8 bis 10 Intervallen nicht stabil schätzbar, weil Auf- und Abstieg fast
+    immer gemeinsam steigen. Wichtig wird bergab vor allem beim Vorschlag mitten in einer Reise (z. B. Halt oben auf
+    dem Pass); dafür kann das Modell zusätzlich den Höhenunterschied (bergauf − bergab) nutzen.
+  - Ob das Modell den Höhenunterschied nutzt, wird mit genug Daten entschieden: nur wenn es damit auf den vorhandenen
+    Daten besser schätzt (Rückfall-Regel, Abschnitt 2).
 
 ## 6. Mögliche Umsetzung (zur Diskussion)
 
-- Höhenmeter bergauf je Fahrtenbuch-Intervall aus der Differenz der Höhenmeter-Zähler der beiden Einträge (5.6);
+- Höhenmeter bergauf und bergab je Fahrtenbuch-Intervall aus der Differenz der Höhenmeter-Zähler der beiden
+  Einträge (5.6, 5.7);
   für ältere Einträge ggf. aus `export.json` der Reisen dazwischen.
 - Schätzung mit kleinster Quadratsumme über die Tankintervalle: getankte Liter ≈ a × km + b × Höhenmeter bergauf
   - c × Standtage (drei Parameter, ohne zusätzliche Bibliothek). Nur wenn genug Intervalle vorliegen, die sich in

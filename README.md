@@ -248,7 +248,7 @@ Kraftstoffs zwischen dem letzten Eintrag vor einer Standzeit und dem nächsten R
 Standzeiten ohne Tanken und ohne Fahrt dazwischen, geteilt durch die Standtage. Weil die Tankanzeige nur grob
 abgelesen wird, wird der Wert erst über viele Standzeiten aussagekräftig; er verändert weder den
 Durchschnittsverbrauch noch den Vorschlag. Außerdem merkt sich jeder Eintrag die bisher gefahrenen Höhenmeter
-bergauf, als Grundlage für ein späteres Verbrauchsmodell.
+bergauf und bergab, als Grundlage für ein späteres Verbrauchsmodell.
 
 Die Einträge liegen im Speicher der Integration und sind damit im Backup von Home Assistant enthalten.
 `fahrtenbuch.csv` im Ausgabeordner (Semikolon, Dezimalkomma, für Excel) wird nach jeder Änderung neu geschrieben.
