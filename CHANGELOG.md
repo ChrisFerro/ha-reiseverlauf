@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.3...v0.2.4) (2026-11-20)
+
+
+### Features
+
+* **logbook:** estimate parked heating from read levels and count ascent ([#32](https://github.com/ChrisFerro/ha-reiseverlauf/issues/32)) ([0ac3fa4](https://github.com/ChrisFerro/ha-reiseverlauf/commit/0ac3fa4a0281fef15dc0425db94432753858cc4e))
+
 ## [0.2.3](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.2...v0.2.3) (2026-11-20)
 
 
