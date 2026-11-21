@@ -141,6 +141,10 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 7. Geschützter Download aller Dateien (siehe [features/feat-07-downloads.md](features/feat-07-downloads.md)). – umgesetzt 19.11.2026
 8. Verbrauchsmodell mit Höhenmetern und Heizung im Stand (siehe [features/feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)),
    erst wenn genug Fahrtenbuch-Daten vorliegen.
+9. Nachträge: Tankstopp und Reisekosten (Maut je Reise und Land) später erfassen (siehe
+   [features/feat-09-nachtraege.md](features/feat-09-nachtraege.md)).
+10. Tour: mehrere Reisen und Standzeiten (z. B. Urlaub, Werkstattaufenthalt) mit Reiseverlauf und Kostenaufstellung
+    zusammenfassen (siehe [features/feat-10-tour.md](features/feat-10-tour.md)).
 
 ## 11. Feature-Dokumente
 
@@ -151,13 +155,15 @@ offenen Fragen und Entscheidungen. Dieses Dokument bleibt die Übersicht und ent
 Die Dokumente sind fortlaufend nummeriert: Dateiname `feat-<NN>-<name>.md`, Überschrift `Feat-<NN>: <Name>`. Ein
 neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeben.
 
-| Nr.     | Feature                 | Dokument                                                                      | Etappe | Stand                     |
-| ------- | ----------------------- | ----------------------------------------------------------------------------- | ------ | ------------------------- |
-| Feat-01 | Reiseerkennung          | [feat-01-reiseerkennung.md](features/feat-01-reiseerkennung.md)               | 1, 3   | umgesetzt                 |
-| Feat-02 | Halte und Live-Werte    | [feat-02-halte.md](features/feat-02-halte.md)                                 | 3      | umgesetzt, 1 Frage offen  |
-| Feat-03 | Export und Verwaltung   | [feat-03-export.md](features/feat-03-export.md)                               | 2, 3   | umgesetzt                 |
-| Feat-04 | Push-Benachrichtigung   | [feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md) | 4      | umgesetzt                 |
-| Feat-05 | Dashboard und Migration | [feat-05-dashboard.md](features/feat-05-dashboard.md)                         | 5      | umgesetzt                 |
-| Feat-06 | Fahrtenbuch             | [feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)                     | 6      | umgesetzt                 |
-| Feat-07 | Geschützter Download    | [feat-07-downloads.md](features/feat-07-downloads.md)                         | 7      | umgesetzt                 |
-| Feat-08 | Verbrauchsmodell        | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | Zwischenschritt umgesetzt |
+| Nr.     | Feature                  | Dokument                                                                      | Etappe | Stand                     |
+| ------- | ------------------------ | ----------------------------------------------------------------------------- | ------ | ------------------------- |
+| Feat-01 | Reiseerkennung           | [feat-01-reiseerkennung.md](features/feat-01-reiseerkennung.md)               | 1, 3   | umgesetzt                 |
+| Feat-02 | Halte und Live-Werte     | [feat-02-halte.md](features/feat-02-halte.md)                                 | 3      | umgesetzt, 1 Frage offen  |
+| Feat-03 | Export und Verwaltung    | [feat-03-export.md](features/feat-03-export.md)                               | 2, 3   | umgesetzt                 |
+| Feat-04 | Push-Benachrichtigung    | [feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md) | 4      | umgesetzt                 |
+| Feat-05 | Dashboard und Migration  | [feat-05-dashboard.md](features/feat-05-dashboard.md)                         | 5      | umgesetzt                 |
+| Feat-06 | Fahrtenbuch              | [feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)                     | 6      | umgesetzt                 |
+| Feat-07 | Geschützter Download     | [feat-07-downloads.md](features/feat-07-downloads.md)                         | 7      | umgesetzt                 |
+| Feat-08 | Verbrauchsmodell         | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | Zwischenschritt umgesetzt |
+| Feat-09 | Nachträge (Tank, Kosten) | [feat-09-nachtraege.md](features/feat-09-nachtraege.md)                       | 9      | Entwurf zur Freigabe      |
+| Feat-10 | Tour                     | [feat-10-tour.md](features/feat-10-tour.md)                                   | 10     | Entwurf zur Freigabe      |
