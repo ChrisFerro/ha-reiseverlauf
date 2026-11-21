@@ -1,11 +1,13 @@
 """Tests for the logbook of odometer readings, tank levels and refills."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 import json
+from zoneinfo import ZoneInfo
 
 import pytest
 
 from custom_components.reiseverlauftracker.coordinator.logbook import (
+    CostCategory,
     Draft,
     FormField,
     Logbook,
@@ -17,6 +19,7 @@ from custom_components.reiseverlauftracker.coordinator.logbook import (
 pytestmark = pytest.mark.unit
 
 T0 = datetime(2026, 10, 31, 8, 0, tzinfo=UTC)
+BERLIN = ZoneInfo("Europe/Berlin")
 
 
 def at(hours: float) -> datetime:
@@ -357,3 +360,131 @@ def test_a_refill_at_the_last_stop_starts_the_parked_period() -> None:
 
     assert parked.periods == 1
     assert parked.litres_per_day == pytest.approx(4.5)
+
+
+# --- Late entries (docs/features/feat-09-nachtraege.md 6.2) ---
+
+
+def test_late_entry_builds_on_the_readings_before_its_time() -> None:
+    book = Logbook()
+    book.add(at(0), Occasion.TRIP_START, odometer_km=34299, fuel_percent=60, gas1_percent=80, gas2_percent=70)
+    drive(book, 40)
+    stop_counter = book.distance_counter_m
+    drive(book, 60)
+    book.add(at(5), Occasion.STOP, odometer_km=34399, fuel_percent=30, gas1_percent=50, gas2_percent=40)
+
+    suggestion = book.suggestion(stop_counter, until=at(2))
+    assert suggestion.odometer_km == 34339
+    assert suggestion.fuel_percent == 60
+    assert (suggestion.gas1_percent, suggestion.gas2_percent) == (80, 70)
+    # Without a time the latest reading counts, as before.
+    assert book.suggest_odometer() == 34399
+
+
+def test_late_entry_counts_as_corrected_only_against_the_reading_before_it() -> None:
+    book = Logbook()
+    book.add(at(0), Occasion.TRIP_START, odometer_km=34299)
+    drive(book, 40)
+    stop_counter = book.distance_counter_m
+    drive(book, 60)
+    book.add(at(5), Occasion.STOP, odometer_km=34399)
+
+    late = book.add(at(2), Occasion.LATE, odometer_km=34339, distance_counter_m=stop_counter, fuel=Refill(50, 90))
+
+    assert not late.odometer_corrected
+    assert [e.occasion for e in book.entries] == [Occasion.TRIP_START, Occasion.LATE, Occasion.STOP]
+
+
+def test_late_refill_closes_a_consumption_interval() -> None:
+    book = Logbook()
+    book.add(at(0), Occasion.STOP, odometer_km=34000, fuel_percent=100, fuel=Refill(40, 70))
+    book.add(at(10), Occasion.STOP, odometer_km=34500, fuel_percent=60)
+    assert book.average_consumption() is None
+
+    book.add(at(5), Occasion.LATE, odometer_km=34400, fuel_percent=100, fuel=Refill(44, 80))
+
+    assert book.average_consumption() == pytest.approx(11.0)
+
+
+# --- Travel costs (docs/features/feat-09-nachtraege.md 6.3, feat-10-tour.md 5.4) ---
+
+
+def test_travel_costs_count_on_their_day_by_category() -> None:
+    book = Logbook()
+    book.add(datetime(2026, 10, 15, 9, 0, tzinfo=UTC), Occasion.STOP, fuel=Refill(50, 90), gas=Refill(20, 25))
+    trip = datetime(2026, 10, 14, 6, 0, tzinfo=UTC)
+    book.add_travel_cost(date(2026, 10, 14), CostCategory.TOLL, 23.4, trip_start=trip, country="at")
+    book.add_travel_cost(date(2026, 10, 31), CostCategory.TOLL, 61.1, trip_start=trip, country="IT")
+    book.add_travel_cost(date(2026, 11, 1), CostCategory.PITCH, 30.0, note="Camping Seeblick")
+
+    october = book.costs_between(datetime(2026, 10, 1, tzinfo=BERLIN), datetime(2026, 11, 1, tzinfo=BERLIN))
+
+    assert (october.fuel, october.gas) == (90, 25)
+    assert october.travel == {CostCategory.TOLL: pytest.approx(84.5)}
+    assert october.total == pytest.approx(199.5)
+    assert book.costs_between(datetime(2026, 11, 1, tzinfo=BERLIN), datetime(2026, 12, 1, tzinfo=BERLIN)).travel == {
+        CostCategory.PITCH: 30.0
+    }
+
+
+def test_travel_cost_country_is_normalised_and_checked() -> None:
+    book = Logbook()
+
+    cost = book.add_travel_cost(date(2026, 10, 14), CostCategory.TOLL, 10, country=" at ", note="")
+
+    assert (cost.country, cost.note) == ("AT", None)
+    with pytest.raises(ValueError, match="country"):
+        book.add_travel_cost(date(2026, 10, 14), CostCategory.TOLL, 10, country="AUT")
+    with pytest.raises(ValueError, match="amount"):
+        book.add_travel_cost(date(2026, 10, 14), CostCategory.TOLL, 0)
+
+
+def test_travel_costs_can_be_changed_and_removed() -> None:
+    book = Logbook()
+    cost = book.add_travel_cost(date(2026, 10, 14), CostCategory.TOLL, 10, country="AT")
+
+    changed = book.update_travel_cost(cost.id, amount=12.5, day=date(2026, 10, 15))
+
+    assert (changed.id, changed.amount, changed.day) == (cost.id, 12.5, date(2026, 10, 15))
+    assert book.travel_costs == [changed]
+    with pytest.raises(ValueError, match="amount"):
+        book.update_travel_cost(cost.id, amount=-1)
+    book.remove_travel_cost(cost.id)
+    assert book.travel_costs == []
+    with pytest.raises(KeyError):
+        book.remove_travel_cost(cost.id)
+    with pytest.raises(KeyError):
+        book.update_travel_cost(cost.id, amount=1)
+
+
+def test_toll_is_settled_by_a_toll_cost_or_the_no_toll_mark() -> None:
+    book = Logbook()
+    trip, other = at(0), at(48)
+    book.add_travel_cost(date(2026, 10, 31), CostCategory.FERRY, 85, trip_start=trip)
+    assert not book.toll_settled(trip)
+
+    book.add_travel_cost(date(2026, 10, 31), CostCategory.TOLL, 20, trip_start=trip, country="FR")
+    book.set_no_toll(other, True)
+
+    assert book.toll_settled(trip)
+    assert book.toll_settled(other)
+    book.set_no_toll(other, False)
+    assert not book.toll_settled(other)
+    assert [c.category for c in book.travel_costs_of_trip(trip)] == [CostCategory.FERRY, CostCategory.TOLL]
+
+
+def test_travel_costs_and_no_toll_marks_survive_a_round_trip() -> None:
+    book = Logbook()
+    book.add_travel_cost(date(2026, 10, 14), CostCategory.TOLL, 23.4, trip_start=at(0), country="AT", recorded=at(1))
+    book.set_no_toll(at(48), True)
+
+    restored = Logbook.from_dict(json.loads(json.dumps(book.as_dict())), tank_litres=90)
+
+    assert restored.travel_costs == book.travel_costs
+    assert restored.no_toll_trips == {at(48)}
+
+
+def test_logbooks_without_travel_costs_still_load() -> None:
+    restored = Logbook.from_dict({"version": 1, "entries": []}, tank_litres=90)
+
+    assert (restored.travel_costs, restored.no_toll_trips) == ([], set())
