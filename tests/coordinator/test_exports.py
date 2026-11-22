@@ -9,6 +9,7 @@ import pytest
 
 from custom_components.reiseverlauftracker.coordinator.exports import (
     ExportInfo,
+    existing_files,
     list_exports,
     read_export,
     remove_files,
@@ -83,6 +84,17 @@ def test_countries_are_stored_in_the_metadata(tmp_path: Path) -> None:
     assert changed == replace(info, countries=("DE", "AT"))
     assert read_export(tmp_path, "a") == changed
     assert set_countries(tmp_path, "missing", ("DE",)) is None
+
+
+def test_update_time_round_trip_and_existing_files(tmp_path: Path) -> None:
+    info = replace(
+        make_export(tmp_path, "a", datetime(2026, 10, 1, tzinfo=UTC)), updated=datetime(2026, 11, 1, tzinfo=UTC)
+    )
+    write_metadata(tmp_path, info)
+    (tmp_path / "a" / info.files[ExportFile.MAP]).unlink()
+
+    assert read_export(tmp_path, "a") == info
+    assert set(existing_files(tmp_path, info)) == {ExportFile.COMPOSITE, ExportFile.GPX}
 
 
 def test_list_exports_newest_first_and_skips_foreign_folders(tmp_path: Path) -> None:

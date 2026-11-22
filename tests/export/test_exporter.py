@@ -1,6 +1,7 @@
 """Tests for a complete export run."""
 
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
@@ -12,10 +13,12 @@ import pytest
 from custom_components.reiseverlauftracker.export import (
     ExportFile,
     ExportOptions,
+    LogbookFigures,
     NoMovementError,
     StepSeries,
     TrackPoint,
     export_trip,
+    refresh_export,
     slugify,
 )
 
@@ -108,3 +111,45 @@ def test_export_without_movement_writes_nothing(tmp_path: Path) -> None:
     with pytest.raises(NoMovementError):
         export_trip(points, None, None, tmp_path / "out", ExportOptions(with_map=False))
     assert not (tmp_path / "out").exists()
+
+
+def test_refresh_rewrites_statistics_and_composite_but_keeps_the_map(
+    positions: list[TrackPoint],
+    speed: StepSeries,
+    altitude: StepSeries,
+    tmp_path: Path,
+    offline_fetcher: Callable[[str], bytes],
+) -> None:
+    options = ExportOptions(title="Pass", timezone=ZoneInfo("Europe/Berlin"), map_size=(1200, 800), scale=0.5)
+    result = export_trip(positions, speed, altitude, tmp_path, options, offline_fetcher)
+    files = {kind: path.name for kind, path in result.files.items()}
+    map_bytes = result.files[ExportFile.MAP].read_bytes()
+    composite_bytes = result.files[ExportFile.COMPOSITE].read_bytes()
+    figures = LogbookFigures(fuel_litres=40, fuel_cost=70, travel_costs={"maut": 23.4})
+
+    with patch("custom_components.reiseverlauftracker.export.exporter.render_map") as render_map:
+        text = refresh_export(positions, speed, altitude, tmp_path, replace(options, logbook=figures), files)
+
+    render_map.assert_not_called()
+    assert text == (tmp_path / files[ExportFile.STATS]).read_text(encoding="utf-8")
+    assert "Reisekosten:     Maut 23,40 €" in text
+    assert "Kosten:          93,40 €" in text
+    assert result.files[ExportFile.MAP].read_bytes() == map_bytes
+    assert result.files[ExportFile.COMPOSITE].read_bytes() != composite_bytes
+    with Image.open(result.files[ExportFile.COMPOSITE]) as composite:
+        # Scale 0.5: header with the extra logbook row, then map and profile, each with its gap.
+        assert composite.height == (380 + 150 + 40 + 40) // 2 + 800 + 900
+
+
+def test_refresh_creates_no_missing_files(
+    positions: list[TrackPoint], speed: StepSeries, altitude: StepSeries, tmp_path: Path
+) -> None:
+    options = ExportOptions(title="Pass", with_map=False, scale=0.5)
+    result = export_trip(positions, speed, altitude, tmp_path, options)
+    result.files[ExportFile.STATS].unlink()
+    files = {kind: path.name for kind, path in result.files.items() if kind is not ExportFile.STATS}
+
+    refresh_export(positions, speed, altitude, tmp_path, options, files)
+
+    assert not result.files[ExportFile.STATS].exists()
+    assert result.files[ExportFile.COMPOSITE].is_file()

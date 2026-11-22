@@ -1,6 +1,7 @@
 """Run an export of recorded trip data into its own folder below the media directory."""
 
 import asyncio
+from dataclasses import replace
 from datetime import datetime
 import json
 from pathlib import Path
@@ -16,11 +17,12 @@ from custom_components.reiseverlauftracker.export import (
     Stop,
     TrackPoint,
     export_trip,
+    refresh_export,
 )
 from custom_components.reiseverlauftracker.export.texts import texts_for
 from homeassistant.util import dt as dt_util
 
-from .exports import ExportInfo, remove_files, write_metadata
+from .exports import ExportInfo, existing_files, remove_files, write_metadata
 from .places import async_place_name, user_agent
 from .title import trip_title
 from .trip_log import TrackCounters
@@ -78,12 +80,27 @@ async def async_export(
         start_place, end_place = await _async_places(hass, settings, positions)
         texts = texts_for(hass.config.language)
         title = trip_title(settings.title_format, texts, start, end, tz, start_place, end_place)
-    options = ExportOptions(
+    options = _options(hass, settings, title, agent, stops, logbook)
+    folder = folder or f"{start.astimezone(tz):%Y-%m-%d_%H%M}"
+    return await hass.async_add_executor_job(
+        _export_sync, media_base(hass, settings), folder, data, options, raw, start, end, automatic, counter_start
+    )
+
+
+def _options(
+    hass: HomeAssistant,
+    settings: ReiseverlaufSettings,
+    title: str,
+    agent: str,
+    stops: tuple[Stop, ...],
+    logbook: LogbookFigures | None,
+) -> ExportOptions:
+    return ExportOptions(
         title=title,
         scale=settings.scale,
         margin=settings.margin,
         language=hass.config.language,
-        timezone=tz,
+        timezone=dt_util.get_default_time_zone(),
         standstill_kmh=settings.standstill_kmh,
         max_accuracy_m=settings.max_accuracy_m,
         min_point_distance_m=settings.min_point_distance_m,
@@ -94,10 +111,45 @@ async def async_export(
         logbook=logbook,
         currency=hass.config.currency,
     )
-    folder = folder or f"{start.astimezone(tz):%Y-%m-%d_%H%M}"
+
+
+async def async_refresh(
+    hass: HomeAssistant,
+    settings: ReiseverlaufSettings,
+    info: ExportInfo,
+    data: tuple[list[TrackPoint], StepSeries | None, StepSeries | None] | None,
+    logbook: LogbookFigures | None,
+) -> ExportInfo:
+    """
+    Renew statistics, composite image and metadata of an export with new logbook figures.
+
+    Without track `data` (no raw data left), only the metadata gets the new figures.
+
+    Raises:
+        NotEnoughPointsError: Fewer than two usable positions.
+        NoMovementError: The vehicle never left the minimum movement radius.
+        OSError: The output folder cannot be written.
+
+    """
+    options = _options(hass, settings, info.title, user_agent(None), info.stops, logbook)
     return await hass.async_add_executor_job(
-        _export_sync, media_base(hass, settings), folder, data, options, raw, start, end, automatic, counter_start
+        _refresh_sync, media_base(hass, settings), info, data, options, dt_util.utcnow()
     )
+
+
+def _refresh_sync(
+    base: Path,
+    info: ExportInfo,
+    data: tuple[list[TrackPoint], StepSeries | None, StepSeries | None] | None,
+    options: ExportOptions,
+    now: datetime,
+) -> ExportInfo:
+    stats_text = info.stats_text
+    if data is not None:
+        stats_text = refresh_export(*data, base / info.folder, options, existing_files(base, info))
+    refreshed = replace(info, logbook=options.logbook, stats_text=stats_text, updated=now)
+    write_metadata(base, refreshed)
+    return refreshed
 
 
 def event_data(settings: ReiseverlaufSettings, info: ExportInfo, base: Path) -> dict[str, Any]:

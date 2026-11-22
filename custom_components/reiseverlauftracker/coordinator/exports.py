@@ -40,6 +40,8 @@ class ExportInfo:
     counter_start: TrackCounters | None = None
     # ISO codes of the countries the trip passed; None until they were looked up.
     countries: tuple[str, ...] | None = None
+    # When statistics and composite were last renewed after a logbook change; None if never.
+    updated: datetime | None = None
 
     def label(self, tz: tzinfo) -> str:
         """Return the short unique name shown in the export selection: start time and shortened title."""
@@ -69,6 +71,7 @@ class ExportInfo:
             "logbook": self.logbook.as_dict() if self.logbook else None,
             "counter_start": self.counter_start.as_dict() if self.counter_start else None,
             "countries": list(self.countries) if self.countries is not None else None,
+            "updated": self.updated.isoformat() if self.updated else None,
         }
 
     @classmethod
@@ -97,6 +100,7 @@ class ExportInfo:
             logbook=LogbookFigures.from_dict(data["logbook"]) if data.get("logbook") else None,
             counter_start=TrackCounters.from_dict(data["counter_start"]) if data.get("counter_start") else None,
             countries=tuple(data["countries"]) if data.get("countries") is not None else None,
+            updated=_optional_datetime(data.get("updated")),
         )
 
 
@@ -107,6 +111,11 @@ def _optional_datetime(value: str | None) -> datetime | None:
 def write_metadata(base: Path, info: ExportInfo) -> None:
     """Write `export.json` into the folder of `info`."""
     (base / info.folder / METADATA_FILE).write_text(json.dumps(info.as_dict(), ensure_ascii=False), encoding="utf-8")
+
+
+def existing_files(base: Path, info: ExportInfo) -> dict[ExportFile, str]:
+    """Return the files of an export that are still there."""
+    return {kind: name for kind, name in info.files.items() if (base / info.folder / name).is_file()}
 
 
 def set_countries(base: Path, folder: str, countries: tuple[str, ...]) -> ExportInfo | None:
