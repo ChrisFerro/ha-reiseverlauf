@@ -339,6 +339,24 @@ def test_movement_after_manual_end_with_dplus_off_resumes() -> None:
     detector.end_manually(minutes(70))
 
     assert detector.update_position(north(11_000), minutes(100)) == [TripResumed(start=T0, resumed_at=minutes(100))]
+    assert detector.next_deadline() == minutes(160)
+    detector.update_position(north(15_000), minutes(130))
+    assert detector.next_deadline() == minutes(190)
+    assert detector.tick(minutes(190)) == [
+        TripEnded(start=T0, end=minutes(130), max_distance_m=pytest.approx(15_000), resumed=True)
+    ]
+
+
+def test_stored_trip_resumed_without_end_candidate_is_repaired() -> None:
+    detector = TripDetector(SETTINGS)
+    drive(detector, 0, 60, 10_000)
+    detector.end_manually(minutes(70))
+    detector.update_position(north(11_000), minutes(100))
+    broken = {**detector.as_dict(), "dplus_off_at": None}
+
+    restored = TripDetector(SETTINGS, json.loads(json.dumps(broken)))
+
+    assert restored.next_deadline() == minutes(160)
 
 
 def test_manual_end_after_expired_countdown_keeps_automatic_end() -> None:

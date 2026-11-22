@@ -174,6 +174,8 @@ class TripDetector:
                 self._last_motion_at = at
                 if self._phase is TripPhase.ENDED:
                     events.append(self._resume(at))
+                    # Moving without D+ (ferry, towing): the end delay runs from here, as after a manual start.
+                    self._dplus_off_at = at
         if self._phase is TripPhase.ACTIVE:
             if self._start_position is None:
                 self._start_position = position
@@ -266,6 +268,9 @@ class TripDetector:
         self._last_motion_at = _dt_in(data["last_motion_at"])
         self._motion_anchor = _pos_in(data["motion_anchor"])
         self._end = _dt_in(data["end"])
+        if self._phase is TripPhase.ACTIVE and not self._dplus_on and self._dplus_off_at is None:
+            # Stored by versions that resumed a trip on movement without setting the end candidate.
+            self._dplus_off_at = self._last_motion_at or self._end or self._start
 
     def _end_candidate(self) -> datetime:
         if self._dplus_off_at is None:
