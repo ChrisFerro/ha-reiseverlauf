@@ -149,6 +149,24 @@
         "state": {
           "all": "Alle Exporte"
         }
+      },
+      "logbook_time": {
+        "name": "Fahrtenbuch Zeitpunkt",
+        "state": {
+          "current": "Aktuell",
+          "other": "Andere Uhrzeit …"
+        },
+        "state_attributes": {
+          "zeit": {
+            "name": "Zeit"
+          },
+          "ort": {
+            "name": "Ort"
+          },
+          "geschaetzt": {
+            "name": "Kilometerstand geschätzt"
+          }
+        }
       }
     },
     "sensor": {
@@ -303,6 +321,14 @@
       },
       "logbook_discard": {
         "name": "Fahrtenbuch verwerfen"
+      },
+      "logbook_late": {
+        "name": "Fahrtenbuch nachtragen"
+      }
+    },
+    "datetime": {
+      "logbook_late_time": {
+        "name": "Fahrtenbuch Nachtrag Zeit"
       }
     }
   },
@@ -508,6 +534,40 @@
           "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
         }
       }
+    },
+    "fahrtenbuch_nachtragen": {
+      "name": "Tankstopp nachtragen",
+      "description": "Trägt einen Tank- oder Gasstopp für einen früheren Zeitpunkt nach, z. B. nach dem Beleg. Liegt ein gemerkter Stopp bis 5 Minuten um die Zeit, wird der Eintrag diesem Stopp zugeordnet bzw. dessen Eintrag ergänzt. Zählerstände und Position kommen aus der Spur.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "zeit": {
+          "name": "Zeit",
+          "description": "Zeitpunkt des Tankstopps."
+        },
+        "kilometerstand": {
+          "name": "Kilometerstand",
+          "description": "Stand des Tachos in km. Leer lassen für den fortgeschriebenen Stand; nötig, wenn die Strecke zu dieser Zeit nicht bekannt ist."
+        },
+        "diesel_liter": {
+          "name": "Diesel getankt",
+          "description": "Getankte Liter. 0 entfernt den Tankstopp."
+        },
+        "diesel_betrag": {
+          "name": "Diesel Betrag",
+          "description": "Bezahlter Betrag für den Diesel."
+        },
+        "gas_liter": {
+          "name": "Gas getankt",
+          "description": "Getankte Liter Gas für beide Tanks zusammen. 0 entfernt den Gasstopp."
+        },
+        "gas_betrag": {
+          "name": "Gas Betrag",
+          "description": "Bezahlter Betrag für das Gas."
+        }
+      }
     }
   },
   "exceptions": {
@@ -555,6 +615,15 @@
     },
     "logbook_occasion_not_pending": {
       "message": "Der Fahrtenbuch-Anlass von {time} ist nicht mehr offen."
+    },
+    "no_late_time": {
+      "message": "Im Fahrtenbuch Zeitpunkt ist kein früherer Zeitpunkt gewählt."
+    },
+    "late_without_refill": {
+      "message": "Bitte Diesel- oder Gas-Liter angeben."
+    },
+    "late_odometer_required": {
+      "message": "Die Strecke zu dieser Zeit ist nicht bekannt. Bitte den Kilometerstand angeben."
     }
   }
 }

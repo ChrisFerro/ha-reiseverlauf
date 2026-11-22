@@ -149,6 +149,24 @@
         "state": {
           "all": "All exports"
         }
+      },
+      "logbook_time": {
+        "name": "Logbook time",
+        "state": {
+          "current": "Current",
+          "other": "Other time …"
+        },
+        "state_attributes": {
+          "zeit": {
+            "name": "Time"
+          },
+          "ort": {
+            "name": "Place"
+          },
+          "geschaetzt": {
+            "name": "Odometer estimated"
+          }
+        }
       }
     },
     "sensor": {
@@ -303,6 +321,14 @@
       },
       "logbook_discard": {
         "name": "Logbook discard"
+      },
+      "logbook_late": {
+        "name": "Logbook late entry"
+      }
+    },
+    "datetime": {
+      "logbook_late_time": {
+        "name": "Logbook late entry time"
       }
     }
   },
@@ -508,6 +534,40 @@
           "description": "The trip recording entry of the vehicle."
         }
       }
+    },
+    "fahrtenbuch_nachtragen": {
+      "name": "Add late refuelling",
+      "description": "Adds a fuel or gas refill for an earlier time, for example from the receipt. If a remembered stop lies within 5 minutes of the time, the entry belongs to that stop or completes its entry. Counters and position come from the track.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "zeit": {
+          "name": "Time",
+          "description": "When the refill took place."
+        },
+        "kilometerstand": {
+          "name": "Odometer",
+          "description": "Odometer reading in km. Leave empty for the carried-forward reading; required when the distance at that time is unknown."
+        },
+        "diesel_liter": {
+          "name": "Diesel refuelled",
+          "description": "Litres refuelled. 0 removes the refuelling."
+        },
+        "diesel_betrag": {
+          "name": "Diesel amount",
+          "description": "Amount paid for the diesel."
+        },
+        "gas_liter": {
+          "name": "Gas refilled",
+          "description": "Litres of gas for both tanks together. 0 removes the gas refill."
+        },
+        "gas_betrag": {
+          "name": "Gas amount",
+          "description": "Amount paid for the gas."
+        }
+      }
     }
   },
   "exceptions": {
@@ -555,6 +615,15 @@
     },
     "logbook_occasion_not_pending": {
       "message": "The logbook occasion of {time} is no longer pending."
+    },
+    "no_late_time": {
+      "message": "No earlier time is chosen in the logbook time selection."
+    },
+    "late_without_refill": {
+      "message": "Please give litres of diesel or gas."
+    },
+    "late_odometer_required": {
+      "message": "The distance at that time is unknown. Please give the odometer reading."
     }
   }
 }

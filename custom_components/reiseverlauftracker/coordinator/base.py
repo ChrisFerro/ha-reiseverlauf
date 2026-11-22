@@ -39,6 +39,7 @@ from homeassistant.util import dt as dt_util
 from .download_links import RENEW_INTERVAL, DownloadLinks
 from .export_runner import NOMINATIM_INTERVAL_S, async_export, event_data, media_base
 from .exports import ExportInfo, list_exports, remove_files
+from .late_form import LateEntryForm
 from .logbook import LogbookEntry, Occasion
 from .logbook_keeper import EntryContext, LogbookKeeper
 from .models import TripSnapshot
@@ -98,6 +99,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.last_export: ExportInfo | None = None
         self.exports: tuple[ExportInfo, ...] = ()
         self.export_choice: str | None = None
+        self.late_form = LateEntryForm(self)
 
     async def async_start(self) -> None:
         """Restore detector, trip log and logbook, reconcile with the current D+ state and subscribe."""
@@ -110,7 +112,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 LOGGER.warning("Stored trip detection state is unreadable, starting fresh")
         if self.detector.phase is not TripPhase.IDLE and (stored_log := await self._log_store.async_load()):
             try:
-                self.log = TripLog.from_dict(stored_log, self._log_settings())
+                self.log = TripLog.from_dict(stored_log, self.log_settings())
             except KeyError, ValueError, TypeError:
                 LOGGER.warning("Stored trip points are unreadable, recording continues without them")
         if self.log is not None:
@@ -195,7 +197,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 start,
                 end,
                 version=async_get_loaded_integration(self.hass, DOMAIN).version,
-                raw=TripLog.from_export_inputs(start, data, self._log_settings()).as_dict(),
+                raw=TripLog.from_export_inputs(start, data, self.log_settings()).as_dict(),
                 title=title,
                 automatic=False,
                 folder=folder,
@@ -257,6 +259,8 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             The new entry.
 
         """
+        if self.logbook.late is not None:
+            return await self.late_form.async_save()
         context = EntryContext() if self.logbook.pending else await self.async_logbook_context()
         return await self.logbook.async_save_draft(context)
 
@@ -487,7 +491,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 self._save_log()
 
     def _begin_log(self, start: datetime) -> None:
-        self.log = TripLog(start, self._log_settings())
+        self.log = TripLog(start, self.log_settings())
         book = self.logbook.logbook
         self.log.counter_start = TrackCounters(book.distance_counter_m, book.ascent_counter_m, book.descent_counter_m)
         if (tracker := self.hass.states.get(self.settings.tracker_entity)) is not None:
@@ -559,7 +563,8 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         exports = ExportState(self.last_export, self.exports, self._exporting, self._export_failed)
         return build_snapshot(self.detector, self.log, exports, dt_util.utcnow(), self.settings.min_stop_duration)
 
-    def _log_settings(self) -> RunningStatsSettings:
+    def log_settings(self) -> RunningStatsSettings:
+        """Return the thresholds of the trip log, taken from the settings."""
         return RunningStatsSettings(
             max_accuracy_m=self.settings.max_accuracy_m,
             standstill_kmh=self.settings.standstill_kmh,

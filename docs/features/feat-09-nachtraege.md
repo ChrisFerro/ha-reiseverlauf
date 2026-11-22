@@ -206,8 +206,12 @@ Stand: 20.11.2026, an die Entscheidungen 5.1–5.11 angepasst.
   - Knopf `button.…_fahrtenbuch_nachtragen` speichert für den gewählten Zeitpunkt (ergänzt den vorhandenen Eintrag
     oder legt einen an, Anlass `nachtrag`); „Speichern“ bleibt für den aktuellen Anlass.
 - **Dienst `fahrtenbuch_nachtragen`** (`zeit`, `diesel_liter`, `diesel_betrag`, `gas_liter`, `gas_betrag`,
-  `kilometerstand` optional): wie der Knopf; ein Stopp innerhalb weniger Minuten um `zeit` wird automatisch
-  zugeordnet. Antwort: der neue bzw. geänderte Eintrag.
+  `kilometerstand` optional): wie der Knopf; ein Stopp bis 5 Minuten um `zeit` wird automatisch zugeordnet. Sind die
+  Zähler zu `zeit` nur geschätzt, ist `kilometerstand` Pflicht. Antwort: der neue bzw. geänderte Eintrag.
+- **Zeit zwischen zwei Reisen** (entschieden 22.11.2026): Die Zähler ändern sich nur während der Fahrt; es gilt der
+  Stand am Ende der Reise davor (gleich dem Stand beim Beginn der nächsten Reise).
+- **Kennzeichen „geschätzt“:** `select.…_fahrtenbuch_zeitpunkt` zeigt in den Attributen `zeit`, `ort` und `geschaetzt`
+  (Kilometerstand bestätigen).
 - **Füllstand:** Liter über 0 setzen Kraftstoff bzw. beide Gastanks an diesem Eintrag auf 100 %, wie im Formular.
 
 ### 6.3 Reisekosten
@@ -276,7 +280,7 @@ Jeder Schritt mit Tests, grünem `script/check` und einem Prüfpunkt in der Entw
 2. Stopp-Liste und Zählerstände je Reise (6.1), Zähler aus der Spur (6.2). Prüfpunkt: simulierte Reise mit kurzem
    Stopp, Stopp mit Zählerständen im Speicher. – umgesetzt 21.11.2026
 3. Tankstopp nachtragen: Auswahl, Knopf, Dienst, Übersetzungen. Prüfpunkt: Tankstopp einer vergangenen Reise
-   nachtragen, Ø-Verbrauch und Kilometerstand stimmen.
+   nachtragen, Ø-Verbrauch und Kilometerstand stimmen. – umgesetzt 22.11.2026
 4. Reisekosten: Länder der Reise, Formular, Dienste, CSV. Prüfpunkt: Maut für zwei Länder eintragen.
 5. Export aktualisieren (6.4). Prüfpunkt: Statistik und Gesamtbild zeigen die nachgetragenen Kosten.
 6. Kostensensoren ersetzen und Erinnerung (6.5), Blueprint, README (deutsch/englisch), Release-Notes für den

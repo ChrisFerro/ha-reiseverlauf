@@ -28,6 +28,9 @@
     "select": {
       "export_choice": {
         "default": "mdi:folder-multiple-image"
+      },
+      "logbook_time": {
+        "default": "mdi:clock-edit-outline"
       }
     },
     "sensor": {
@@ -135,6 +138,14 @@
       },
       "logbook_discard": {
         "default": "mdi:close-circle-outline"
+      },
+      "logbook_late": {
+        "default": "mdi:notebook-clock"
+      }
+    },
+    "datetime": {
+      "logbook_late_time": {
+        "default": "mdi:calendar-clock"
       }
     }
   },
@@ -165,6 +176,9 @@
     },
     "fahrtenbuch_csv": {
       "service": "mdi:file-delimited"
+    },
+    "fahrtenbuch_nachtragen": {
+      "service": "mdi:notebook-clock"
     }
   }
 }

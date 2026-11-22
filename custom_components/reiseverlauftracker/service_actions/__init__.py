@@ -35,6 +35,7 @@ from .logbook import (
     ATTR_TIME,
     async_handle_add,
     async_handle_csv,
+    async_handle_late,
     async_handle_remove,
     async_handle_save_form,
     async_handle_update,
@@ -53,6 +54,7 @@ SERVICE_LOGBOOK_UPDATE = "fahrtenbuch_aendern"
 SERVICE_LOGBOOK_REMOVE = "fahrtenbuch_loeschen"
 SERVICE_LOGBOOK_CSV = "fahrtenbuch_csv"
 SERVICE_LOGBOOK_SAVE_FORM = "fahrtenbuch_speichern"
+SERVICE_LOGBOOK_LATE = "fahrtenbuch_nachtragen"
 
 ENTRY_SCHEMA = probatio.Schema({probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string})
 
@@ -95,6 +97,16 @@ LOGBOOK_ADD_SCHEMA = ENTRY_SCHEMA.extend(LOGBOOK_FIELDS)
 LOGBOOK_ENTRY_SCHEMA = ENTRY_SCHEMA.extend({probatio.Required(ATTR_ENTRY): cv.string})
 LOGBOOK_UPDATE_SCHEMA = LOGBOOK_ENTRY_SCHEMA.extend(LOGBOOK_FIELDS)
 LOGBOOK_SAVE_FORM_SCHEMA = ENTRY_SCHEMA.extend({probatio.Optional(ATTR_OCCASION_TIME): cv.datetime})
+LOGBOOK_LATE_SCHEMA = ENTRY_SCHEMA.extend(
+    {
+        probatio.Required(ATTR_TIME): cv.datetime,
+        probatio.Optional(ATTR_ODOMETER): _range(9_999_999),
+        probatio.Optional(ATTR_FUEL_LITRES): _range(1000),
+        probatio.Optional(ATTR_FUEL_AMOUNT): _range(10000),
+        probatio.Optional(ATTR_GAS_LITRES): _range(1000),
+        probatio.Optional(ATTR_GAS_AMOUNT): _range(10000),
+    }
+)
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -127,6 +139,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_logbook_csv(call: ServiceCall) -> ServiceResponse:
         return await async_handle_csv(hass, call)
 
+    async def handle_logbook_late(call: ServiceCall) -> ServiceResponse:
+        return await async_handle_late(hass, call)
+
     actions: tuple[tuple[str, Any, probatio.Schema, SupportsResponse], ...] = (
         (SERVICE_EXPORT, handle_export, EXPORT_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_CLEANUP, handle_cleanup, CLEANUP_SCHEMA, SupportsResponse.OPTIONAL),
@@ -137,6 +152,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         (SERVICE_LOGBOOK_UPDATE, handle_logbook_update, LOGBOOK_UPDATE_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_LOGBOOK_REMOVE, handle_logbook_remove, LOGBOOK_ENTRY_SCHEMA, SupportsResponse.NONE),
         (SERVICE_LOGBOOK_CSV, handle_logbook_csv, ENTRY_SCHEMA, SupportsResponse.OPTIONAL),
+        (SERVICE_LOGBOOK_LATE, handle_logbook_late, LOGBOOK_LATE_SCHEMA, SupportsResponse.OPTIONAL),
     )
     for name, handler, schema, supports_response in actions:
         if not hass.services.has_service(DOMAIN, name):

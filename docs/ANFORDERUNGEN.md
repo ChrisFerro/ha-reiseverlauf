@@ -69,7 +69,9 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
   Fahrtenbuch-Eintrag: signierte Links (siehe [Downloads](features/feat-07-downloads.md))
 - Fahrtenbuch-Formular: `number.…_fahrtenbuch_*` (Kilometerstand, Kraftstoff, Gas 1/2, Diesel und Gas getankt und
   Betrag), `button.…_fahrtenbuch_speichern`/`_verwerfen`, `sensor.…_fahrtenbuch_eintrag` (siehe
-  [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.2)
+  [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.2); Nachtrag für einen früheren Zeitpunkt:
+  `select.…_fahrtenbuch_zeitpunkt`, `datetime.…_fahrtenbuch_nachtrag_zeit`, `button.…_fahrtenbuch_nachtragen` (siehe
+  [Nachträge](features/feat-09-nachtraege.md) 6.2)
 - Fahrtenbuch-Auswertung: `sensor.…_kilometerstand`, `…_kraftstoff`, `…_gas_1`, `…_gas_2`, `…_durchschnittsverbrauch`,
   `…_tank_und_gaskosten_monat`, `…_tank_und_gaskosten_jahr` (siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.5),
   `…_heizung_im_stand_abgelesen` (siehe [Verbrauchsmodell](features/feat-08-verbrauchsmodell.md) 5.5)
@@ -83,6 +85,8 @@ Dienste (alle mit Pflichtfeld `config_entry_id`):
   Profil, GPX, Statistik, Rohdaten)
 - `reiseverlauftracker.reise_starten` / `reise_beenden` (manuell, siehe [Reiseerkennung](features/feat-01-reiseerkennung.md) 5.2)
 - `reiseverlauftracker.fahrtenbuch_eintragen` / `_speichern` / `_aendern` / `_loeschen` / `_csv` (siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.4)
+- `reiseverlauftracker.fahrtenbuch_nachtragen` (zeit, Liter, Betrag, kilometerstand): Tankstopp für einen früheren
+  Zeitpunkt (siehe [Nachträge](features/feat-09-nachtraege.md) 6.2)
 
 Events:
 

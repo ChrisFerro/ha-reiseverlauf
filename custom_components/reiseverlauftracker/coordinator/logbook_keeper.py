@@ -20,7 +20,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .logbook import Draft, FormField, Logbook, LogbookEntry, Occasion, RecordedStop, Suggestion
+from .late_entry import LatePoint, entry_for
+from .logbook import FULL_PERCENT, Draft, FormField, Logbook, LogbookEntry, Occasion, RecordedStop, Refill, Suggestion
 
 STORAGE_VERSION = 1
 SAVE_DELAY_S = 30
@@ -106,6 +107,9 @@ class LogbookKeeper:
         self.pending: PendingEntry | None = None
         self.announced_stop: datetime | None = None
         self.draft = Draft()
+        # A late entry for an earlier time fills the form; the form of the current occasion waits meanwhile.
+        self.late: LatePoint | None = None
+        self._current_draft: Draft | None = None
         self._on_change = on_change
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}.logbook")
 
@@ -146,7 +150,7 @@ class LogbookKeeper:
             **self.logbook.as_dict(),
             "pending": self.pending.as_dict() if self.pending else None,
             "announced_stop": self.announced_stop.isoformat() if self.announced_stop else None,
-            "draft": self.draft.as_dict(),
+            "draft": (self._current_draft or self.draft).as_dict(),
         }
 
     def set_running_trip(self, metres: float, ascent_m: float = 0.0, descent_m: float = 0.0) -> None:
@@ -247,7 +251,7 @@ class LogbookKeeper:
             lon=lon,
             place=place,
         )
-        self.draft = Draft.from_suggestion(self.pending.suggestion)
+        self._set_current_draft(Draft.from_suggestion(self.pending.suggestion))
         self._changed()
         self.hass.bus.async_fire(EVENT_LOGBOOK, self.event_data(self.pending))
         return True
@@ -291,10 +295,137 @@ class LogbookKeeper:
         self._changed()
 
     def discard(self) -> None:
-        """Drop the pending occasion and reset the form to the current suggestion."""
+        """
+        Drop the pending occasion and reset the form to the current suggestion.
+
+        While a late entry is chosen, only that is dropped and the form of the
+        current occasion returns.
+        """
+        if self.late is not None:
+            self.select_late(None)
+            return
         self.pending = None
         self.draft = Draft.from_suggestion(self.logbook.suggestion())
         self._changed()
+
+    def select_late(self, point: LatePoint | None) -> None:
+        """
+        Fill the form for a late entry at `point`, or return to the current occasion with None.
+
+        The form shows the entry already made for the point, or the suggestion for its time.
+        """
+        if point is None:
+            if self.late is not None:
+                self.late = None
+                self.draft = self._current_draft or Draft.from_suggestion(self.logbook.suggestion())
+                self._current_draft = None
+                self._changed()
+            return
+        if self.late is None:
+            self._current_draft = self.draft
+        self.late = point
+        self.draft = self.late_draft(point)
+        self._changed()
+
+    def late_draft(self, point: LatePoint) -> Draft:
+        """Return the form for `point`: its existing entry, or the suggestion for its time."""
+        if (entry := entry_for(self.logbook, point)) is not None:
+            return Draft(
+                odometer_km=entry.odometer_km,
+                fuel_percent=entry.fuel_percent,
+                gas1_percent=entry.gas1_percent,
+                gas2_percent=entry.gas2_percent,
+                fuel_litres=entry.fuel.litres if entry.fuel else 0.0,
+                fuel_amount=(entry.fuel.amount or 0.0) if entry.fuel else 0.0,
+                gas_litres=entry.gas.litres if entry.gas else 0.0,
+                gas_amount=(entry.gas.amount or 0.0) if entry.gas else 0.0,
+            )
+        return Draft.from_suggestion(self.logbook.suggestion(point.counters.distance_m, until=point.time))
+
+    async def async_save_late(self) -> LogbookEntry:
+        """
+        Save the form for the chosen earlier time, then return to the current occasion.
+
+        Returns:
+            The new or completed entry.
+
+        Raises:
+            ValueError: No earlier time is chosen.
+
+        """
+        if self.late is None:
+            raise ValueError("late")
+        draft = self.draft
+        entry = self._store_late(
+            self.late,
+            odometer_km=draft.odometer_km,
+            fuel_percent=draft.fuel_percent,
+            gas1_percent=draft.gas1_percent,
+            gas2_percent=draft.gas2_percent,
+            fuel=draft.fuel,
+            gas=draft.gas,
+        )
+        self.select_late(None)
+        self._refresh_draft_without_pending()
+        await self._async_refresh_csv()
+        return entry
+
+    async def async_add_late(
+        self,
+        point: LatePoint,
+        *,
+        odometer_km: float | None = None,
+        fuel: Refill | None = None,
+        gas: Refill | None = None,
+    ) -> LogbookEntry:
+        """
+        Add a refill at an earlier time from a service action, or complete the entry made for it.
+
+        A refill fills its tank: fuel the fuel tank, gas both gas tanks. Without
+        `odometer_km`, the entry keeps its odometer or gets the suggestion.
+
+        Returns:
+            The new or completed entry.
+
+        """
+        existing = entry_for(self.logbook, point)
+        values: dict[str, Any] = {
+            "odometer_km": odometer_km
+            if odometer_km is not None
+            else (
+                existing.odometer_km
+                if existing
+                else self.logbook.suggest_odometer(point.counters.distance_m, until=point.time)
+            ),
+        }
+        if fuel is not None:
+            values["fuel"] = fuel
+            values["fuel_percent"] = FULL_PERCENT
+        if gas is not None:
+            values["gas"] = gas
+            values["gas1_percent"] = values["gas2_percent"] = FULL_PERCENT
+        entry = self._store_late(point, **values)
+        self._refresh_draft_without_pending()
+        await self._async_refresh_csv()
+        return entry
+
+    def _store_late(self, point: LatePoint, **values: Any) -> LogbookEntry:
+        """Complete the entry made for `point`, or add a late entry with the counters of that time."""
+        if (existing := entry_for(self.logbook, point)) is not None:
+            return self.logbook.update(existing.id, **values)
+        return self.logbook.add(
+            point.time,
+            Occasion.LATE,
+            trip_start=point.trip_start,
+            stop_start=point.stop_start,
+            lat=point.lat,
+            lon=point.lon,
+            place=point.place,
+            distance_counter_m=point.counters.distance_m,
+            ascent_counter_m=point.counters.ascent_m,
+            descent_counter_m=point.counters.descent_m,
+            **values,
+        )
 
     async def async_save_draft(self, context: EntryContext) -> LogbookEntry:
         """
@@ -402,8 +533,15 @@ class LogbookKeeper:
     def _refresh_draft_without_pending(self) -> None:
         """Follow changed entries in the form, unless the user is filling it in for an occasion."""
         if self.pending is None:
-            self.draft = Draft.from_suggestion(self.logbook.suggestion())
+            self._set_current_draft(Draft.from_suggestion(self.logbook.suggestion()))
         self._changed()
+
+    def _set_current_draft(self, draft: Draft) -> None:
+        """Set the form of the current occasion; while a late entry is chosen, it waits until that is done."""
+        if self.late is not None:
+            self._current_draft = draft
+        else:
+            self.draft = draft
 
     def _changed(self) -> None:
         self.save()

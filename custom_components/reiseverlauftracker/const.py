@@ -59,3 +59,6 @@ EVENT_LOGBOOK = f"{DOMAIN}_fahrtenbuch"
 EVENT_TRIP_STARTED = f"{DOMAIN}_gestartet"
 
 EXPORT_CHOICE_ALL = "all"
+# Fixed options of the logbook time selection; the stops in between are labelled with their time and place.
+LATE_CHOICE_CURRENT = "current"
+LATE_CHOICE_OTHER = "other"
