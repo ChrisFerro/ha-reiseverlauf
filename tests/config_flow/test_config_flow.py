@@ -94,7 +94,7 @@ async def test_options_flow_stores_sections_and_reloads(hass: HomeAssistant, ini
                 "min_point_distance": 15,
                 "elevation_hysteresis": 10,
             },
-            SECTION_LOGBOOK: {"tank_size": 75},
+            SECTION_LOGBOOK: {"tank_size": 75, "toll_countries": ["at", "it"]},
         },
     )
     await hass.async_block_till_done()
@@ -108,6 +108,7 @@ async def test_options_flow_stores_sections_and_reloads(hass: HomeAssistant, ini
     assert settings.title_format == "date"
     assert not settings.place_names
     assert settings.tank_litres == 75
+    assert settings.toll_countries == ("AT", "IT")
     assert init_integration.runtime_data.coordinator.logbook.logbook.tank_litres == 75
 
 
@@ -120,6 +121,8 @@ async def test_defaults_apply_without_options(hass: HomeAssistant, init_integrat
     assert settings.title_format == "date_place"
     assert settings.place_names
     assert settings.tank_litres == 90
+    assert "FR" in settings.toll_countries
+    assert "DE" not in settings.toll_countries
     assert settings.is_dplus_on("on")
     assert not settings.is_dplus_on("unavailable")
 

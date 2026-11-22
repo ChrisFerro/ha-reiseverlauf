@@ -52,10 +52,11 @@ class ReiseverlaufLogbookEntrySensor(SensorEntity, ReiseverlaufEntity):
             "ort": pending.place if pending else None,
             "halt_start": pending.stop_start.isoformat() if pending and pending.stop_start else None,
             "letzte_eintraege": [entry_data(e) for e in reversed(keeper.logbook.entries[-LATEST_ENTRIES:])],
-            # The CSV file is written after every change, so it exists once there is an entry.
-            ATTR_DOWNLOADS: self.coordinator.download_links.for_logbook(keeper.csv_path.name)
-            if keeper.logbook.entries
-            else [],
+            # The CSV files are written after every change, so they exist once there is an entry or a cost.
+            ATTR_DOWNLOADS: self.coordinator.download_links.for_logbook(
+                keeper.csv_path.name if keeper.logbook.entries else None,
+                keeper.travel_csv_path.name if keeper.logbook.travel_costs else None,
+            ),
         }
 
 

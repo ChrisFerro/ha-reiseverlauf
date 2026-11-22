@@ -24,6 +24,7 @@ from .const import (
     CONF_STANDSTILL_SPEED,
     CONF_TANK_SIZE,
     CONF_TITLE_FORMAT,
+    CONF_TOLL_COUNTRIES,
     CONF_TRACKER_ENTITY,
     DEFAULT_DPLUS_ON_VALUE,
     DEFAULT_ELEVATION_HYSTERESIS_M,
@@ -40,6 +41,7 @@ from .const import (
     DEFAULT_STANDSTILL_SPEED_KMH,
     DEFAULT_TANK_LITRES,
     DEFAULT_TITLE_FORMAT,
+    DEFAULT_TOLL_COUNTRIES,
     SECTION_DETECTION,
     SECTION_EXPORT,
     SECTION_LOGBOOK,
@@ -70,6 +72,7 @@ class ReiseverlaufSettings:
     elevation_hysteresis_m: float
     min_stop_duration: timedelta
     tank_litres: float = DEFAULT_TANK_LITRES
+    toll_countries: tuple[str, ...] = DEFAULT_TOLL_COUNTRIES
 
     @classmethod
     def from_entry(cls, data: Mapping[str, Any], options: Mapping[str, Any]) -> ReiseverlaufSettings:
@@ -98,6 +101,7 @@ class ReiseverlaufSettings:
             elevation_hysteresis_m=thresholds.get(CONF_ELEVATION_HYSTERESIS, DEFAULT_ELEVATION_HYSTERESIS_M),
             min_stop_duration=timedelta(minutes=thresholds.get(CONF_MIN_STOP_DURATION, DEFAULT_MIN_STOP_DURATION_MIN)),
             tank_litres=logbook.get(CONF_TANK_SIZE, DEFAULT_TANK_LITRES),
+            toll_countries=tuple(c.upper() for c in logbook.get(CONF_TOLL_COUNTRIES, DEFAULT_TOLL_COUNTRIES)),
         )
 
     def is_dplus_on(self, state: str) -> bool:

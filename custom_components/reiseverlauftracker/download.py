@@ -1,8 +1,8 @@
 """
-Authenticated downloads of export files, a ZIP per export and the logbook CSV.
+Authenticated downloads of export files, a ZIP per export and the CSV files of logbook and travel costs.
 
 The media browser of Home Assistant only serves images, audio and video, so GPX, statistics, raw points and the
-CSV file are served here. Only files an export lists in `export.json` (or the logbook CSV) are ever served; the
+CSV file are served here. Only files an export lists in `export.json` (or the two CSV files) are ever served; the
 folder and the name are looked up, never joined from the request.
 """
 
@@ -20,7 +20,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers.http import KEY_HASS, HomeAssistantView
 
 from .const import DOMAIN
-from .coordinator.download_links import FILE_URL, LOGBOOK_URL, ZIP_URL
+from .coordinator.download_links import FILE_URL, LOGBOOK_URL, TRAVEL_COSTS_URL, ZIP_URL
 from .coordinator.export_runner import media_base
 
 if TYPE_CHECKING:
@@ -47,6 +47,7 @@ def async_register_views(hass: HomeAssistant) -> None:
     hass.http.register_view(ExportFileView())
     hass.http.register_view(ExportZipView())
     hass.http.register_view(LogbookCsvView())
+    hass.http.register_view(TravelCostsCsvView())
 
 
 def _coordinator(request: web.Request, entry_id: str) -> ReiseverlaufDataUpdateCoordinator:
@@ -153,6 +154,24 @@ class LogbookCsvView(HomeAssistantView):
         """Serve `fahrtenbuch.csv`, or 404 if it was not written yet."""
         coordinator = _coordinator(request, entry_id)
         path = coordinator.logbook.csv_path
+        if not await coordinator.hass.async_add_executor_job(path.is_file):
+            raise web.HTTPNotFound
+        return _file_response(path, path.name)
+
+    # Download managers may ask for size and type first; the signature is valid for HEAD as well.
+    head = get
+
+
+class TravelCostsCsvView(HomeAssistantView):
+    """The travel costs CSV of an entry."""
+
+    url = TRAVEL_COSTS_URL
+    name = f"api:{DOMAIN}:travel_costs"
+
+    async def get(self, request: web.Request, entry_id: str) -> web.StreamResponse:
+        """Serve `reisekosten.csv`, or 404 if it was not written yet."""
+        coordinator = _coordinator(request, entry_id)
+        path = coordinator.logbook.travel_csv_path
         if not await coordinator.hass.async_add_executor_job(path.is_file):
             raise web.HTTPNotFound
         return _file_response(path, path.name)

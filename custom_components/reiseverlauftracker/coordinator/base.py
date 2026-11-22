@@ -83,7 +83,12 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.detector = TripDetector(_detector_settings(settings))
         self.log: TripLog | None = None
         self.logbook = LogbookKeeper(
-            hass, entry.entry_id, settings.tank_litres, media_base(hass, settings), on_change=self._publish
+            hass,
+            entry.entry_id,
+            settings.tank_litres,
+            media_base(hass, settings),
+            on_change=self._publish,
+            trip_titles=self.trip_titles,
         )
         self._detector_store: Store[dict[str, Any]] = Store(
             hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}.detector"
@@ -210,6 +215,10 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         payload = event_data(self.settings, info, media_base(self.hass, self.settings))
         self.hass.bus.async_fire(EVENT_TRIP_EXPORTED, {"entry_id": self.config_entry.entry_id, **payload})
         return payload
+
+    def trip_titles(self) -> dict[datetime, str]:
+        """Return the titles of the exported trips by their start time."""
+        return {info.start: info.title for info in self.exports if info.automatic}
 
     def export_choice_options(self) -> list[str]:
         """Return the labels of all exports, newest first, and the "all" choice at the end."""

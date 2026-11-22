@@ -103,10 +103,12 @@
           "logbook": {
             "name": "Logbook",
             "data": {
-              "tank_size": "Tank size"
+              "tank_size": "Tank size",
+              "toll_countries": "Toll countries"
             },
             "data_description": {
-              "tank_size": "Capacity of the fuel tank. Once an average consumption is known, the fuel level is suggested from it."
+              "tank_size": "Capacity of the fuel tank. Once an average consumption is known, the fuel level is suggested from it.",
+              "toll_countries": "Countries where the vehicle pays toll. For trips through them the integration reminds of missing toll entries; they are also offered in the country selection of travel costs."
             }
           }
         }
@@ -129,6 +131,52 @@
         "gpx": "GPX",
         "stats": "Statistics",
         "raw": "Raw data"
+      }
+    },
+    "country": {
+      "options": {
+        "ad": "Andorra",
+        "al": "Albania",
+        "at": "Austria",
+        "ba": "Bosnia and Herzegovina",
+        "be": "Belgium",
+        "bg": "Bulgaria",
+        "ch": "Switzerland",
+        "cy": "Cyprus",
+        "cz": "Czechia",
+        "de": "Germany",
+        "dk": "Denmark",
+        "ee": "Estonia",
+        "es": "Spain",
+        "fi": "Finland",
+        "fr": "France",
+        "gb": "United Kingdom",
+        "gr": "Greece",
+        "hr": "Croatia",
+        "hu": "Hungary",
+        "ie": "Ireland",
+        "is": "Iceland",
+        "it": "Italy",
+        "li": "Liechtenstein",
+        "lt": "Lithuania",
+        "lu": "Luxembourg",
+        "lv": "Latvia",
+        "ma": "Morocco",
+        "mc": "Monaco",
+        "me": "Montenegro",
+        "mk": "North Macedonia",
+        "mt": "Malta",
+        "nl": "Netherlands",
+        "no": "Norway",
+        "pl": "Poland",
+        "pt": "Portugal",
+        "ro": "Romania",
+        "rs": "Serbia",
+        "se": "Sweden",
+        "si": "Slovenia",
+        "sk": "Slovakia",
+        "sm": "San Marino",
+        "tr": "Türkiye"
       }
     }
   },

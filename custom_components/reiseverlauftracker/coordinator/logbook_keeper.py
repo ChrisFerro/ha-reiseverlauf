@@ -1,5 +1,5 @@
 """
-Keeps the logbook of one config entry: storage, measured distance, form and CSV file.
+Keeps the logbook of one config entry: storage, measured distance, form, travel costs and CSV files.
 
 An occasion (trip start, stop) pre-fills the form and fires the event
 `reiseverlauftracker_fahrtenbuch`, on which the blueprint sends a push message
@@ -9,23 +9,36 @@ manual entry when there is none.
 
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 from custom_components.reiseverlauftracker.const import DOMAIN, EVENT_LOGBOOK, LOGGER
 from custom_components.reiseverlauftracker.export import LogbookFigures
-from custom_components.reiseverlauftracker.export.logbook_csv import logbook_csv
+from custom_components.reiseverlauftracker.export.logbook_csv import logbook_csv, travel_costs_csv
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .late_entry import LatePoint, entry_for
-from .logbook import FULL_PERCENT, Draft, FormField, Logbook, LogbookEntry, Occasion, RecordedStop, Refill, Suggestion
+from .logbook import (
+    FULL_PERCENT,
+    CostCategory,
+    Draft,
+    FormField,
+    Logbook,
+    LogbookEntry,
+    Occasion,
+    RecordedStop,
+    Refill,
+    Suggestion,
+    TravelCost,
+)
 
 STORAGE_VERSION = 1
 SAVE_DELAY_S = 30
 CSV_NAME = "fahrtenbuch.csv"
+TRAVEL_CSV_NAME = "reisekosten.csv"
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +111,7 @@ class LogbookKeeper:
         tank_litres: float,
         csv_folder: Path,
         on_change: Callable[[], None] = lambda: None,
+        trip_titles: Callable[[], dict[datetime, str]] = dict,
     ) -> None:
         """Create an empty keeper; `async_load()` restores the stored logbook."""
         self.hass = hass
@@ -111,12 +125,18 @@ class LogbookKeeper:
         self.late: LatePoint | None = None
         self._current_draft: Draft | None = None
         self._on_change = on_change
+        self._trip_titles = trip_titles
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}.logbook")
 
     @property
     def csv_path(self) -> Path:
         """Return where the CSV file of the logbook is written."""
         return self.csv_folder / CSV_NAME
+
+    @property
+    def travel_csv_path(self) -> Path:
+        """Return where the CSV file of the travel costs is written."""
+        return self.csv_folder / TRAVEL_CSV_NAME
 
     async def async_load(self) -> None:
         """Restore logbook, pending entry and form; an unreadable store starts empty."""
@@ -509,6 +529,89 @@ class LogbookKeeper:
         self.logbook.remove(entry_id)
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
+
+    async def async_add_travel_cost(
+        self,
+        day: date,
+        category: CostCategory,
+        amount: float,
+        *,
+        trip_start: datetime | None = None,
+        country: str | None = None,
+        note: str | None = None,
+    ) -> TravelCost:
+        """
+        Add a travel cost, store it and rewrite its CSV file.
+
+        Returns:
+            The new cost.
+
+        Raises:
+            ValueError: The amount is not positive or the country is no two-letter code.
+
+        """
+        cost = self.logbook.add_travel_cost(
+            day, category, amount, trip_start=trip_start, country=country, note=note, recorded=dt_util.utcnow()
+        )
+        await self._async_travel_costs_changed()
+        return cost
+
+    async def async_update_travel_cost(self, cost_id: str, changes: dict[str, Any]) -> TravelCost:
+        """
+        Change fields of a travel cost.
+
+        Returns:
+            The changed cost.
+
+        Raises:
+            KeyError: No cost has `cost_id`.
+            ValueError: The changed amount or country is invalid.
+
+        """
+        cost = self.logbook.update_travel_cost(cost_id, **changes)
+        await self._async_travel_costs_changed()
+        return cost
+
+    async def async_remove_travel_cost(self, cost_id: str) -> None:
+        """
+        Delete a travel cost.
+
+        Raises:
+            KeyError: No cost has `cost_id`.
+
+        """
+        self.logbook.remove_travel_cost(cost_id)
+        await self._async_travel_costs_changed()
+
+    async def async_set_no_toll(self, trip_start: datetime, no_toll: bool) -> None:
+        """Mark a trip as having no toll, or remove the mark."""
+        self.logbook.set_no_toll(trip_start, no_toll)
+        self._changed()
+
+    async def async_write_travel_csv(self) -> Path:
+        """
+        Write the CSV file of all travel costs into the output folder.
+
+        Returns:
+            The path of the file.
+
+        """
+        text = travel_costs_csv(
+            list(self.logbook.travel_costs),
+            self._trip_titles(),
+            self.hass.config.language,
+            dt_util.get_default_time_zone(),
+        )
+        path = self.travel_csv_path
+        await self.hass.async_add_executor_job(_write_text, path, text)
+        return path
+
+    async def _async_travel_costs_changed(self) -> None:
+        self._changed()
+        try:
+            await self.async_write_travel_csv()
+        except OSError as err:
+            LOGGER.warning("The travel costs CSV file could not be written: %s", err)
 
     async def async_write_csv(self) -> Path:
         """

@@ -103,10 +103,12 @@
           "logbook": {
             "name": "Fahrtenbuch",
             "data": {
-              "tank_size": "Tankgröße"
+              "tank_size": "Tankgröße",
+              "toll_countries": "Mautländer"
             },
             "data_description": {
-              "tank_size": "Inhalt des Kraftstofftanks. Daraus wird der Füllstand berechnet vorgeschlagen, sobald ein Durchschnittsverbrauch vorliegt."
+              "tank_size": "Inhalt des Kraftstofftanks. Daraus wird der Füllstand berechnet vorgeschlagen, sobald ein Durchschnittsverbrauch vorliegt.",
+              "toll_countries": "Länder mit Maut für das Fahrzeug. Für Reisen durch diese Länder erinnert die Integration an fehlende Maut-Einträge; sie stehen auch in der Länder-Auswahl der Reisekosten."
             }
           }
         }
@@ -129,6 +131,52 @@
         "gpx": "GPX",
         "stats": "Statistik",
         "raw": "Rohdaten"
+      }
+    },
+    "country": {
+      "options": {
+        "ad": "Andorra",
+        "al": "Albanien",
+        "at": "Österreich",
+        "ba": "Bosnien und Herzegowina",
+        "be": "Belgien",
+        "bg": "Bulgarien",
+        "ch": "Schweiz",
+        "cy": "Zypern",
+        "cz": "Tschechien",
+        "de": "Deutschland",
+        "dk": "Dänemark",
+        "ee": "Estland",
+        "es": "Spanien",
+        "fi": "Finnland",
+        "fr": "Frankreich",
+        "gb": "Vereinigtes Königreich",
+        "gr": "Griechenland",
+        "hr": "Kroatien",
+        "hu": "Ungarn",
+        "ie": "Irland",
+        "is": "Island",
+        "it": "Italien",
+        "li": "Liechtenstein",
+        "lt": "Litauen",
+        "lu": "Luxemburg",
+        "lv": "Lettland",
+        "ma": "Marokko",
+        "mc": "Monaco",
+        "me": "Montenegro",
+        "mk": "Nordmazedonien",
+        "mt": "Malta",
+        "nl": "Niederlande",
+        "no": "Norwegen",
+        "pl": "Polen",
+        "pt": "Portugal",
+        "ro": "Rumänien",
+        "rs": "Serbien",
+        "se": "Schweden",
+        "si": "Slowenien",
+        "sk": "Slowakei",
+        "sm": "San Marino",
+        "tr": "Türkei"
       }
     }
   },
