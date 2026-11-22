@@ -34,6 +34,8 @@ class Texts:
     gas: str
     costs: str
     consumption: str
+    travel_costs: str
+    cost_categories: dict[str, str]
 
 
 TEXTS: dict[str, Texts] = {
@@ -64,6 +66,15 @@ TEXTS: dict[str, Texts] = {
         gas="Gas",
         costs="Kosten",
         consumption="Ø-Verbrauch",
+        travel_costs="Reisekosten",
+        cost_categories={
+            "maut": "Maut",
+            "vignette": "Vignette",
+            "faehre": "Fähre",
+            "tunnel": "Tunnel",
+            "stellplatz": "Stellplatz",
+            "sonstiges": "Sonstiges",
+        },
     ),
     "en": Texts(
         decimal_separator=".",
@@ -92,6 +103,15 @@ TEXTS: dict[str, Texts] = {
         gas="gas",
         costs="Costs",
         consumption="Ø consumption",
+        travel_costs="Travel costs",
+        cost_categories={
+            "maut": "toll",
+            "vignette": "vignette",
+            "faehre": "ferry",
+            "tunnel": "tunnel",
+            "stellplatz": "pitch",
+            "sonstiges": "other",
+        },
     ),
 }
 

@@ -153,7 +153,24 @@ def test_logbook_rows_leave_out_what_is_missing() -> None:
     ]
 
 
+def test_travel_costs_count_in_the_costs_and_are_listed_in_the_text() -> None:
+    figures = LogbookFigures(fuel_litres=40, fuel_cost=70, travel_costs={"maut": 83.3, "faehre": 85})
+    texts = texts_for("de")
+
+    assert figures.cost == pytest.approx(238.3)
+    assert figures.fuel_and_gas_cost == 70
+    assert ("Kosten", "238,30 €") in logbook_rows(figures, texts, "EUR")
+    assert logbook_rows(figures, texts, "EUR", travel_details=True)[-1] == (
+        "Reisekosten",
+        "Maut 83,30 € · Fähre 85,00 €",
+    )
+    assert all(label != "Reisekosten" for label, _ in logbook_rows(figures, texts, "EUR"))
+    assert figures.as_dict()["reisekosten"] == {"maut": 83.3, "faehre": 85}
+
+
 def test_logbook_figures_round_trip() -> None:
-    figures = LogbookFigures(odometer_start_km=1, odometer_end_km=2, fuel_litres=3, fuel_cost=4.5, gas_cost=1)
+    figures = LogbookFigures(
+        odometer_start_km=1, odometer_end_km=2, fuel_litres=3, fuel_cost=4.5, gas_cost=1, travel_costs={"maut": 9}
+    )
 
     assert LogbookFigures.from_dict(figures.as_dict()) == figures

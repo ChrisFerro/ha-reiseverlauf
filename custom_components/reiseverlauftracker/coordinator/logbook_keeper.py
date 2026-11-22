@@ -294,11 +294,19 @@ class LogbookKeeper:
             },
         }
 
-    def trip_figures(self, trip_start: datetime) -> LogbookFigures | None:
-        """Return the logbook figures for the export of a trip, or None while the logbook is empty."""
-        if not self.logbook.entries:
+    def trip_figures(
+        self, trip_start: datetime, *, end_counter_m: float | None = None, until: datetime | None = None
+    ) -> LogbookFigures | None:
+        """
+        Return the logbook figures for the export of a trip, or None while the logbook and its costs are empty.
+
+        For an earlier trip, `end_counter_m` and `until` are the distance counter at its end and the start of
+        the next trip (see `Logbook.trip_summary`); the consumption then counts refills up to `until`.
+        """
+        travel = {c.value: amount for c, amount in self.logbook.travel_costs_by_category(trip_start).items()}
+        if not self.logbook.entries and not travel:
             return None
-        summary = self.logbook.trip_summary(trip_start)
+        summary = self.logbook.trip_summary(trip_start, end_counter_m=end_counter_m, until=until)
         return LogbookFigures(
             odometer_start_km=summary.odometer_start_km,
             odometer_end_km=summary.odometer_end_km,
@@ -306,7 +314,8 @@ class LogbookKeeper:
             fuel_cost=summary.fuel_cost,
             gas_litres=summary.gas_litres,
             gas_cost=summary.gas_cost,
-            consumption_l_100km=self.logbook.average_consumption(),
+            consumption_l_100km=self.logbook.average_consumption(until=until),
+            travel_costs=travel,
         )
 
     def set_field(self, form_field: FormField, value: float) -> None:

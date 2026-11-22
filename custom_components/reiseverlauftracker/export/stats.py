@@ -112,8 +112,15 @@ def stats_rows(stats: TripStats, texts: Texts, tz: tzinfo) -> list[tuple[str, st
     return rows
 
 
-def logbook_rows(figures: LogbookFigures | None, texts: Texts, currency: str) -> list[tuple[str, str]]:
-    """Return (label, value) rows of the logbook figures; empty rows are left out."""
+def logbook_rows(
+    figures: LogbookFigures | None, texts: Texts, currency: str, *, travel_details: bool = False
+) -> list[tuple[str, str]]:
+    """
+    Return (label, value) rows of the logbook figures; empty rows are left out.
+
+    "Costs" holds all costs; with `travel_details`, a row lists the travel costs by category
+    (the statistics text has room for it, the composite header does not).
+    """
     if figures is None:
         return []
     rows: list[tuple[str, str]] = []
@@ -131,6 +138,13 @@ def logbook_rows(figures: LogbookFigures | None, texts: Texts, currency: str) ->
         rows.append((texts.refuelled, " · ".join(refuelled)))
     if figures.cost > 0:
         rows.append((texts.costs, format_money(texts, figures.cost, currency)))
+    travel = [
+        f"{texts.cost_categories.get(category, category)} {format_money(texts, amount, currency)}"
+        for category, amount in figures.travel_costs.items()
+        if amount > 0
+    ]
+    if travel_details and travel:
+        rows.append((texts.travel_costs, " · ".join(travel)))
     if figures.consumption_l_100km is not None:
         rows.append((texts.consumption, f"{format_number(texts, figures.consumption_l_100km, 1)} l/100 km"))
     return rows

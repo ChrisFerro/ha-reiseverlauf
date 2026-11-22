@@ -100,7 +100,8 @@ def export_trip(
     stats = compute_stats(track.points, track.speed, options)
     rows = stats_rows(stats, texts, tz)
     logbook = logbook_rows(options.logbook, texts, options.currency)
-    text = stats_text(title, rows + logbook, stop_lines(options.stops, texts, tz))
+    details = logbook_rows(options.logbook, texts, options.currency, travel_details=True)
+    text = stats_text(title, rows + details, stop_lines(options.stops, texts, tz))
 
     out_dir.mkdir(parents=True, exist_ok=True)
     files: dict[ExportFile, Path] = {}

@@ -546,13 +546,16 @@ class Logbook:
             return None
         return float(round(last.odometer_km + self.km_since(last, counter_m)))
 
-    def average_consumption(self) -> float | None:
+    def average_consumption(self, *, until: datetime | None = None) -> float | None:
         """
         Return the fuel consumption in l/100 km by the full-tank method.
 
         Every refill to 100 % closes an interval: the litres bought since the
         previous full refill, partial refills included, divided by the odometer
         distance in between. The first full refill only marks the start.
+
+        With `until`, only entries up to that time count, e.g. for the export of
+        an earlier trip.
 
         Returns:
             Total litres ÷ total distance of all closed intervals, or None
@@ -562,6 +565,8 @@ class Logbook:
         litres_total = km_total = litres_open = 0.0
         previous_full: LogbookEntry | None = None
         for entry in self.entries:
+            if until is not None and entry.time > until:
+                break
             if entry.fuel is None:
                 continue
             litres_open += entry.fuel.litres
@@ -726,6 +731,13 @@ class Logbook:
             raise KeyError(cost_id)
         self.travel_costs = [c for c in self.travel_costs if c.id != cost_id]
 
+    def travel_costs_by_category(self, trip_start: datetime) -> dict[CostCategory, float]:
+        """Return the travel costs of a trip summed up by category, in the order of the categories."""
+        sums: dict[CostCategory, float] = {}
+        for cost in self.travel_costs_of_trip(trip_start):
+            sums[cost.category] = sums.get(cost.category, 0.0) + cost.amount
+        return {category: sums[category] for category in CostCategory if category in sums}
+
     def travel_costs_of_trip(self, trip_start: datetime) -> list[TravelCost]:
         """Return the travel costs that belong to the trip that started at `trip_start`."""
         return [c for c in self.travel_costs if c.trip_start == trip_start]
@@ -743,7 +755,9 @@ class Logbook:
             c.category is CostCategory.TOLL for c in self.travel_costs_of_trip(trip_start)
         )
 
-    def trip_summary(self, trip_start: datetime) -> TripSummary:
+    def trip_summary(
+        self, trip_start: datetime, *, end_counter_m: float | None = None, until: datetime | None = None
+    ) -> TripSummary:
         """
         Return the logbook figures of the trip that started at `trip_start`.
 
@@ -751,6 +765,8 @@ class Logbook:
         trip include its arrival, which begins after the trip's end time. Without a
         reading at the trip start there is no start odometer; the end odometer is
         carried forward from the latest reading to the current distance counter.
+        For an earlier trip, `end_counter_m` is the distance counter at its end and
+        `until` the time up to which readings count (the start of the next trip).
         """
         entries = [e for e in self.entries if e.trip_start == trip_start]
         readings = [e for e in entries if e.odometer_km is not None and e.occasion is Occasion.TRIP_START]
@@ -758,7 +774,7 @@ class Logbook:
         gas = [e.gas for e in entries if e.gas is not None]
         return TripSummary(
             odometer_start_km=readings[0].odometer_km if readings else None,
-            odometer_end_km=self.suggest_odometer(),
+            odometer_end_km=self.suggest_odometer(end_counter_m, until=until),
             fuel_litres=sum(r.litres for r in fuel),
             fuel_cost=sum(r.amount or 0.0 for r in fuel),
             gas_litres=sum(r.litres for r in gas),

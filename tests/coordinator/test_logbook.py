@@ -549,3 +549,38 @@ def test_stops_survive_a_round_trip_and_old_data_has_none() -> None:
     old = book.as_dict()
     del old["stops"]
     assert Logbook.from_dict(old, 90).stops == []
+
+
+def test_summary_of_an_earlier_trip_ends_at_its_own_counter() -> None:
+    book = Logbook()
+    trip = at(0)
+    book.add(trip, Occasion.TRIP_START, odometer_km=34_000, trip_start=trip, distance_counter_m=0)
+    drive(book, 84)
+    next_trip = at(24)
+    book.add(next_trip, Occasion.TRIP_START, odometer_km=34_090, trip_start=next_trip, distance_counter_m=84_000)
+    drive(book, 100)
+
+    summary = book.trip_summary(trip, end_counter_m=84_000, until=next_trip - timedelta(seconds=1))
+
+    assert (summary.odometer_start_km, summary.odometer_end_km) == (34_000, 34_084)
+    assert book.trip_summary(trip).odometer_end_km == 34_190
+
+
+def test_average_consumption_until_a_time_leaves_out_later_refills() -> None:
+    book = Logbook()
+    full_tank(book, 0, 1000, 50)
+    full_tank(book, 10, 1500, 60)
+    full_tank(book, 20, 2000, 100)
+
+    assert book.average_consumption(until=at(15)) == pytest.approx(12.0)
+    assert book.average_consumption() == pytest.approx(16.0)
+
+
+def test_travel_costs_by_category_in_category_order() -> None:
+    book = Logbook()
+    book.add_travel_cost(date(2026, 10, 31), CostCategory.FERRY, 85, trip_start=T0)
+    book.add_travel_cost(date(2026, 10, 31), CostCategory.TOLL, 23.4, trip_start=T0, country="AT")
+    book.add_travel_cost(date(2026, 10, 31), CostCategory.TOLL, 59.9, trip_start=T0, country="IT")
+    book.add_travel_cost(date(2026, 11, 2), CostCategory.PITCH, 18)
+
+    assert book.travel_costs_by_category(T0) == {CostCategory.TOLL: pytest.approx(83.3), CostCategory.FERRY: 85}
