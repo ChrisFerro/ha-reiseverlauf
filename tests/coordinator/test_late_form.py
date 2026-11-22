@@ -6,12 +6,13 @@ from freezegun.api import FrozenDateTimeFactory
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
-from custom_components.reiseverlauftracker.const import LATE_CHOICE_CURRENT, LATE_CHOICE_OTHER
+from custom_components.reiseverlauftracker.const import DOMAIN, LATE_CHOICE_CURRENT, LATE_CHOICE_OTHER
 from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUpdateCoordinator
 from custom_components.reiseverlauftracker.coordinator.late_entry import LatePoint
 from custom_components.reiseverlauftracker.coordinator.logbook import FormField, Occasion, Refill
 from custom_components.reiseverlauftracker.coordinator.trip_log import TrackCounters
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 DPLUS = "sensor.camper_dplus"
@@ -81,6 +82,11 @@ async def test_short_stop_of_a_past_trip_can_be_chosen_and_saved(
     assert options[-1] == LATE_CHOICE_OTHER
     short = next(o for o in options if o.endswith("· kurz"))
     assert "Zielort" in short
+    select_id = er.async_get(hass).async_get_entity_id("select", DOMAIN, f"{config_entry.entry_id}_logbook_time")
+    assert select_id is not None
+    select = hass.states.get(select_id)
+    assert select is not None
+    assert short in select.attributes["options"]
     await form.async_select(short)
     assert form.current_option() == short
     assert keeper.draft.odometer_km == 34_005

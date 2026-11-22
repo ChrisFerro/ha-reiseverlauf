@@ -203,9 +203,9 @@ class LogbookKeeper:
         return stored
 
     def set_stop_place(self, start: datetime, place: str) -> None:
-        """Store the place name of a remembered stop."""
+        """Store the place name of a remembered stop; the time selection shows it right away."""
         self.logbook.set_stop_place(start, place)
-        self.save()
+        self._changed()
 
     def prune_stops(self, now: datetime) -> None:
         """Forget stops older than the retention period."""
