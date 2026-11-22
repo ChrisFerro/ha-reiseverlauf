@@ -1,6 +1,6 @@
 # Feat-09: Nachträge (Tankstopp und Reisekosten)
 
-Stand: 20.11.2026, Fragen geklärt (Abschnitt 5); Entwurf der Umsetzung zur Freigabe (Abschnitt 6).
+Stand: 22.11.2026, umgesetzt (Teilschritte in 6.7); Entscheidungen in Abschnitt 5.
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Fahrtenbuch](feat-06-fahrtenbuch.md), [Export](feat-03-export.md).
 
@@ -224,7 +224,8 @@ Stand: 20.11.2026, an die Entscheidungen 5.1–5.11 angepasst.
 - **Länder der Reise:** Nach dem Export ermittelt die Integration die Länder aus Start, Halten, Ende und Spurpunkten
   etwa alle 20 km (Punkte unter 1 km Abstand entfallen; Nominatim mit `zoom=3`, Abstand 1 s, im Hintergrund, nur
   mit eingeschalteten Ortsnamen) und speichert sie in `export.json` (`countries`, ISO-Codes in Reihenfolge).
-  Für ältere Exporte wird das nachgeholt, sobald die Reise im Formular gewählt ist (einmal je Start von HA).
+  Für ältere Exporte wird das nachgeholt: beim Start von HA für die automatischen Exporte der letzten 12 Monate
+  (für `maut_offen`, nacheinander), sonst sobald die Reise im Formular gewählt ist (einmal je Start von HA).
 - **Formular:** Reise über die vorhandene `select.…_export_auswahl`; dazu `select.…_reisekosten_kategorie`,
   `select.…_reisekosten_land` (Länder der Reise zuerst, dann die Mautländer der Einstellung, „ohne Land“; Standard
   ist das erste Mautland der Reise, auch nach dem Wechsel der Reise), `number.…_reisekosten_betrag`, `text.…_reisekosten_notiz`,
@@ -276,12 +277,16 @@ Umgesetzt 22.11.2026:
   (5.5). Attribute `diesel`, `gas` und je Kategorie (`maut`, `vignette` …). Neue `unique_id`; die alten Entitäten
   `…_tank_und_gaskosten_monat`/`_jahr` werden beim Start aus der Entitätsregistrierung entfernt.
 - **`sensor.…_maut_offen` (5.9):** Anzahl der fertigen Reisen der letzten 12 Monate mit mindestens einem Mautland,
-  ohne Maut-Eintrag und ohne `keine_maut`; Attribut `reisen` (Titel, Start, Länder, Ordner).
+  ohne Maut-Eintrag und ohne `keine_maut`; Attribut `reisen` (Titel, Start, Länder, Ordner). Nur automatische Exporte
+  mit bekannten Ländern; als Länder stehen im Attribut nur die Mautländer der Reise. Keine Einheit (Anzahl).
 - **Einstellung „Mautländer“** im Options-Flow (Abschnitt Fahrtenbuch, Mehrfachauswahl; umgesetzt in Teilschritt 4).
   Standard: `AT`, `BE`, `CH`, `CZ`, `ES`, `FR`, `HR`, `HU`, `IT`, `NO`, `PL`, `PT`, `SI`, `SK` (streckenabhängige
   Maut oder Gebühr für Wohnmobile über 3,5 t; nicht `DE`, Wohnmobile sind von der Lkw-Maut befreit).
 - **Blueprint:** Der Fahrtenbuch-Blueprint bekommt eine abschaltbare Monats-Erinnerung (am 1. des Monats, wenn
   `maut_offen` über 0), Tippen öffnet die Dashboard-Ansicht mit dem Reisekosten-Formular.
+  Umgesetzt (22.11.2026): Abschnitt „Maut-Erinnerung“, Standard an, Uhrzeit 09:00 einstellbar, Ansicht
+  `/dashboard-reiseverlauf/reisekosten`; der Sensor wird über das Fahrzeug gefunden (Entität des Eintrags mit
+  Attribut `reisen`), höchstens 5 Reisen in der Nachricht.
 
 ### 6.6 Abgrenzung
 
@@ -305,4 +310,5 @@ Jeder Schritt mit Tests, grünem `script/check` und einem Prüfpunkt in der Entw
 5. Export aktualisieren (6.4). Prüfpunkt: Statistik und Gesamtbild zeigen die nachgetragenen Kosten.
    – umgesetzt 22.11.2026
 6. Kostensensoren ersetzen und Erinnerung (6.5), Blueprint, README (deutsch/englisch), Release-Notes für den
-   Breaking Change. Danach (nach Freigabe) Dashboard des Nutzers anpassen.
+   Breaking Change. Danach (nach Freigabe) Dashboard des Nutzers anpassen. – umgesetzt 22.11.2026 (Dashboard
+   offen)

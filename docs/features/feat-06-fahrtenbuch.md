@@ -175,7 +175,8 @@ ginge die seitdem gefahrene Strecke für den Kilometerstand verloren. Für Autom
 - **Sensoren:** `sensor.…_kilometerstand` (letzter Stand + seitdem gemessene Strecke), `…_kraftstoff`, `…_gas_1`,
   `…_gas_2` (letzter Eintrag mit diesem Wert), `…_durchschnittsverbrauch` (l/100 km),
   `…_tank_und_gaskosten_monat` und `…_jahr` (Diesel + Gas im laufenden Kalendermonat bzw. -jahr, Ortszeit). Keine
-  Langzeitstatistik für Kosten, sie werden aus den Einträgen berechnet.
+  Langzeitstatistik für Kosten, sie werden aus den Einträgen berechnet. Seit 0.3.0 ersetzt durch
+  `…_reisekosten_monat`/`_jahr` mit allen Kosten (siehe [Nachträge](feat-09-nachtraege.md) 6.5).
 - **Reise-Export:** Kilometerstand von/bis (von: Eintrag beim Reisestart; bis: fortgeschriebener Stand beim
   Export), getankte Liter, Kosten und Ø-Verbrauch in der Statistik, als zweite Zeile im Kopf des Gesamtbilds, in
   `export.json` (`logbook`) und im Event `_beendet` (`fahrtenbuch`: `kilometerstand_start`, `kilometerstand_ende`,

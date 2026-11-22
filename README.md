@@ -24,13 +24,18 @@ mit dem Gesamtbild aufs Handy.
 - **Fahrtenbuch:** Kilometerstand (fortgeschrieben aus der gemessenen Strecke), Füllstände von Kraftstofftank
   und zwei Gastanks, Tank- und Gasstopps mit Menge und Betrag. Erinnerung per Push bei Reisebeginn und jedem
   Halt; Durchschnittsverbrauch, Kosten im Monat und Jahr, CSV-Datei und Werte im Reise-Export.
+- **Nachträge:** Tankstopp später einem Halt, einem kurzen Stopp oder einer Uhrzeit zuordnen; Kilometerstand und
+  Verbrauch stimmen, als wäre er sofort eingetragen worden.
+- **Reisekosten:** Maut je Reise und Land, Vignette, Fähre, Tunnel, Stellplatz; die Länder der Reise werden
+  vorgeschlagen, eine Erinnerung meldet Reisen durch Mautländer ohne Maut-Eintrag. Statistik und Gesamtbild einer
+  Reise werden nach jedem Nachtrag erneuert.
 - **Titel mit Ortsnamen:** z. B. „Hamburg – Kiel, 12.10.2026“; wahlweise nur Datum oder nur Ort.
 - **Eigene Aufzeichnung:** Die Punkte jeder Reise werden gespeichert, unabhängig davon, wie lange der Recorder
   Daten behält.
 - **Geschützte Ablage:** Alle Dateien liegen im Medienordner von Home Assistant und sind nur mit Anmeldung
   abrufbar.
-- **Downloads im Dashboard:** GPX, Statistik, Rohdaten, Bilder, alles einer Reise als ZIP und `fahrtenbuch.csv`
-  über signierte Links, die 24 h gelten und stündlich erneuert werden.
+- **Downloads im Dashboard:** GPX, Statistik, Rohdaten, Bilder, alles einer Reise als ZIP, `fahrtenbuch.csv` und
+  `reisekosten.csv` über signierte Links, die 24 h gelten und stündlich erneuert werden.
 - **Bedienung über die Oberfläche:** Einrichtung, Optionen, Entitäten und Aktionen; kein YAML nötig.
 
 ## Voraussetzungen
@@ -89,31 +94,40 @@ Unter **Konfigurieren**, in vier Bereichen:
 |                | Höhen-Hysterese                  | 5 m           |
 |                | Mindestdauer eines Halts         | 5 min         |
 | Fahrtenbuch    | Tankgröße                        | 90 l          |
+|                | Mautländer                       | siehe unten   |
 
 Eine Reise, die sich nie weiter als die Mindestbewegung vom Start entfernt, wird verworfen (kein Export, keine
 Nachricht). Ist D+ während einer Reise mindestens die Mindestdauer eines Halts aus, gilt das als Halt: Die
 Integration fragt den Ort ab und listet den Halt live und später in der Statistik.
+
+Mautländer sind die Länder, in denen das Fahrzeug Maut zahlt. Standard: AT, BE, CH, CZ, ES, FR, HR, HU, IT, NO, PL,
+PT, SI, SK (streckenabhängige Maut oder Gebühr für Wohnmobile über 3,5 t; Deutschland nicht, Wohnmobile sind von der
+Lkw-Maut befreit). Sie stehen in der Länder-Auswahl der Reisekosten und bestimmen die Maut-Erinnerung.
 
 ## Entitäten
 
 Alle Entitäten gehören zu einem Gerät mit dem Namen des Eintrags. Die Entity-IDs beginnen mit diesem Namen,
 z. B. `sensor.wohnmobil_gps_reisestatus`.
 
-| Entität                                                                                                             | Inhalt                                                                                                                             |
-| ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Reise aktiv                                                                                                         | An, solange eine Reise läuft (auch in Pausen)                                                                                      |
-| Reisestatus                                                                                                         | Bereit, Unterwegs, Pause, Auswertung, Fortsetzbar, Fehler; Attribute „Voraussichtliches Ende“ und „Fortsetzbar bis“                |
-| Reisebeginn (Attribut `startort`), Strecke, Fahrzeit, Pausenzeit (Attribut `halte`) und Durchschnitt laufende Reise | Werte der laufenden Reise; Durchschnitt = Ø in Bewegung, Pausenzeit = Zeit seit Start minus Fahrzeit                               |
-| Letzte Reise                                                                                                        | Titel; Attribute `dateien` (Typ, Name, URL), `downloads` (siehe [Downloads](#downloads)), `statistik`, `ordner`, `start`           |
-| Letzte Reise Strecke, Fahrzeit, Dauer, Ende                                                                         | Kennzahlen der letzten automatisch erkannten Reise                                                                                 |
-| Letzte Reise Gesamtbild                                                                                             | Bild-Entität, zeigt das Gesamtbild auf dem Dashboard                                                                               |
-| Fahrtenbuch Kilometerstand, Kraftstoff, Gas 1, Gas 2, Diesel getankt, Diesel Betrag, Gas getankt, Gas Betrag        | Formular für den nächsten Fahrtenbuch-Eintrag, vorbelegt mit dem Vorschlag (siehe [Fahrtenbuch](#fahrtenbuch))                     |
-| Fahrtenbuch speichern, Fahrtenbuch verwerfen                                                                        | Knöpfe des Formulars                                                                                                               |
-| Fahrtenbuch Eintrag                                                                                                 | „Offen“, solange ein Anlass auf den Eintrag wartet, sonst „Gespeichert“; Attribute Anlass, Ort, `letzte_eintraege`, `downloads`    |
-| Kilometerstand, Kraftstoff, Gas 1, Gas 2                                                                            | Aktueller Kilometerstand und letzte Füllstände                                                                                     |
-| Durchschnittsverbrauch, Tank- und Gaskosten Monat und Jahr                                                          | Auswertung des Fahrtenbuchs (Verbrauch ab dem zweiten vollen Tank)                                                                 |
-| Heizung im Stand (abgelesen)                                                                                        | Diesel der Heizung je Standtag aus den abgelesenen Füllständen (grob); Attribute `standzeiten`, `standtage`, `abnahme_liter`       |
-| Export-Auswahl                                                                                                      | Alle Exporte (neueste zuerst) und „Alle Exporte“; wird von „Exporte aufräumen“ genutzt; Attribut `downloads` des gewählten Exports |
+| Entität                                                                                                             | Inhalt                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Reise aktiv                                                                                                         | An, solange eine Reise läuft (auch in Pausen)                                                                                   |
+| Reisestatus                                                                                                         | Bereit, Unterwegs, Pause, Auswertung, Fortsetzbar, Fehler; Attribute „Voraussichtliches Ende“ und „Fortsetzbar bis“             |
+| Reisebeginn (Attribut `startort`), Strecke, Fahrzeit, Pausenzeit (Attribut `halte`) und Durchschnitt laufende Reise | Werte der laufenden Reise; Durchschnitt = Ø in Bewegung, Pausenzeit = Zeit seit Start minus Fahrzeit                            |
+| Letzte Reise                                                                                                        | Titel; Attribute `dateien` (Typ, Name, URL), `downloads` (siehe [Downloads](#downloads)), `statistik`, `ordner`, `start`        |
+| Letzte Reise Strecke, Fahrzeit, Dauer, Ende                                                                         | Kennzahlen der letzten automatisch erkannten Reise                                                                              |
+| Letzte Reise Gesamtbild                                                                                             | Bild-Entität, zeigt das Gesamtbild auf dem Dashboard                                                                            |
+| Fahrtenbuch Kilometerstand, Kraftstoff, Gas 1, Gas 2, Diesel getankt, Diesel Betrag, Gas getankt, Gas Betrag        | Formular für den nächsten Fahrtenbuch-Eintrag, vorbelegt mit dem Vorschlag (siehe [Fahrtenbuch](#fahrtenbuch))                  |
+| Fahrtenbuch speichern, Fahrtenbuch verwerfen                                                                        | Knöpfe des Formulars                                                                                                            |
+| Fahrtenbuch Zeitpunkt, Fahrtenbuch Nachtrag Zeit, Fahrtenbuch nachtragen                                            | Formular für einen früheren Zeitpunkt (siehe [Nachträge](#nachträge)); Attribute `zeit`, `ort`, `geschaetzt`                    |
+| Reisekosten Kategorie, Land, Betrag, Notiz, Datum; Reisekosten speichern, Keine Maut                                | Formular für Reisekosten der Reise in der Export-Auswahl (siehe [Reisekosten](#reisekosten))                                    |
+| Fahrtenbuch Eintrag                                                                                                 | „Offen“, solange ein Anlass auf den Eintrag wartet, sonst „Gespeichert“; Attribute Anlass, Ort, `letzte_eintraege`, `downloads` |
+| Kilometerstand, Kraftstoff, Gas 1, Gas 2                                                                            | Aktueller Kilometerstand und letzte Füllstände                                                                                  |
+| Durchschnittsverbrauch                                                                                              | Auswertung des Fahrtenbuchs (ab dem zweiten vollen Tank)                                                                        |
+| Reisekosten Monat, Reisekosten Jahr                                                                                 | Alle Kosten im laufenden Monat bzw. Jahr; Attribute `diesel`, `gas` und je Kategorie (`maut`, `faehre` …)                       |
+| Maut offen                                                                                                          | Fertige Reisen der letzten 12 Monate durch ein Mautland ohne Maut-Eintrag; Attribut `reisen`                                    |
+| Heizung im Stand (abgelesen)                                                                                        | Diesel der Heizung je Standtag aus den abgelesenen Füllständen (grob); Attribute `standzeiten`, `standtage`, `abnahme_liter`    |
+| Export-Auswahl                                                                                                      | Alle Exporte (neueste zuerst) und „Alle Exporte“; für „Exporte aufräumen“ und Reisekosten; Attribute `downloads`, `reisekosten` |
 
 ## Aktionen
 
@@ -130,6 +144,10 @@ Alle Aktionen brauchen das Feld **Fahrzeug** (den Eintrag der Integration).
 | Fahrtenbuch-Eintrag ändern (`reiseverlauftracker.fahrtenbuch_aendern`)       | Felder eines Eintrags ändern; Liter 0 entfernt einen Tank- oder Gasstopp                                                                       |
 | Fahrtenbuch-Eintrag löschen (`reiseverlauftracker.fahrtenbuch_loeschen`)     | Eintrag löschen; die ID steht im Attribut `letzte_eintraege`                                                                                   |
 | Fahrtenbuch als CSV (`reiseverlauftracker.fahrtenbuch_csv`)                  | `fahrtenbuch.csv` im Ausgabeordner schreiben (geschieht auch nach jeder Änderung)                                                              |
+| Tankstopp nachtragen (`reiseverlauftracker.fahrtenbuch_nachtragen`)          | Tank- oder Gasstopp für eine frühere Zeit; ein Stopp bis 5 min um die Zeit wird zugeordnet                                                     |
+| Reisekosten eintragen (`reiseverlauftracker.reisekosten_eintragen`)          | Kosten für eine Reise (Ordner, Eintrag der Export-Auswahl oder Startzeit) oder nur mit Datum; liefert den Eintrag                              |
+| Reisekosten ändern / löschen (`reisekosten_aendern`, `reisekosten_loeschen`) | Eintrag ändern oder löschen; die ID steht im Attribut `reisekosten` der Export-Auswahl                                                         |
+| Keine Maut (`reiseverlauftracker.keine_maut`)                                | Reise als ohne Maut kennzeichnen (oder mit `an: false` das Kennzeichen entfernen)                                                              |
 
 Beispiel für einen Dashboard-Knopf, der den in der Export-Auswahl gewählten Export komplett löscht:
 
@@ -161,7 +179,8 @@ manuelle Exporte `2026-10-12_1000-1130`). Darin liegen:
 | `<titel>_rohdaten.json` | Aufgezeichnete Punkte                        |
 | `export.json`           | Verwaltungsdaten der Integration             |
 
-Im Ausgabeordner selbst liegt außerdem `fahrtenbuch.csv` (siehe [Fahrtenbuch](#fahrtenbuch)).
+Im Ausgabeordner selbst liegen außerdem `fahrtenbuch.csv` (siehe [Fahrtenbuch](#fahrtenbuch)) und `reisekosten.csv`
+(siehe [Reisekosten](#reisekosten)).
 
 Die Bilder sind im Medienbrowser unter **Medien → Lokale Medien** zu finden. GPX, Statistik, Rohdaten und
 `fahrtenbuch.csv` zeigt der Medienbrowser von Home Assistant nicht an; sie lassen sich über das Dashboard
@@ -255,6 +274,41 @@ Die Einträge liegen im Speicher der Integration und sind damit im Backup von Ho
 Nach einer Reise stehen Kilometerstand von/bis, getankte Liter, Kosten und Verbrauch auch in Statistik und
 Gesamtbild.
 
+### Nachträge
+
+Keine Zeit fürs Formular an der Tankstelle? Der Tankstopp lässt sich später nachtragen, z. B. abends nach dem Beleg:
+
+1. In **Fahrtenbuch Zeitpunkt** den Halt oder kurzen Stopp wählen (z. B. „14.11. 10:42 · Irschenberg · kurz“) oder
+   „Andere Uhrzeit …“ und die Zeit in **Fahrtenbuch Nachtrag Zeit** setzen. Zur Auswahl stehen die 30 neuesten
+   Stopps und alle Stopps der Reise in der Export-Auswahl; die Integration merkt sich Stopps 120 Tage.
+2. Das Formular zeigt den Kilometerstand zu diesem Zeitpunkt (aus der aufgezeichneten Strecke); ist er nur
+   geschätzt (Attribut `geschaetzt`), bitte prüfen.
+3. Liter und Betrag eintragen und **Fahrtenbuch nachtragen** drücken. Danach springt die Auswahl auf „Aktuell“.
+
+Hatte der Halt schon einen Eintrag, wird er ergänzt. Der Füllstand gilt zu diesem Zeitpunkt als 100 %, spätere
+Einträge bleiben unverändert. Ein offener Anlass wartet währenddessen und kommt mit „Aktuell“ zurück.
+
+### Reisekosten
+
+Maut, Vignette, Fähre, Tunnel, Stellplatz und Sonstiges, je Reise und bei Maut je Land:
+
+1. In der **Export-Auswahl** die Reise wählen. **Reisekosten Datum** springt auf den Reisebeginn, **Reisekosten
+   Land** schlägt das erste Mautland der Reise vor; die Länder der Reise stehen vorn in der Liste.
+2. Kategorie, Land, Betrag und optional Notiz eintragen, **Reisekosten speichern**. Betrag und Notiz werden geleert,
+   Kategorie und Land bleiben, sodass das nächste Land schnell folgt.
+3. Kosten ohne Reise (z. B. Stellplatz während einer Standzeit): Export-Auswahl auf „Alle Exporte“ und das Datum
+   setzen.
+
+Die Kosten zählen im Monat ihres Datums. Die Länder einer Reise ermittelt die Integration nach dem Export aus der
+Strecke (etwa alle 20 km, nur mit eingeschalteten Ortsnamen); für ältere Reisen holt sie es beim Start nach (letzte
+12 Monate) oder sobald die Reise gewählt wird.
+`reisekosten.csv` im Ausgabeordner wird nach jeder Änderung neu geschrieben. Nach jedem Nachtrag zu einer fertigen
+Reise erneuert die Integration nach 30 s Statistik, Gesamtbild und `export.json` dieser Reise (Karte, Profil, GPX und
+Rohdaten bleiben); die Statistik nennt dann „Reisekosten: Maut 83,30 € · Fähre 85,00 €“, „Kosten“ ist die Summe.
+
+Die Mautbox rechnet meist erst im Folgemonat ab. **Maut offen** zählt deshalb die Reisen durch Mautländer ohne
+Maut-Eintrag; eine Reise nur über Landstraßen lässt sich mit **Keine Maut** abhaken.
+
 ### Erinnerung per Push (Blueprint)
 
 [![Blueprint importieren](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FChrisFerro%2Fha-reiseverlauf%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freiseverlauftracker%2Ffahrtenbuch.yaml)
@@ -278,6 +332,11 @@ Fahrtenbuch: Halt in Kiel
 
 Reisebeginn, Halt und der Knopf lassen sich einzeln abschalten, die Texte sind änderbar.
 
+Am 1. des Monats um 09:00 (Uhrzeit einstellbar) erinnert der Blueprint außerdem an offene Maut, solange „Maut offen“
+über 0 ist, z. B. `2 Reisen ohne Maut: Ulm – Bozen, 22.11.2026 (AT, IT); …`. Tippen öffnet die Ansicht unter
+**Ansicht beim Tippen** im Abschnitt Maut-Erinnerung (Standard `/dashboard-reiseverlauf/reisekosten`). Die
+Erinnerung lässt sich abschalten.
+
 ### Dashboard-Ansicht
 
 Beispiel für eine Ansicht mit dem Formular und der Auswertung (Dashboard bearbeiten → **Ansicht hinzufügen** →
@@ -297,6 +356,8 @@ sections:
         entity: sensor.wohnmobil_gps_fahrtenbuch_eintrag
       - type: entities
         entities:
+          - select.wohnmobil_gps_fahrtenbuch_zeitpunkt
+          - datetime.wohnmobil_gps_fahrtenbuch_nachtrag_zeit
           - number.wohnmobil_gps_fahrtenbuch_kilometerstand
           - number.wohnmobil_gps_fahrtenbuch_kraftstoff
           - number.wohnmobil_gps_fahrtenbuch_gas_1
@@ -311,6 +372,7 @@ sections:
       - type: entities
         entities:
           - button.wohnmobil_gps_fahrtenbuch_speichern
+          - button.wohnmobil_gps_fahrtenbuch_nachtragen
           - button.wohnmobil_gps_fahrtenbuch_verwerfen
   - type: grid
     cards:
@@ -327,12 +389,55 @@ sections:
       - type: tile
         entity: sensor.wohnmobil_gps_gas_2
       - type: tile
-        entity: sensor.wohnmobil_gps_tank_und_gaskosten_monat
+        entity: sensor.wohnmobil_gps_reisekosten_monat
       - type: tile
-        entity: sensor.wohnmobil_gps_tank_und_gaskosten_jahr
+        entity: sensor.wohnmobil_gps_reisekosten_jahr
 ```
 
 Der Pfad der Ansicht ist dann `/<Dashboard>/fahrtenbuch`, z. B. `/dashboard-reiseverlauf/fahrtenbuch`.
+
+Eine eigene Ansicht für die Reisekosten (Pfad `reisekosten`, Ziel der Maut-Erinnerung):
+
+```yaml
+title: Reisekosten
+path: reisekosten
+icon: mdi:cash-multiple
+type: sections
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        heading: Reisekosten eintragen
+      - type: entities
+        entities:
+          - select.wohnmobil_gps_export_auswahl
+          - select.wohnmobil_gps_reisekosten_kategorie
+          - select.wohnmobil_gps_reisekosten_land
+          - number.wohnmobil_gps_reisekosten_betrag
+          - text.wohnmobil_gps_reisekosten_notiz
+          - date.wohnmobil_gps_reisekosten_datum
+          - button.wohnmobil_gps_reisekosten_speichern
+          - button.wohnmobil_gps_keine_maut
+      - type: markdown
+        content: |
+          {% set k = state_attr('select.wohnmobil_gps_export_auswahl', 'reisekosten') %}
+          {% if k %}
+          {% for e in k.eintraege %}
+          - {{ e.kategorie }} {{ e.land or '' }} {{ '%.2f' | format(e.betrag) }} € {{ e.notiz or '' }}
+          {% endfor %}
+          **Summe {{ '%.2f' | format(k.summe) }} €**{{ ' · keine Maut' if k.keine_maut else '' }}
+          {% endif %}
+  - type: grid
+    cards:
+      - type: heading
+        heading: Auswertung
+      - type: tile
+        entity: sensor.wohnmobil_gps_maut_offen
+      - type: tile
+        entity: sensor.wohnmobil_gps_reisekosten_monat
+      - type: tile
+        entity: sensor.wohnmobil_gps_reisekosten_jahr
+```
 
 ## Events
 
@@ -345,11 +450,15 @@ Für eigene Automationen:
 | `reiseverlauftracker_exportiert`  | Manueller Export fertig                   | wie `_beendet`, ohne `fortgesetzt`                                                                                                                                                                |
 | `reiseverlauftracker_fahrtenbuch` | Fahrtenbuch-Anlass: Reisebeginn oder Halt | `entry_id`, `anlass` (`reisestart`, `halt`), `zeit`, `ort`, `reise_start`, `halt_start`, `vorschlag` (`kilometerstand`, `kraftstoff`, `gas_1`, `gas_2`)                                           |
 
+`fahrtenbuch` enthält Kilometerstand von/bis, Liter, `kosten` (Diesel, Gas und Reisekosten), `reisekosten` je
+Kategorie und den Verbrauch.
+
 ## Datenschutz
 
-- Für die Karte lädt die Integration Kacheln von OpenStreetMap; für die Ortsnamen schickt sie Start- und
-  Endposition an Nominatim (OpenStreetMap). Beides nur einmal pro Reise. Die Ortsabfrage lässt sich in den
-  Optionen abschalten.
+- Für die Karte lädt die Integration Kacheln von OpenStreetMap, einmal pro Reise.
+- Für Ortsnamen und Länder schickt sie Positionen an Nominatim (OpenStreetMap): Start, Ende und Stopps einer Reise
+  sowie für die Länder der Reise etwa alle 20 km einen Punkt der Strecke. Höchstens eine Anfrage je Sekunde. Die
+  Ortsabfrage lässt sich in den Optionen abschalten; dann werden weder Orte noch Länder abgefragt.
 - Die Diagnose der Integration enthält keine Positionen.
 
 ## Fehlersuche
