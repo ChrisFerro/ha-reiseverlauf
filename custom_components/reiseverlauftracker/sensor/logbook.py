@@ -1,4 +1,4 @@
-"""Logbook sensors: pending entry, odometer, last levels, consumption and costs."""
+"""Logbook sensors: pending entry, odometer, last levels, consumption, costs and open toll."""
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from custom_components.reiseverlauftracker.coordinator.download_links import ATTR_DOWNLOADS
-from custom_components.reiseverlauftracker.coordinator.logbook import Logbook
+from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory, Logbook
 from custom_components.reiseverlauftracker.coordinator.logbook_keeper import entry_data
 from custom_components.reiseverlauftracker.entity import ReiseverlaufEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
@@ -15,6 +15,7 @@ from homeassistant.util import dt as dt_util
 
 if TYPE_CHECKING:
     from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUpdateCoordinator
+    from custom_components.reiseverlauftracker.coordinator.exports import ExportInfo
 
 CONSUMPTION_UNIT = "l/100 km"
 PER_DAY_UNIT = "l/d"
@@ -65,7 +66,7 @@ class LogbookSensorEntityDescription(SensorEntityDescription):
     """Describes a sensor computed from the logbook."""
 
     value_fn: Callable[[Logbook, datetime], float | None]
-    attributes_fn: Callable[[Logbook], Mapping[str, Any]] | None = None
+    attributes_fn: Callable[[Logbook, datetime], Mapping[str, Any]] | None = None
     currency: bool = False
 
 
@@ -77,15 +78,35 @@ def _last(field: str) -> Callable[[Logbook, datetime], float | None]:
     return value
 
 
-def _cost_this_month(book: Logbook, now: datetime) -> float:
+def _month(now: datetime) -> tuple[datetime, datetime]:
     start = dt_util.as_local(now).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    end = (start + timedelta(days=32)).replace(day=1)
-    return round(book.cost_between(start, end), 2)
+    return start, (start + timedelta(days=32)).replace(day=1)
 
 
-def _cost_this_year(book: Logbook, now: datetime) -> float:
+def _year(now: datetime) -> tuple[datetime, datetime]:
     start = dt_util.as_local(now).replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-    return round(book.cost_between(start, start.replace(year=start.year + 1)), 2)
+    return start, start.replace(year=start.year + 1)
+
+
+def _costs(period: Callable[[datetime], tuple[datetime, datetime]]) -> Callable[[Logbook, datetime], float]:
+    def value(book: Logbook, now: datetime) -> float:
+        return round(book.costs_between(*period(now)).total, 2)
+
+    return value
+
+
+def _cost_parts(
+    period: Callable[[datetime], tuple[datetime, datetime]],
+) -> Callable[[Logbook, datetime], Mapping[str, Any]]:
+    def attributes(book: Logbook, now: datetime) -> Mapping[str, Any]:
+        costs = book.costs_between(*period(now))
+        return {
+            "diesel": round(costs.fuel, 2),
+            "gas": round(costs.gas, 2),
+            **{category.value: round(costs.travel.get(category, 0.0), 2) for category in CostCategory},
+        }
+
+    return attributes
 
 
 def _consumption(book: Logbook, _now: datetime) -> float | None:
@@ -99,7 +120,7 @@ def _parked_heating(book: Logbook, _now: datetime) -> float | None:
     return round(value, 2) if value is not None else None
 
 
-def _parked_heating_attributes(book: Logbook) -> Mapping[str, Any]:
+def _parked_heating_attributes(book: Logbook, _now: datetime) -> Mapping[str, Any]:
     parked = book.parked_consumption()
     return {
         "standzeiten": parked.periods if parked else 0,
@@ -118,13 +139,14 @@ def _level(key: str, field: str) -> LogbookSensorEntityDescription:
     )
 
 
-def _cost(key: str, value_fn: Callable[[Logbook, datetime], float | None]) -> LogbookSensorEntityDescription:
+def _cost(key: str, period: Callable[[datetime], tuple[datetime, datetime]]) -> LogbookSensorEntityDescription:
     return LogbookSensorEntityDescription(
         key=key,
         translation_key=key,
         device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=2,
-        value_fn=value_fn,
+        value_fn=_costs(period),
+        attributes_fn=_cost_parts(period),
         currency=True,
     )
 
@@ -157,9 +179,11 @@ LOGBOOK_DESCRIPTIONS = (
         value_fn=_parked_heating,
         attributes_fn=_parked_heating_attributes,
     ),
-    _cost("costs_month", _cost_this_month),
-    _cost("costs_year", _cost_this_year),
+    _cost("travel_costs_month", _month),
+    _cost("travel_costs_year", _year),
 )
+# Replaced by the travel cost sensors in 0.3.0; removed from the entity registry at setup.
+REMOVED_KEYS = ("costs_month", "costs_year")
 
 
 class ReiseverlaufLogbookSensor(SensorEntity, ReiseverlaufEntity):
@@ -167,7 +191,7 @@ class ReiseverlaufLogbookSensor(SensorEntity, ReiseverlaufEntity):
     Value computed from the logbook.
 
     The odometer follows the distance measured since the last reading; levels
-    are those of the latest entry that has them; costs count fuel and gas.
+    are those of the latest entry that has them; costs count fuel, gas and travel costs.
     """
 
     entity_description: LogbookSensorEntityDescription
@@ -190,4 +214,51 @@ class ReiseverlaufLogbookSensor(SensorEntity, ReiseverlaufEntity):
         """Return what the value was computed from, for sensors that explain it."""
         if (attributes_fn := self.entity_description.attributes_fn) is None:
             return None
-        return attributes_fn(self.coordinator.logbook.logbook)
+        return attributes_fn(self.coordinator.logbook.logbook, dt_util.utcnow())
+
+
+OPEN_TOLL = SensorEntityDescription(key="open_toll", translation_key="open_toll")
+OPEN_TOLL_PERIOD = timedelta(days=365)
+
+
+class ReiseverlaufOpenTollSensor(SensorEntity, ReiseverlaufEntity):
+    """
+    Finished trips of the last 12 months through a toll country without a toll entry or "no toll" mark.
+
+    Trips whose countries are unknown do not count (docs/features/feat-09-nachtraege.md 5.9, 6.5).
+    """
+
+    @property
+    def native_value(self) -> int:
+        """Return how many trips wait for their toll."""
+        return len(self._open_trips())
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any]:
+        """Return the trips, newest first."""
+        tolls = set(self.coordinator.settings.toll_countries)
+        return {
+            "reisen": [
+                {
+                    "titel": info.title,
+                    "start": info.start.isoformat(),
+                    "ordner": info.folder,
+                    "laender": [c for c in info.countries or () if c in tolls],
+                }
+                for info in self._open_trips()
+            ]
+        }
+
+    def _open_trips(self) -> list[ExportInfo]:
+        coordinator = self.coordinator
+        book = coordinator.logbook.logbook
+        tolls = set(coordinator.settings.toll_countries)
+        since = dt_util.utcnow() - OPEN_TOLL_PERIOD
+        return [
+            info
+            for info in coordinator.exports
+            if info.automatic
+            and info.start >= since
+            and tolls.intersection(info.countries or ())
+            and not book.toll_settled(info.start)
+        ]

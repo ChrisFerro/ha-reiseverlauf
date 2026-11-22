@@ -404,11 +404,71 @@
       "parked_heating_read": {
         "name": "Heating while parked (read)"
       },
-      "costs_month": {
-        "name": "Fuel and gas costs month"
+      "travel_costs_month": {
+        "name": "Travel costs month",
+        "state_attributes": {
+          "maut": {
+            "name": "Toll"
+          },
+          "vignette": {
+            "name": "Vignette"
+          },
+          "faehre": {
+            "name": "Ferry"
+          },
+          "tunnel": {
+            "name": "Tunnel"
+          },
+          "stellplatz": {
+            "name": "Pitch"
+          },
+          "sonstiges": {
+            "name": "Other"
+          },
+          "diesel": {
+            "name": "Diesel"
+          },
+          "gas": {
+            "name": "Gas"
+          }
+        }
       },
-      "costs_year": {
-        "name": "Fuel and gas costs year"
+      "travel_costs_year": {
+        "name": "Travel costs year",
+        "state_attributes": {
+          "maut": {
+            "name": "Toll"
+          },
+          "vignette": {
+            "name": "Vignette"
+          },
+          "faehre": {
+            "name": "Ferry"
+          },
+          "tunnel": {
+            "name": "Tunnel"
+          },
+          "stellplatz": {
+            "name": "Pitch"
+          },
+          "sonstiges": {
+            "name": "Other"
+          },
+          "diesel": {
+            "name": "Diesel"
+          },
+          "gas": {
+            "name": "Gas"
+          }
+        }
+      },
+      "open_toll": {
+        "name": "Open toll",
+        "state_attributes": {
+          "reisen": {
+            "name": "Trips"
+          }
+        }
       }
     },
     "number": {

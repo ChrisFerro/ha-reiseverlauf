@@ -8,6 +8,7 @@ https://github.com/ChrisFerro/ha-reiseverlauf
 from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
+from homeassistant.helpers import entity_registry as er
 import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
@@ -15,6 +16,7 @@ from .const import DOMAIN
 from .coordinator import ReiseverlaufDataUpdateCoordinator
 from .data import ReiseverlaufData
 from .download import async_register_views
+from .sensor.logbook import REMOVED_KEYS
 from .service_actions import async_setup_services
 from .settings import ReiseverlaufSettings
 
@@ -70,10 +72,19 @@ async def async_setup_entry(
         integration=async_get_loaded_integration(hass, entry.domain),
     )
     await coordinator.async_start()
+    _remove_replaced_entities(hass, entry)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
+
+def _remove_replaced_entities(hass: HomeAssistant, entry: ReiseverlaufConfigEntry) -> None:
+    """Remove entities of earlier versions that new ones with another unique ID replace."""
+    registry = er.async_get(hass)
+    for key in REMOVED_KEYS:
+        if (entity_id := registry.async_get_entity_id(Platform.SENSOR, DOMAIN, f"{entry.entry_id}_{key}")) is not None:
+            registry.async_remove(entity_id)
 
 
 async def async_unload_entry(

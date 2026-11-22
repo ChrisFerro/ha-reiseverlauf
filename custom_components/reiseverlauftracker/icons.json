@@ -113,11 +113,14 @@
       "parked_heating_read": {
         "default": "mdi:radiator"
       },
-      "costs_month": {
+      "travel_costs_month": {
         "default": "mdi:cash-multiple"
       },
-      "costs_year": {
+      "travel_costs_year": {
         "default": "mdi:cash-multiple"
+      },
+      "open_toll": {
+        "default": "mdi:boom-gate-alert-outline"
       }
     },
     "number": {

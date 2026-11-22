@@ -284,7 +284,7 @@ async def test_evaluation_sensors(hass: HomeAssistant, loaded: MockConfigEntry, 
     freezer.move_to("2026-11-17 12:00:00+00:00")
     base = {"config_entry_id": loaded.entry_id}
     assert sensor_value(hass, loaded, "odometer") is None
-    assert sensor_value(hass, loaded, "costs_month") == 0
+    assert sensor_value(hass, loaded, "travel_costs_month") == 0
 
     last_year = {"zeit": "2025-12-30 10:00:00", "diesel_liter": 30, "diesel_betrag": 50}
     await call(hass, "fahrtenbuch_eintragen", {**base, **last_year, "kilometerstand": 1000, "kraftstoff": 100})
@@ -300,8 +300,8 @@ async def test_evaluation_sensors(hass: HomeAssistant, loaded: MockConfigEntry, 
     assert sensor_value(hass, loaded, "fuel_level") == 100
     assert sensor_value(hass, loaded, "gas_1_level") == 100
     assert sensor_value(hass, loaded, "average_consumption") == 12.0
-    assert sensor_value(hass, loaded, "costs_month") == 102.5
-    assert sensor_value(hass, loaded, "costs_year") == 121.5
-    state = hass.states.get(entity_id(hass, loaded, Platform.SENSOR, "costs_year"))
+    assert sensor_value(hass, loaded, "travel_costs_month") == 102.5
+    assert sensor_value(hass, loaded, "travel_costs_year") == 121.5
+    state = hass.states.get(entity_id(hass, loaded, Platform.SENSOR, "travel_costs_year"))
     assert state is not None
     assert state.attributes["unit_of_measurement"] == hass.config.currency
