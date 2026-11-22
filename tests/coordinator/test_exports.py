@@ -14,6 +14,7 @@ from custom_components.reiseverlauftracker.coordinator.exports import (
     remove_files,
     write_metadata,
 )
+from custom_components.reiseverlauftracker.coordinator.trip_log import TrackCounters
 from custom_components.reiseverlauftracker.export import ExportFile, LogbookFigures
 
 pytestmark = pytest.mark.unit
@@ -57,6 +58,15 @@ def test_metadata_round_trip_with_logbook(tmp_path: Path) -> None:
     info = replace(
         make_export(tmp_path, "a", datetime(2026, 10, 1, tzinfo=UTC)),
         logbook=LogbookFigures(odometer_start_km=34299, odometer_end_km=34383, fuel_litres=55, fuel_cost=96.4),
+    )
+    write_metadata(tmp_path, info)
+
+    assert read_export(tmp_path, "a") == info
+
+
+def test_metadata_round_trip_with_start_counters(tmp_path: Path) -> None:
+    info = replace(
+        make_export(tmp_path, "a", datetime(2026, 10, 1, tzinfo=UTC)), counter_start=TrackCounters(5000, 12, 34)
     )
     write_metadata(tmp_path, info)
 

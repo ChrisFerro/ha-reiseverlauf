@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .logbook import Draft, FormField, Logbook, LogbookEntry, Occasion, Suggestion
+from .logbook import Draft, FormField, Logbook, LogbookEntry, Occasion, RecordedStop, Suggestion
 
 STORAGE_VERSION = 1
 SAVE_DELAY_S = 30
@@ -164,6 +164,49 @@ class LogbookKeeper:
         """Add the running trip's distance for good."""
         self.logbook.close_trip()
         self.save()
+
+    def record_stop(
+        self,
+        trip_start: datetime,
+        start: datetime,
+        end: datetime | None,
+        *,
+        lat: float | None = None,
+        lon: float | None = None,
+        place: str | None = None,
+    ) -> RecordedStop:
+        """
+        Remember a stop of the running trip, with the counters now if it is new.
+
+        Returns:
+            The stored stop.
+
+        """
+        stored = self.logbook.record_stop(
+            RecordedStop(
+                trip_start=trip_start,
+                start=start,
+                end=end,
+                distance_counter_m=self.logbook.distance_counter_m,
+                ascent_counter_m=self.logbook.ascent_counter_m,
+                descent_counter_m=self.logbook.descent_counter_m,
+                lat=lat,
+                lon=lon,
+                place=place,
+            )
+        )
+        self.save()
+        return stored
+
+    def set_stop_place(self, start: datetime, place: str) -> None:
+        """Store the place name of a remembered stop."""
+        self.logbook.set_stop_place(start, place)
+        self.save()
+
+    def prune_stops(self, now: datetime) -> None:
+        """Forget stops older than the retention period."""
+        if self.logbook.prune_stops(now):
+            self.save()
 
     def announce(
         self,

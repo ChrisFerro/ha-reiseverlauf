@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from custom_components.reiseverlauftracker.coordinator.trip_log import RunningStatsSettings, TripLog
+from custom_components.reiseverlauftracker.coordinator.trip_log import RunningStatsSettings, TrackCounters, TripLog
 
 pytestmark = pytest.mark.unit
 
@@ -244,3 +244,69 @@ def test_ascent_and_descent_count_changes_beyond_the_hysteresis() -> None:
     assert (log.ascent_m, log.descent_m) == (pytest.approx(26), pytest.approx(6))
     restored = TripLog.from_dict(json.loads(json.dumps(log.as_dict())), log.settings)
     assert (restored.ascent_m, restored.descent_m) == (pytest.approx(26), pytest.approx(6))
+
+
+def test_counters_at_add_the_track_up_to_a_time_to_the_start_counters() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.counter_start = TrackCounters(100_000, 500, 400)
+    for minute in range(4):
+        log.add_position(at(60 * minute), lat(1000 * minute), 8.0, 10)
+        log.add_altitude(at(60 * minute), 100 + 10 * minute)
+
+    halfway = log.counters_at(at(90))
+
+    assert halfway is not None
+    assert halfway.distance_m == pytest.approx(101_000, abs=1)
+    assert (halfway.ascent_m, halfway.descent_m) == (510, 400)
+    end = log.counters_at(at(600))
+    assert end is not None
+    assert end.distance_m == pytest.approx(100_000 + log.distance_m)
+    assert end.ascent_m == 500 + log.ascent_m
+
+
+def test_counters_at_use_the_same_filters_as_the_trip_distance() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.counter_start = TrackCounters(0)
+    log.add_position(at(0), lat(0), 8.0, 10)
+    log.add_position(at(60), lat(5000), 8.0, 500)
+    log.add_position(at(120), lat(2000), 8.0, 10)
+
+    counters = log.counters_at(at(120))
+
+    assert counters is not None
+    assert counters.distance_m == pytest.approx(log.distance_m)
+    assert counters.distance_m == pytest.approx(2000, rel=1e-3)
+
+
+def test_counters_at_are_unknown_without_start_counters() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.add_position(at(0), lat(0), 8.0, 10)
+
+    assert log.counters_at(at(0)) is None
+
+
+def test_position_at_returns_the_last_usable_position_before() -> None:
+    log = TripLog(T0, SETTINGS)
+    assert log.position_at(at(0)) is None
+    log.add_position(at(0), lat(0), 8.0, 10)
+    log.add_position(at(60), lat(1000), 8.0, 10)
+    log.add_position(at(120), lat(2000), 8.0, 500)
+
+    position = log.position_at(at(150))
+    assert position is not None
+    assert position.lat == pytest.approx(lat(1000))
+    earliest = log.position_at(T0 - timedelta(minutes=1))
+    assert earliest is not None
+    assert earliest.lat == pytest.approx(lat(0))
+
+
+def test_start_counters_survive_a_round_trip() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.counter_start = TrackCounters(12_345.5, 10, 20)
+
+    restored = TripLog.from_dict(json.loads(json.dumps(log.as_dict())), SETTINGS)
+
+    assert restored.counter_start == log.counter_start
+    old = log.as_dict()
+    del old["counter_start"]
+    assert TripLog.from_dict(old, SETTINGS).counter_start is None

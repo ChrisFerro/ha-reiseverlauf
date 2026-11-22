@@ -173,15 +173,16 @@ Stand: 20.11.2026, an die Entscheidungen 5.1–5.11 angepasst.
 ### 6.1 Stopps merken
 
 - **Stopp-Liste** im Fahrtenbuch-Speicher (`stopps`): jede D+-Aus-Phase während einer Reise mit Start, Ende,
-  Position, Ort, Strecken- und Höhenmeter-Zählern und Art (`halt` ab der Mindestdauer, `kurz` darunter, 5.2).
+  Position, Ort, Strecken- und Höhenmeter-Zählern beim Beginn des Stopps. Die Art (Halt ab der Mindestdauer,
+  kurzer Stopp darunter, 5.2) ergibt sich aus der Dauer.
   Ein fortgesetzter Halt (Tanken, dann Umparken) bleibt ein Eintrag. Kurze Stopps lösen kein Event und keine
   Erinnerung aus und ändern Pausenzeit, Halte-Attribut und Export nicht.
-- **Ort kurzer Stopps** wird wie beim Halt abgefragt, aber erst nach der Fahrt bzw. bei Bedarf (Nominatim: höchstens
-  eine Anfrage je Sekunde).
+- **Ort kurzer Stopps** wird wie beim Halt abgefragt, aber erst nach dem Export der Reise im Hintergrund (Nominatim:
+  höchstens eine Anfrage je Sekunde).
 - **Aufbewahrung:** Stopps der letzten 120 Tage (Maut kommt im Folgemonat, dazu Puffer); ältere werden beim Start
   entfernt. Fahrtenbuch-Einträge bleiben davon unberührt.
 - **Zählerstände je Reise:** Beim Reisebeginn speichert die Integration Strecken- und Höhenmeter-Zähler in der Reise
-  und in `export.json` (`zaehler_start`). Damit lassen sich die Zähler zu jedem Zeitpunkt der Spur berechnen (6.2).
+  und in `export.json` (`counter_start`). Damit lassen sich die Zähler zu jedem Zeitpunkt der Spur berechnen (6.2).
 
 ### 6.2 Tankstopp nachtragen
 
@@ -191,7 +192,7 @@ Stand: 20.11.2026, an die Entscheidungen 5.1–5.11 angepasst.
 - **Zähler aus der Spur (5.1):** Zählerstand beim Reisebeginn (6.1) plus Strecke bzw. Höhenmeter der Spur bis zum
   Zeitpunkt, mit denselben Filtern wie die Reisestrecke (3-s-Zusammenfassung, GPS-Genauigkeit, Punktabstand,
   Höhen-Hysterese). Quelle: laufende Reise (`trip_log`) oder Rohdaten des Exports. Für ältere Reisen ohne
-  `zaehler_start` gilt der Zähler des Reisestart-Eintrags; fehlt auch der, wird zwischen den Einträgen davor und
+  `counter_start` gilt der Zähler des Reisestart-Eintrags; fehlt auch der, wird zwischen den Einträgen davor und
   danach nach Zeit interpoliert und der Kilometerstand muss bestätigt werden.
 - **Formular (5.2):** Das vorhandene Fahrtenbuch-Formular bekommt eine Auswahl `select.…_fahrtenbuch_zeitpunkt`:
   - erster Punkt „Aktuell“ (offener Anlass bzw. manueller Eintrag jetzt, wie bisher),
@@ -271,9 +272,9 @@ Stand: 20.11.2026, an die Entscheidungen 5.1–5.11 angepasst.
 Jeder Schritt mit Tests, grünem `script/check` und einem Prüfpunkt in der Entwicklungsumgebung:
 
 1. `Logbook` für frühere Zeitpunkte (6.2, erster Punkt) und `TravelCost` mit Kosten je Zeitraum und CSV (6.3),
-   reines Python mit Tests.
+   reines Python mit Tests. – umgesetzt 21.11.2026
 2. Stopp-Liste und Zählerstände je Reise (6.1), Zähler aus der Spur (6.2). Prüfpunkt: simulierte Reise mit kurzem
-   Stopp, Stopp mit Zählerständen im Speicher.
+   Stopp, Stopp mit Zählerständen im Speicher. – umgesetzt 21.11.2026
 3. Tankstopp nachtragen: Auswahl, Knopf, Dienst, Übersetzungen. Prüfpunkt: Tankstopp einer vergangenen Reise
    nachtragen, Ø-Verbrauch und Kilometerstand stimmen.
 4. Reisekosten: Länder der Reise, Formular, Dienste, CSV. Prüfpunkt: Maut für zwei Länder eintragen.

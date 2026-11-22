@@ -17,6 +17,8 @@ LOGBOOK_VERSION = 1
 FULL_PERCENT = 100.0
 # A parked period ends at the next trip start; more distance in between means a trip without entries.
 MAX_PARKED_DISTANCE_M = 1000.0
+# Toll is billed the month after the trip; stops are kept long enough to enter it (feat-09 6.1).
+STOP_RETENTION = timedelta(days=120)
 
 
 class Occasion(StrEnum):
@@ -99,6 +101,59 @@ class CostBreakdown:
     def total(self) -> float:
         """Return all costs together."""
         return self.fuel + self.gas + sum(self.travel.values())
+
+
+@dataclass(frozen=True, slots=True)
+class RecordedStop:
+    """
+    A D+-off phase of a trip, also one shorter than a halt, kept for late entries.
+
+    The counters are those of the logbook when the stop began, so that an entry
+    made later for this stop gets the distance driven up to it.
+    """
+
+    trip_start: datetime
+    start: datetime
+    distance_counter_m: float
+    ascent_counter_m: float | None = None
+    descent_counter_m: float | None = None
+    end: datetime | None = None
+    lat: float | None = None
+    lon: float | None = None
+    place: str | None = None
+
+    def is_short(self, min_duration: timedelta, now: datetime) -> bool:
+        """Return whether the stop is shorter than a halt; an open stop counts until now."""
+        return (self.end or now) - self.start < min_duration
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the stop as a JSON-serialisable dict."""
+        return {
+            "trip_start": self.trip_start.isoformat(),
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat() if self.end else None,
+            "distance_counter_m": self.distance_counter_m,
+            "ascent_counter_m": self.ascent_counter_m,
+            "descent_counter_m": self.descent_counter_m,
+            "lat": self.lat,
+            "lon": self.lon,
+            "place": self.place,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RecordedStop:
+        """Rebuild a stop from `as_dict()` output."""
+        return cls(
+            trip_start=datetime.fromisoformat(data["trip_start"]),
+            start=datetime.fromisoformat(data["start"]),
+            end=_optional_time(data.get("end")),
+            distance_counter_m=data["distance_counter_m"],
+            ascent_counter_m=data.get("ascent_counter_m"),
+            descent_counter_m=data.get("descent_counter_m"),
+            lat=data.get("lat"),
+            lon=data.get("lon"),
+            place=data.get("place"),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -342,6 +397,7 @@ class Logbook:
     running_trip_descent_m: float = 0.0
     travel_costs: list[TravelCost] = field(default_factory=list)
     no_toll_trips: set[datetime] = field(default_factory=set)
+    stops: list[RecordedStop] = field(default_factory=list)
 
     @property
     def distance_counter_m(self) -> float:
@@ -709,6 +765,51 @@ class Logbook:
             gas_cost=sum(r.amount or 0.0 for r in gas),
         )
 
+    def record_stop(self, stop: RecordedStop) -> RecordedStop:
+        """
+        Add a stop, or update the one with the same start.
+
+        An update keeps the counters and position of the stop's beginning and a
+        known place, so that a stop continued after moving a few metres stays one.
+
+        Returns:
+            The stored stop.
+
+        """
+        for index, known in enumerate(self.stops):
+            if known.start == stop.start:
+                stored = replace(known, end=stop.end, place=stop.place or known.place)
+                self.stops[index] = stored
+                return stored
+        self.stops.append(stop)
+        self.stops.sort(key=lambda s: s.start)
+        return stop
+
+    def set_stop_place(self, start: datetime, place: str) -> None:
+        """Store the place name of the stop that began at `start`."""
+        self.stops = [replace(s, place=place) if s.start == start else s for s in self.stops]
+
+    def prune_stops(self, now: datetime) -> bool:
+        """
+        Drop stops older than the retention period; logbook entries stay.
+
+        Returns:
+            Whether a stop was dropped.
+
+        """
+        kept = [s for s in self.stops if s.start >= now - STOP_RETENTION]
+        dropped = len(kept) != len(self.stops)
+        self.stops = kept
+        return dropped
+
+    def recent_stops(self, count: int) -> list[RecordedStop]:
+        """Return the `count` newest stops, newest first."""
+        return self.stops[::-1][:count]
+
+    def stops_of_trip(self, trip_start: datetime) -> list[RecordedStop]:
+        """Return the stops of the trip that started at `trip_start`, oldest first."""
+        return [s for s in self.stops if s.trip_start == trip_start]
+
     def as_dict(self) -> dict[str, Any]:
         """Return the logbook as a JSON-serialisable dict; the tank size is a setting and not stored."""
         return {
@@ -722,6 +823,7 @@ class Logbook:
             "entries": [e.as_dict() for e in self.entries],
             "travel_costs": [c.as_dict() for c in self.travel_costs],
             "no_toll_trips": sorted(t.isoformat() for t in self.no_toll_trips),
+            "stops": [stop.as_dict() for stop in self.stops],
         }
 
     @classmethod
@@ -738,6 +840,7 @@ class Logbook:
             running_trip_descent_m=data.get("running_trip_descent_m", 0.0),
             travel_costs=sorted((TravelCost.from_dict(c) for c in data.get("travel_costs", [])), key=lambda c: c.day),
             no_toll_trips={datetime.fromisoformat(t) for t in data.get("no_toll_trips", [])},
+            stops=sorted((RecordedStop.from_dict(s) for s in data.get("stops", [])), key=lambda s: s.start),
         )
 
 

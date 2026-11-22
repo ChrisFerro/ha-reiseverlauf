@@ -37,7 +37,7 @@ from homeassistant.loader import async_get_loaded_integration
 from homeassistant.util import dt as dt_util
 
 from .download_links import RENEW_INTERVAL, DownloadLinks
-from .export_runner import async_export, event_data, media_base
+from .export_runner import NOMINATIM_INTERVAL_S, async_export, event_data, media_base
 from .exports import ExportInfo, list_exports, remove_files
 from .logbook import LogbookEntry, Occasion
 from .logbook_keeper import EntryContext, LogbookKeeper
@@ -55,7 +55,7 @@ from .trip_detector import (
     TripResumed,
     TripStarted,
 )
-from .trip_log import RunningStatsSettings, TripLog
+from .trip_log import RunningStatsSettings, TrackCounters, TripLog, TripStop
 
 if TYPE_CHECKING:
     from custom_components.reiseverlauftracker.data import ReiseverlaufConfigEntry
@@ -102,6 +102,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
     async def async_start(self) -> None:
         """Restore detector, trip log and logbook, reconcile with the current D+ state and subscribe."""
         await self.logbook.async_load()
+        self.logbook.prune_stops(dt_util.utcnow())
         if (stored := await self._detector_store.async_load()) is not None:
             try:
                 self.detector = TripDetector(self.detector.settings, stored)
@@ -320,7 +321,14 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             self._schedule_stop_check()
         elif (stop := self.log.end_stop(at, self.settings.min_stop_duration)) is not None and stop.place is None:
             self._lookup_stop_place(stop.start, stop.lat, stop.lon)
+        if self.log.stops:
+            self._remember_stop(self.log.stops[-1])
         self._save_log()
+
+    def _remember_stop(self, stop: TripStop) -> None:
+        """Keep the stop, also a short one, in the logbook for late entries (feat-09 6.1)."""
+        if self.log is not None:
+            self.logbook.record_stop(self.log.start, stop.start, stop.end, lat=stop.lat, lon=stop.lon, place=stop.place)
 
     def _schedule_stop_check(self) -> None:
         if self._unsub_stop_check is not None:
@@ -349,6 +357,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 return
             if place is not None:
                 self.log.set_stop_place(start, place)
+                self.logbook.set_stop_place(start, place)
                 self._save_log()
                 self._publish()
             self.logbook.announce(
@@ -414,7 +423,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self._exporting = True
         self.config_entry.async_create_task(
             self.hass,
-            self._async_export_ended(trip_event, data, self.log.as_dict(), stops, logbook),
+            self._async_export_ended(trip_event, data, self.log.as_dict(), stops, logbook, self.log.counter_start),
             "reiseverlauftracker export",
         )
 
@@ -425,6 +434,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         raw: dict[str, Any],
         stops: tuple[Stop, ...],
         logbook: LogbookFigures | None,
+        counter_start: TrackCounters | None,
     ) -> None:
         async with self._export_lock:
             try:
@@ -438,6 +448,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                     raw=raw,
                     stops=stops,
                     logbook=logbook,
+                    counter_start=counter_start,
                 )
             except NotEnoughPointsError, NoMovementError:
                 LOGGER.warning("Trip from %s has no usable movement to export", trip_event.start)
@@ -457,9 +468,28 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             finally:
                 self._exporting = False
                 self._publish()
+        if self.settings.place_names:
+            self.config_entry.async_create_background_task(
+                self.hass, self._async_name_stops(trip_event.start), "reiseverlauftracker stop places"
+            )
+
+    async def _async_name_stops(self, trip_start: datetime) -> None:
+        """Look up the places of the trip's stops that have none yet, mostly short ones, one per second."""
+        for stop in self.logbook.logbook.stops_of_trip(trip_start):
+            if stop.place is not None or stop.lat is None:
+                continue
+            await asyncio.sleep(NOMINATIM_INTERVAL_S)
+            if (place := await async_place_name(self.hass, self.settings, stop.lat, stop.lon)) is None:
+                continue
+            self.logbook.set_stop_place(stop.start, place)
+            if self.log is not None and self.log.start == trip_start:
+                self.log.set_stop_place(stop.start, place)
+                self._save_log()
 
     def _begin_log(self, start: datetime) -> None:
         self.log = TripLog(start, self._log_settings())
+        book = self.logbook.logbook
+        self.log.counter_start = TrackCounters(book.distance_counter_m, book.ascent_counter_m, book.descent_counter_m)
         if (tracker := self.hass.states.get(self.settings.tracker_entity)) is not None:
             lat, lon = _float(tracker.attributes.get(ATTR_LATITUDE)), _float(tracker.attributes.get(ATTR_LONGITUDE))
             if lat is not None and lon is not None:

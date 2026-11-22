@@ -23,6 +23,7 @@ from homeassistant.util import dt as dt_util
 from .exports import ExportInfo, remove_files, write_metadata
 from .places import async_place_name, user_agent
 from .title import trip_title
+from .trip_log import TrackCounters
 
 if TYPE_CHECKING:
     from custom_components.reiseverlauftracker.settings import ReiseverlaufSettings
@@ -56,6 +57,7 @@ async def async_export(
     folder: str | None = None,
     stops: tuple[Stop, ...] = (),
     logbook: LogbookFigures | None = None,
+    counter_start: TrackCounters | None = None,
 ) -> ExportInfo:
     """
     Export one trip; an earlier export in the same folder is replaced.
@@ -94,7 +96,7 @@ async def async_export(
     )
     folder = folder or f"{start.astimezone(tz):%Y-%m-%d_%H%M}"
     return await hass.async_add_executor_job(
-        _export_sync, media_base(hass, settings), folder, data, options, raw, start, end, automatic
+        _export_sync, media_base(hass, settings), folder, data, options, raw, start, end, automatic, counter_start
     )
 
 
@@ -156,6 +158,7 @@ def _export_sync(
     start: datetime,
     end: datetime,
     automatic: bool,
+    counter_start: TrackCounters | None,
 ) -> ExportInfo:
     remove_files(base, folder, set(ExportFile))
     path = base / folder
@@ -179,6 +182,7 @@ def _export_sync(
         arrival=result.stats.arrival,
         stops=options.stops,
         logbook=options.logbook,
+        counter_start=counter_start,
     )
     write_metadata(base, info)
     return info

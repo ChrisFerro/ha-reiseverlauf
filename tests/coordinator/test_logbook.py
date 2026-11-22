@@ -12,6 +12,7 @@ from custom_components.reiseverlauftracker.coordinator.logbook import (
     FormField,
     Logbook,
     Occasion,
+    RecordedStop,
     Refill,
     Suggestion,
 )
@@ -488,3 +489,63 @@ def test_logbooks_without_travel_costs_still_load() -> None:
     restored = Logbook.from_dict({"version": 1, "entries": []}, tank_litres=90)
 
     assert (restored.travel_costs, restored.no_toll_trips) == ([], set())
+
+
+def stop(trip: datetime, start: datetime, counter_m: float, **kwargs: object) -> RecordedStop:
+    """Return a stop of `trip` that began at `start`."""
+    return RecordedStop(trip_start=trip, start=start, distance_counter_m=counter_m, **kwargs)  # type: ignore[arg-type]
+
+
+def test_recorded_stop_update_keeps_counters_and_position_of_its_beginning() -> None:
+    book = Logbook()
+    book.record_stop(stop(T0, at(1), 5000, ascent_counter_m=10, lat=50.0, lon=8.0))
+    book.record_stop(stop(T0, at(1), 5200, end=at(1.05), lat=50.1, lon=8.1))
+
+    assert book.stops == [stop(T0, at(1), 5000, ascent_counter_m=10, end=at(1.05), lat=50.0, lon=8.0)]
+    book.set_stop_place(at(1), "Irschenberg")
+    book.record_stop(stop(T0, at(1), 5200, end=at(1.5)))
+    assert (book.stops[0].place, book.stops[0].end) == ("Irschenberg", at(1.5))
+
+
+def test_stops_are_short_until_they_reach_the_minimum_duration() -> None:
+    open_stop = stop(T0, at(1), 0)
+    minimum = timedelta(minutes=5)
+
+    assert open_stop.is_short(minimum, at(1) + timedelta(minutes=4))
+    assert not open_stop.is_short(minimum, at(1) + timedelta(minutes=5))
+    assert stop(T0, at(1), 0, end=at(1) + timedelta(minutes=2)).is_short(minimum, at(5))
+
+
+def test_recent_stops_and_stops_of_a_trip() -> None:
+    book = Logbook()
+    other = at(48)
+    for hour in (3, 1, 2):
+        book.record_stop(stop(T0, at(hour), hour * 1000))
+    book.record_stop(stop(other, at(49), 9000))
+
+    assert [s.start for s in book.recent_stops(2)] == [at(49), at(3)]
+    assert [s.start for s in book.stops_of_trip(T0)] == [at(1), at(2), at(3)]
+
+
+def test_old_stops_are_pruned_but_entries_stay() -> None:
+    book = Logbook()
+    book.add(at(0), Occasion.TRIP_START, odometer_km=34299)
+    book.record_stop(stop(T0, at(1), 0))
+    book.record_stop(stop(T0, at(24 * 100), 0))
+
+    assert not book.prune_stops(at(24 * 120))
+    assert book.prune_stops(at(24 * 121 + 2))
+    assert [s.start for s in book.stops] == [at(24 * 100)]
+    assert len(book.entries) == 1
+
+
+def test_stops_survive_a_round_trip_and_old_data_has_none() -> None:
+    book = Logbook()
+    book.record_stop(stop(T0, at(1), 5000, ascent_counter_m=1, descent_counter_m=2, end=at(2), place="Rasthof"))
+
+    restored = Logbook.from_dict(json.loads(json.dumps(book.as_dict())), 90)
+
+    assert restored.stops == book.stops
+    old = book.as_dict()
+    del old["stops"]
+    assert Logbook.from_dict(old, 90).stops == []

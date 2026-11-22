@@ -13,6 +13,8 @@ from typing import Any
 
 from custom_components.reiseverlauftracker.export import ExportFile, LogbookFigures, Stop
 
+from .trip_log import TrackCounters
+
 METADATA_FILE = "export.json"
 METADATA_VERSION = 1
 LABEL_TITLE_LENGTH = 18
@@ -35,6 +37,7 @@ class ExportInfo:
     arrival: datetime | None = None
     stops: tuple[Stop, ...] = ()
     logbook: LogbookFigures | None = None
+    counter_start: TrackCounters | None = None
 
     def label(self, tz: tzinfo) -> str:
         """Return the short unique name shown in the export selection: start time and shortened title."""
@@ -62,6 +65,7 @@ class ExportInfo:
             "arrival": self.arrival.isoformat() if self.arrival else None,
             "stops": [{"start": s.start.isoformat(), "end": s.end.isoformat(), "place": s.place} for s in self.stops],
             "logbook": self.logbook.as_dict() if self.logbook else None,
+            "counter_start": self.counter_start.as_dict() if self.counter_start else None,
         }
 
     @classmethod
@@ -88,6 +92,7 @@ class ExportInfo:
                 for s in data.get("stops", [])
             ),
             logbook=LogbookFigures.from_dict(data["logbook"]) if data.get("logbook") else None,
+            counter_start=TrackCounters.from_dict(data["counter_start"]) if data.get("counter_start") else None,
         )
 
 
