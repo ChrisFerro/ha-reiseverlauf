@@ -227,7 +227,7 @@ Stand: 20.11.2026, an die Entscheidungen 5.1–5.11 angepasst.
   Für ältere Exporte wird das nachgeholt, sobald die Reise im Formular gewählt ist (einmal je Start von HA).
 - **Formular:** Reise über die vorhandene `select.…_export_auswahl`; dazu `select.…_reisekosten_kategorie`,
   `select.…_reisekosten_land` (Länder der Reise zuerst, dann die Mautländer der Einstellung, „ohne Land“; Standard
-  ist das erste Mautland der Reise), `number.…_reisekosten_betrag`, `text.…_reisekosten_notiz`,
+  ist das erste Mautland der Reise, auch nach dem Wechsel der Reise), `number.…_reisekosten_betrag`, `text.…_reisekosten_notiz`,
   `date.…_reisekosten_datum`, Knöpfe `button.…_reisekosten_speichern` und `button.…_keine_maut` (schaltet um).
   Nach dem Speichern werden Betrag und Notiz geleert, Kategorie und Land bleiben (nächstes Land schnell
   eingetragen). Das Attribut `reisekosten` an der Export-Auswahl listet die Einträge der gewählten Reise (mit `id`),
