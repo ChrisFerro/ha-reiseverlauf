@@ -1,5 +1,6 @@
 """Constants for reiseverlauftracker."""
 
+from datetime import timedelta
 from logging import Logger, getLogger
 
 LOGGER: Logger = getLogger(__package__)
@@ -62,6 +63,8 @@ COUNTRIES = (
 )  # fmt: skip
 # Distance-based toll or a toll for motorhomes over 3.5 t (docs/features/feat-09-nachtraege.md 6.5); not DE,
 # where motorhomes are exempt from the truck toll.
+# Trips this recent count for the open toll sensor; their countries are looked up at start.
+OPEN_TOLL_PERIOD = timedelta(days=365)
 DEFAULT_TOLL_COUNTRIES = ("AT", "BE", "CH", "CZ", "ES", "FR", "HR", "HU", "IT", "NO", "PL", "PT", "SI", "SK")
 
 EVENT_TRIP_ENDED = f"{DOMAIN}_beendet"

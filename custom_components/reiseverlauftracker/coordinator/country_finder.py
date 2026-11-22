@@ -1,12 +1,13 @@
 """
 Countries of exported trips, looked up in the background and stored in `export.json`.
 
-New trips get them after their export; older exports when they are chosen in a
-form (docs/features/feat-09-nachtraege.md 6.3). Nominatim is asked at most once
+New trips get them after their export; older exports of the last 12 months at
+start, and any other when it is chosen in a form (docs/features/feat-09-nachtraege.md 6.3). Nominatim is asked at most once
 a second, and only when place names are switched on.
 """
 
 import asyncio
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from custom_components.reiseverlauftracker.const import LOGGER
@@ -28,6 +29,8 @@ class CountryFinder:
         """Remember the coordinator; nothing has been looked up yet."""
         self.coordinator = coordinator
         self._tried: set[str] = set()
+        # One lookup run at a time, so Nominatim never sees more than one request a second.
+        self._lock = asyncio.Lock()
 
     def expect(self, folder: str) -> None:
         """Note that the countries of `folder` are about to be looked up, so `ensure` does not ask twice."""
@@ -42,6 +45,12 @@ class CountryFinder:
         coordinator.config_entry.async_create_background_task(
             coordinator.hass, self._async_find_for(info), "reiseverlauftracker trip countries"
         )
+
+    def ensure_recent(self, since: datetime) -> None:
+        """Look up the countries of all automatic exports since `since` that have none yet, one after the other."""
+        for info in self.coordinator.exports:
+            if info.automatic and info.start >= since:
+                self.ensure(info)
 
     async def _async_find_for(self, info: ExportInfo) -> None:
         if (log := await self.coordinator.async_raw_log(info)) is not None:
@@ -58,10 +67,10 @@ class CountryFinder:
         coordinator = self.coordinator
         points = country_sample_points(log)
         codes: list[str | None] = []
-        for index, point in enumerate(points):
-            if index:
+        async with self._lock:
+            for point in points:
                 await asyncio.sleep(export_runner.NOMINATIM_INTERVAL_S)
-            codes.append(await async_country(coordinator.hass, coordinator.settings, point.lat, point.lon))
+                codes.append(await async_country(coordinator.hass, coordinator.settings, point.lat, point.lon))
         countries = ordered_countries(codes)
         if points and not countries:
             LOGGER.debug("No country found for the export %s", folder)

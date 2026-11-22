@@ -124,3 +124,24 @@ async def test_open_toll_counts_finished_trips_through_toll_countries(
     coordinator.exports = (replace(italy, countries=("DE",)),)
     await refresh(hass, coordinator)
     assert hass.states.get(OPEN_TOLL).state == "0"
+
+
+async def test_countries_of_recent_trips_are_looked_up_one_after_the_other(
+    hass: HomeAssistant, coordinator: ReiseverlaufDataUpdateCoordinator, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    recent, known, old = (
+        trip("2026-11-10 07:00:00", None),
+        trip("2026-11-01 07:00:00", ("FR",)),
+        trip("2025-10-01 07:00:00", None),
+    )
+    coordinator.exports = (recent, known, old)
+    asked: list[str] = []
+
+    async def raw_log(info: ExportInfo) -> None:
+        asked.append(info.folder)
+
+    monkeypatch.setattr(coordinator, "async_raw_log", raw_log)
+    coordinator.countries.ensure_recent(dt_util.utcnow() - timedelta(days=365))
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert asked == [recent.folder]

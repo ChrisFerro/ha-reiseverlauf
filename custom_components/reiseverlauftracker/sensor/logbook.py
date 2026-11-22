@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
+from custom_components.reiseverlauftracker.const import OPEN_TOLL_PERIOD
 from custom_components.reiseverlauftracker.coordinator.download_links import ATTR_DOWNLOADS
 from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory, Logbook
 from custom_components.reiseverlauftracker.coordinator.logbook_keeper import entry_data
@@ -218,7 +219,6 @@ class ReiseverlaufLogbookSensor(SensorEntity, ReiseverlaufEntity):
 
 
 OPEN_TOLL = SensorEntityDescription(key="open_toll", translation_key="open_toll")
-OPEN_TOLL_PERIOD = timedelta(days=365)
 
 
 class ReiseverlaufOpenTollSensor(SensorEntity, ReiseverlaufEntity):

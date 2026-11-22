@@ -12,6 +12,7 @@ from custom_components.reiseverlauftracker.const import (
     EVENT_TRIP_STARTED,
     EXPORT_CHOICE_ALL,
     LOGGER,
+    OPEN_TOLL_PERIOD,
 )
 from custom_components.reiseverlauftracker.export import (
     ExportFile,
@@ -153,6 +154,8 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self._unsub_refresh = async_track_time_interval(self.hass, self._on_refresh, REFRESH_INTERVAL)
         self._unsub_links = async_track_time_interval(self.hass, self._on_renew_links, RENEW_INTERVAL)
         self._schedule_stop_check()
+        # The open toll sensor needs the countries of the trips of the last 12 months.
+        self.countries.ensure_recent(now - OPEN_TOLL_PERIOD)
         self._publish()
 
     async def async_stop(self) -> None:
