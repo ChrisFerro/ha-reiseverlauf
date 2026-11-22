@@ -331,3 +331,118 @@ fahrtenbuch_csv:
       selector:
         config_entry:
           integration: reiseverlauftracker
+
+reisekosten_eintragen:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    reise:
+      example: "2026-11-02_0715"
+      selector:
+        text:
+    datum:
+      selector:
+        date:
+    kategorie:
+      required: true
+      default: maut
+      selector:
+        select:
+          translation_key: travel_cost_category
+          options:
+            - maut
+            - vignette
+            - faehre
+            - tunnel
+            - stellplatz
+            - sonstiges
+    betrag:
+      required: true
+      example: 23.40
+      selector:
+        number:
+          min: 0.01
+          max: 100000
+          step: 0.01
+          mode: box
+    land:
+      example: AT
+      selector:
+        text:
+    notiz:
+      selector:
+        text:
+
+reisekosten_aendern:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    eintrag:
+      required: true
+      selector:
+        text:
+    reise:
+      selector:
+        text:
+    datum:
+      selector:
+        date:
+    kategorie:
+      selector:
+        select:
+          translation_key: travel_cost_category
+          options:
+            - maut
+            - vignette
+            - faehre
+            - tunnel
+            - stellplatz
+            - sonstiges
+    betrag:
+      selector:
+        number:
+          min: 0.01
+          max: 100000
+          step: 0.01
+          mode: box
+    land:
+      selector:
+        text:
+    notiz:
+      selector:
+        text:
+
+reisekosten_loeschen:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    eintrag:
+      required: true
+      selector:
+        text:
+
+keine_maut:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    reise:
+      required: true
+      example: "2026-11-02_0715"
+      selector:
+        text:
+    an:
+      default: true
+      selector:
+        boolean:

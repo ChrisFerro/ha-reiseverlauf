@@ -178,6 +178,16 @@
         "sm": "San Marino",
         "tr": "Türkiye"
       }
+    },
+    "travel_cost_category": {
+      "options": {
+        "maut": "Toll",
+        "vignette": "Vignette",
+        "faehre": "Ferry",
+        "tunnel": "Tunnel",
+        "stellplatz": "Pitch",
+        "sonstiges": "Other"
+      }
     }
   },
   "entity": {
@@ -213,6 +223,70 @@
           },
           "geschaetzt": {
             "name": "Odometer estimated"
+          }
+        }
+      },
+      "travel_cost_category": {
+        "name": "Travel cost category",
+        "state": {
+          "maut": "Toll",
+          "vignette": "Vignette",
+          "faehre": "Ferry",
+          "tunnel": "Tunnel",
+          "stellplatz": "Pitch",
+          "sonstiges": "Other"
+        }
+      },
+      "travel_cost_country": {
+        "name": "Travel cost country",
+        "state": {
+          "ad": "Andorra",
+          "al": "Albania",
+          "at": "Austria",
+          "ba": "Bosnia and Herzegovina",
+          "be": "Belgium",
+          "bg": "Bulgaria",
+          "ch": "Switzerland",
+          "cy": "Cyprus",
+          "cz": "Czechia",
+          "de": "Germany",
+          "dk": "Denmark",
+          "ee": "Estonia",
+          "es": "Spain",
+          "fi": "Finland",
+          "fr": "France",
+          "gb": "United Kingdom",
+          "gr": "Greece",
+          "hr": "Croatia",
+          "hu": "Hungary",
+          "ie": "Ireland",
+          "is": "Iceland",
+          "it": "Italy",
+          "li": "Liechtenstein",
+          "lt": "Lithuania",
+          "lu": "Luxembourg",
+          "lv": "Latvia",
+          "ma": "Morocco",
+          "mc": "Monaco",
+          "me": "Montenegro",
+          "mk": "North Macedonia",
+          "mt": "Malta",
+          "nl": "Netherlands",
+          "no": "Norway",
+          "pl": "Poland",
+          "pt": "Portugal",
+          "ro": "Romania",
+          "rs": "Serbia",
+          "se": "Sweden",
+          "si": "Slovenia",
+          "sk": "Slovakia",
+          "sm": "San Marino",
+          "tr": "Türkiye",
+          "none": "No country"
+        },
+        "state_attributes": {
+          "laender_der_reise": {
+            "name": "Countries of the trip"
           }
         }
       }
@@ -361,6 +435,9 @@
       },
       "logbook_gas_amount": {
         "name": "Logbook gas amount"
+      },
+      "travel_cost_amount": {
+        "name": "Travel cost amount"
       }
     },
     "button": {
@@ -372,11 +449,27 @@
       },
       "logbook_late": {
         "name": "Logbook late entry"
+      },
+      "travel_cost_save": {
+        "name": "Save travel cost"
+      },
+      "no_toll": {
+        "name": "No toll"
       }
     },
     "datetime": {
       "logbook_late_time": {
         "name": "Logbook late entry time"
+      }
+    },
+    "text": {
+      "travel_cost_note": {
+        "name": "Travel cost note"
+      }
+    },
+    "date": {
+      "travel_cost_date": {
+        "name": "Travel cost date"
       }
     }
   },
@@ -616,6 +709,110 @@
           "description": "Amount paid for the gas."
         }
       }
+    },
+    "reisekosten_eintragen": {
+      "name": "Add travel cost",
+      "description": "Adds a travel cost such as toll, vignette, ferry, tunnel or pitch for a trip, or for a day without a trip. Toll is entered per trip and country.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "reise": {
+          "name": "Trip",
+          "description": "Export folder, export selection entry or start time of the trip. Leave empty for costs without a trip, e.g. a pitch during a stay."
+        },
+        "datum": {
+          "name": "Date",
+          "description": "Day in whose month the cost counts. Defaults to the trip start; needed without a trip."
+        },
+        "kategorie": {
+          "name": "Category",
+          "description": "Kind of cost."
+        },
+        "betrag": {
+          "name": "Amount",
+          "description": "Amount paid, in the currency of the instance."
+        },
+        "land": {
+          "name": "Country",
+          "description": "ISO 3166-1 country code, e.g. AT for Austria."
+        },
+        "notiz": {
+          "name": "Note",
+          "description": "Free text, e.g. the name of the ferry or pitch."
+        }
+      }
+    },
+    "reisekosten_aendern": {
+      "name": "Change travel cost",
+      "description": "Changes a travel cost. Only the given fields change; an empty country or note removes it.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "eintrag": {
+          "name": "Entry",
+          "description": "ID of the entry from the \"reisekosten\" attribute of the export selection."
+        },
+        "reise": {
+          "name": "Trip",
+          "description": "New trip: folder, export selection entry or start time."
+        },
+        "datum": {
+          "name": "Date",
+          "description": "New date."
+        },
+        "kategorie": {
+          "name": "Category",
+          "description": "New kind of cost."
+        },
+        "betrag": {
+          "name": "Amount",
+          "description": "New amount."
+        },
+        "land": {
+          "name": "Country",
+          "description": "New country code."
+        },
+        "notiz": {
+          "name": "Note",
+          "description": "New note."
+        }
+      }
+    },
+    "reisekosten_loeschen": {
+      "name": "Delete travel cost",
+      "description": "Deletes a travel cost.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "eintrag": {
+          "name": "Entry",
+          "description": "ID of the entry from the \"reisekosten\" attribute of the export selection."
+        }
+      }
+    },
+    "keine_maut": {
+      "name": "No toll",
+      "description": "Marks a trip as having no toll (e.g. country roads only), so no reminder of missing toll is sent.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "reise": {
+          "name": "Trip",
+          "description": "Export folder, export selection entry or start time of the trip."
+        },
+        "an": {
+          "name": "No toll",
+          "description": "Off removes the mark again."
+        }
+      }
     }
   },
   "exceptions": {
@@ -672,6 +869,24 @@
     },
     "late_odometer_required": {
       "message": "The distance at that time is unknown. Please give the odometer reading."
+    },
+    "unknown_trip": {
+      "message": "No trip \"{trip}\" found. Give a folder, an export selection entry or the start time."
+    },
+    "travel_cost_needs_day": {
+      "message": "Please give a trip or a date."
+    },
+    "invalid_travel_cost": {
+      "message": "The amount must be above 0 and the country a two-letter code (e.g. AT)."
+    },
+    "unknown_travel_cost": {
+      "message": "No travel cost with the ID {entry}."
+    },
+    "travel_cost_without_amount": {
+      "message": "Please enter an amount."
+    },
+    "travel_cost_without_trip": {
+      "message": "Please choose a trip in the export selection."
     }
   }
 }

@@ -29,6 +29,10 @@ class CountryFinder:
         self.coordinator = coordinator
         self._tried: set[str] = set()
 
+    def expect(self, folder: str) -> None:
+        """Note that the countries of `folder` are about to be looked up, so `ensure` does not ask twice."""
+        self._tried.add(folder)
+
     def ensure(self, info: ExportInfo) -> None:
         """Start looking up the countries of an export that has none yet, once per export and run."""
         coordinator = self.coordinator

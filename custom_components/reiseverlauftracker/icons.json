@@ -31,6 +31,20 @@
       },
       "logbook_time": {
         "default": "mdi:clock-edit-outline"
+      },
+      "travel_cost_category": {
+        "default": "mdi:tag-outline",
+        "state": {
+          "maut": "mdi:boom-gate",
+          "vignette": "mdi:sticker-outline",
+          "faehre": "mdi:ferry",
+          "tunnel": "mdi:tunnel",
+          "stellplatz": "mdi:caravan",
+          "sonstiges": "mdi:cash"
+        }
+      },
+      "travel_cost_country": {
+        "default": "mdi:earth"
       }
     },
     "sensor": {
@@ -130,6 +144,9 @@
       },
       "logbook_gas_amount": {
         "default": "mdi:cash"
+      },
+      "travel_cost_amount": {
+        "default": "mdi:cash-multiple"
       }
     },
     "button": {
@@ -141,11 +158,27 @@
       },
       "logbook_late": {
         "default": "mdi:notebook-clock"
+      },
+      "travel_cost_save": {
+        "default": "mdi:cash-plus"
+      },
+      "no_toll": {
+        "default": "mdi:boom-gate-outline"
       }
     },
     "datetime": {
       "logbook_late_time": {
         "default": "mdi:calendar-clock"
+      }
+    },
+    "text": {
+      "travel_cost_note": {
+        "default": "mdi:note-text-outline"
+      }
+    },
+    "date": {
+      "travel_cost_date": {
+        "default": "mdi:calendar"
       }
     }
   },
@@ -179,6 +212,18 @@
     },
     "fahrtenbuch_nachtragen": {
       "service": "mdi:notebook-clock"
+    },
+    "reisekosten_eintragen": {
+      "service": "mdi:cash-plus"
+    },
+    "reisekosten_aendern": {
+      "service": "mdi:cash-edit"
+    },
+    "reisekosten_loeschen": {
+      "service": "mdi:cash-remove"
+    },
+    "keine_maut": {
+      "service": "mdi:boom-gate-outline"
     }
   }
 }

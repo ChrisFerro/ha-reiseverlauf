@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 import probatio
 
 from custom_components.reiseverlauftracker.const import DOMAIN
+from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory
 from custom_components.reiseverlauftracker.export import ExportFile
 from homeassistant.core import SupportsResponse
 from homeassistant.helpers import config_validation as cv
@@ -40,6 +41,20 @@ from .logbook import (
     async_handle_save_form,
     async_handle_update,
 )
+from .travel_costs import (
+    ATTR_AMOUNT,
+    ATTR_CATEGORY,
+    ATTR_COST,
+    ATTR_COUNTRY,
+    ATTR_DAY,
+    ATTR_NOTE,
+    ATTR_ON,
+    ATTR_TRIP,
+    async_handle_add as async_handle_cost_add,
+    async_handle_no_toll,
+    async_handle_remove as async_handle_cost_remove,
+    async_handle_update as async_handle_cost_update,
+)
 from .trip import async_handle_end_trip, async_handle_start_trip
 
 if TYPE_CHECKING:
@@ -55,6 +70,10 @@ SERVICE_LOGBOOK_REMOVE = "fahrtenbuch_loeschen"
 SERVICE_LOGBOOK_CSV = "fahrtenbuch_csv"
 SERVICE_LOGBOOK_SAVE_FORM = "fahrtenbuch_speichern"
 SERVICE_LOGBOOK_LATE = "fahrtenbuch_nachtragen"
+SERVICE_COST_ADD = "reisekosten_eintragen"
+SERVICE_COST_UPDATE = "reisekosten_aendern"
+SERVICE_COST_REMOVE = "reisekosten_loeschen"
+SERVICE_NO_TOLL = "keine_maut"
 
 ENTRY_SCHEMA = probatio.Schema({probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string})
 
@@ -108,6 +127,33 @@ LOGBOOK_LATE_SCHEMA = ENTRY_SCHEMA.extend(
     }
 )
 
+COST_AMOUNT = probatio.All(probatio.Coerce(float), probatio.Range(min=0.01, max=100_000))
+COST_CATEGORIES = probatio.In([category.value for category in CostCategory])
+COST_ADD_SCHEMA = ENTRY_SCHEMA.extend(
+    {
+        probatio.Optional(ATTR_DAY): cv.date,
+        probatio.Optional(ATTR_TRIP): cv.string,
+        probatio.Required(ATTR_CATEGORY): COST_CATEGORIES,
+        probatio.Required(ATTR_AMOUNT): COST_AMOUNT,
+        probatio.Optional(ATTR_COUNTRY): cv.string,
+        probatio.Optional(ATTR_NOTE): cv.string,
+    }
+)
+COST_ENTRY_SCHEMA = ENTRY_SCHEMA.extend({probatio.Required(ATTR_COST): cv.string})
+COST_UPDATE_SCHEMA = COST_ENTRY_SCHEMA.extend(
+    {
+        probatio.Optional(ATTR_DAY): cv.date,
+        probatio.Optional(ATTR_TRIP): probatio.Any(None, cv.string),
+        probatio.Optional(ATTR_CATEGORY): COST_CATEGORIES,
+        probatio.Optional(ATTR_AMOUNT): COST_AMOUNT,
+        probatio.Optional(ATTR_COUNTRY): probatio.Any(None, cv.string),
+        probatio.Optional(ATTR_NOTE): cv.string,
+    }
+)
+NO_TOLL_SCHEMA = ENTRY_SCHEMA.extend(
+    {probatio.Required(ATTR_TRIP): cv.string, probatio.Optional(ATTR_ON, default=True): cv.boolean}
+)
+
 
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register the service actions of the integration once, at component level."""
@@ -142,6 +188,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_logbook_late(call: ServiceCall) -> ServiceResponse:
         return await async_handle_late(hass, call)
 
+    async def handle_cost_add(call: ServiceCall) -> ServiceResponse:
+        return await async_handle_cost_add(hass, call)
+
+    async def handle_cost_update(call: ServiceCall) -> ServiceResponse:
+        return await async_handle_cost_update(hass, call)
+
+    async def handle_cost_remove(call: ServiceCall) -> None:
+        await async_handle_cost_remove(hass, call)
+
+    async def handle_no_toll(call: ServiceCall) -> None:
+        await async_handle_no_toll(hass, call)
+
     actions: tuple[tuple[str, Any, probatio.Schema, SupportsResponse], ...] = (
         (SERVICE_EXPORT, handle_export, EXPORT_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_CLEANUP, handle_cleanup, CLEANUP_SCHEMA, SupportsResponse.OPTIONAL),
@@ -153,6 +211,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         (SERVICE_LOGBOOK_REMOVE, handle_logbook_remove, LOGBOOK_ENTRY_SCHEMA, SupportsResponse.NONE),
         (SERVICE_LOGBOOK_CSV, handle_logbook_csv, ENTRY_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_LOGBOOK_LATE, handle_logbook_late, LOGBOOK_LATE_SCHEMA, SupportsResponse.OPTIONAL),
+        (SERVICE_COST_ADD, handle_cost_add, COST_ADD_SCHEMA, SupportsResponse.OPTIONAL),
+        (SERVICE_COST_UPDATE, handle_cost_update, COST_UPDATE_SCHEMA, SupportsResponse.OPTIONAL),
+        (SERVICE_COST_REMOVE, handle_cost_remove, COST_ENTRY_SCHEMA, SupportsResponse.NONE),
+        (SERVICE_NO_TOLL, handle_no_toll, NO_TOLL_SCHEMA, SupportsResponse.NONE),
     )
     for name, handler, schema, supports_response in actions:
         if not hass.services.has_service(DOMAIN, name):

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.select import SelectEntityDescription
 
+from .cost_choice import ReiseverlaufCostCategory, ReiseverlaufCostCountry
 from .export_choice import ReiseverlaufExportChoice
 from .logbook_time import ReiseverlaufLogbookTime
 
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
 
 EXPORT_CHOICE = SelectEntityDescription(key="export_choice", translation_key="export_choice")
 LOGBOOK_TIME = SelectEntityDescription(key="logbook_time", translation_key="logbook_time")
+COST_CATEGORY = SelectEntityDescription(key="travel_cost_category", translation_key="travel_cost_category")
+COST_COUNTRY = SelectEntityDescription(key="travel_cost_country", translation_key="travel_cost_country")
 
 
 async def async_setup_entry(
@@ -26,5 +29,10 @@ async def async_setup_entry(
     """Set up the select platform."""
     coordinator = entry.runtime_data.coordinator
     async_add_entities(
-        [ReiseverlaufExportChoice(coordinator, EXPORT_CHOICE), ReiseverlaufLogbookTime(coordinator, LOGBOOK_TIME)]
+        [
+            ReiseverlaufExportChoice(coordinator, EXPORT_CHOICE),
+            ReiseverlaufLogbookTime(coordinator, LOGBOOK_TIME),
+            ReiseverlaufCostCategory(coordinator, COST_CATEGORY),
+            ReiseverlaufCostCountry(coordinator, COST_COUNTRY),
+        ]
     )

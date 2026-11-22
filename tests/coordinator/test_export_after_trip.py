@@ -1,5 +1,6 @@
 """Tests for the export that runs when a trip ends."""
 
+from dataclasses import replace
 from datetime import timedelta
 import json
 from pathlib import Path
@@ -351,16 +352,15 @@ async def test_countries_of_an_older_export_are_looked_up_once_when_needed(
     metadata = json.loads(path.read_text())
     metadata.pop("countries")
     path.write_text(json.dumps(metadata))
-    await coordinator.async_refresh_exports()
-    assert coordinator.exports[0].countries is None
 
-    with patch(
-        "custom_components.reiseverlauftracker.coordinator.country_finder.async_country", return_value="FR"
-    ) as lookup:
-        coordinator.countries.ensure(coordinator.exports[0])
-        coordinator.countries.ensure(coordinator.exports[0])
+    # After a restart, the country selection of the travel costs form asks for the countries of the chosen trip.
+    assert await hass.config_entries.async_reload(config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    coordinator = config_entry.runtime_data.coordinator
+
+    assert coordinator.exports[0].countries == ("DE",)
+    assert json.loads(path.read_text())["countries"] == ["DE"]
+    with patch("custom_components.reiseverlauftracker.coordinator.country_finder.async_country") as lookup:
+        coordinator.countries.ensure(replace(coordinator.exports[0], countries=None))
         await hass.async_block_till_done(wait_background_tasks=True)
-
-    assert coordinator.exports[0].countries == ("FR",)
-    assert lookup.call_count == 2
-    assert json.loads(path.read_text())["countries"] == ["FR"]
+    lookup.assert_not_called()

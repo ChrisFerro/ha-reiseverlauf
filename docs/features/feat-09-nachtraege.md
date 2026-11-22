@@ -221,19 +221,25 @@ Stand: 20.11.2026, an die Entscheidungen 5.1–5.11 angepasst.
   `kategorie` (`maut`, `vignette`, `faehre`, `tunnel`, `stellplatz`, `sonstiges`), `betrag`, optional `land`
   (ISO-Code, z. B. `AT`) und `notiz`, `erfasst` (Zeitpunkt der Eingabe). Je Reise zusätzlich das Kennzeichen
   `keine_maut` (5.9).
-- **Länder der Reise:** Beim Export ermittelt die Integration die Länder aus den Halten und aus Spurpunkten etwa alle
-  20 km (Nominatim mit niedrigem Zoom, Abstand 1 s, im Hintergrund) und speichert sie in `export.json` (`laender`).
-  Für ältere Exporte wird das beim ersten Öffnen im Formular nachgeholt.
+- **Länder der Reise:** Nach dem Export ermittelt die Integration die Länder aus Start, Halten, Ende und Spurpunkten
+  etwa alle 20 km (Punkte unter 1 km Abstand entfallen; Nominatim mit `zoom=3`, Abstand 1 s, im Hintergrund, nur
+  mit eingeschalteten Ortsnamen) und speichert sie in `export.json` (`countries`, ISO-Codes in Reihenfolge).
+  Für ältere Exporte wird das nachgeholt, sobald die Reise im Formular gewählt ist (einmal je Start von HA).
 - **Formular:** Reise über die vorhandene `select.…_export_auswahl`; dazu `select.…_reisekosten_kategorie`,
-  `select.…_reisekosten_land` (Länder der Reise zuerst, dann die Mautländer der Einstellung, „ohne Land“),
-  `number.…_reisekosten_betrag`, `text.…_reisekosten_notiz`, Knöpfe `button.…_reisekosten_speichern` und
-  `button.…_keine_maut`. Das Attribut `reisekosten` an der Export-Auswahl listet die Einträge der gewählten Reise
-  (mit `id`) und die Summe je Kategorie.
+  `select.…_reisekosten_land` (Länder der Reise zuerst, dann die Mautländer der Einstellung, „ohne Land“; Standard
+  ist das erste Mautland der Reise), `number.…_reisekosten_betrag`, `text.…_reisekosten_notiz`,
+  `date.…_reisekosten_datum`, Knöpfe `button.…_reisekosten_speichern` und `button.…_keine_maut` (schaltet um).
+  Nach dem Speichern werden Betrag und Notiz geleert, Kategorie und Land bleiben (nächstes Land schnell
+  eingetragen). Das Attribut `reisekosten` an der Export-Auswahl listet die Einträge der gewählten Reise (mit `id`),
+  die Summe je Kategorie (`summen`) und gesamt (`summe`), `laender` und `keine_maut`.
+- **Datum im Formular** (entschieden 22.11.2026): `date.…_reisekosten_datum` springt bei Wahl einer Reise auf
+  deren Beginn (Ortszeit) und ist änderbar. Steht die Export-Auswahl auf „Alle Exporte“, wird die Position ohne
+  Reise mit diesem Datum gespeichert.
 - **Dienste:** `reisekosten_eintragen` (`datum`, `reise` als Startzeit oder Ordner, beide optional, aber eines nötig;
   `kategorie`, `betrag`, `land`, `notiz`),
   `reisekosten_aendern` (`eintrag`, Felder), `reisekosten_loeschen` (`eintrag`), `keine_maut` (`reise`, an/aus).
-- **CSV:** eigene Datei `reisekosten.csv` im Ausgabeordner (eine Zeile je Eintrag: Reise, Titel, Kategorie, Land,
-  Betrag, Notiz), Format wie `fahrtenbuch.csv`, neu geschrieben nach jeder Änderung, im geschützten Download
+- **CSV:** eigene Datei `reisekosten.csv` im Ausgabeordner (eine Zeile je Eintrag: Datum, Reise, Titel, Kategorie,
+  Land, Betrag, Notiz), Format wie `fahrtenbuch.csv`, neu geschrieben nach jeder Änderung, im geschützten Download
   ([Downloads](feat-07-downloads.md)); `aufraeumen` lässt sie in Ruhe.
 
 - **Zusammenhang mit [Tour](feat-10-tour.md) 5.4:** Kosten zwischen zwei Reisen (z. B. Stellplatz einer Woche)
@@ -258,9 +264,9 @@ Stand: 20.11.2026, an die Entscheidungen 5.1–5.11 angepasst.
   `…_tank_und_gaskosten_monat`/`_jahr` werden beim Start aus der Entitätsregistrierung entfernt.
 - **`sensor.…_maut_offen` (5.9):** Anzahl der fertigen Reisen der letzten 12 Monate mit mindestens einem Mautland,
   ohne Maut-Eintrag und ohne `keine_maut`; Attribut `reisen` (Titel, Start, Länder, Ordner).
-- **Einstellung „Mautländer“** im Options-Flow (Ländercodes, Mehrfachauswahl). Vorschlag für den Standard: Länder
-  mit streckenabhängiger Maut für Wohnmobile über 3,5 t, z. B. `AT`, `BE`, `CH`, `CZ`, `ES`, `FR`, `HR`, `IT`,
-  `PL`, `PT`, `SI`; bei der Umsetzung prüfen.
+- **Einstellung „Mautländer“** im Options-Flow (Abschnitt Fahrtenbuch, Mehrfachauswahl; umgesetzt in Teilschritt 4).
+  Standard: `AT`, `BE`, `CH`, `CZ`, `ES`, `FR`, `HR`, `HU`, `IT`, `NO`, `PL`, `PT`, `SI`, `SK` (streckenabhängige
+  Maut oder Gebühr für Wohnmobile über 3,5 t; nicht `DE`, Wohnmobile sind von der Lkw-Maut befreit).
 - **Blueprint:** Der Fahrtenbuch-Blueprint bekommt eine abschaltbare Monats-Erinnerung (am 1. des Monats, wenn
   `maut_offen` über 0), Tippen öffnet die Dashboard-Ansicht mit dem Reisekosten-Formular.
 
@@ -282,6 +288,7 @@ Jeder Schritt mit Tests, grünem `script/check` und einem Prüfpunkt in der Entw
 3. Tankstopp nachtragen: Auswahl, Knopf, Dienst, Übersetzungen. Prüfpunkt: Tankstopp einer vergangenen Reise
    nachtragen, Ø-Verbrauch und Kilometerstand stimmen. – umgesetzt 22.11.2026
 4. Reisekosten: Länder der Reise, Formular, Dienste, CSV. Prüfpunkt: Maut für zwei Länder eintragen.
+   – umgesetzt 22.11.2026
 5. Export aktualisieren (6.4). Prüfpunkt: Statistik und Gesamtbild zeigen die nachgetragenen Kosten.
 6. Kostensensoren ersetzen und Erinnerung (6.5), Blueprint, README (deutsch/englisch), Release-Notes für den
    Breaking Change. Danach (nach Freigabe) Dashboard des Nutzers anpassen.

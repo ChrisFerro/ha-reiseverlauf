@@ -37,6 +37,7 @@ from homeassistant.loader import async_get_loaded_integration
 from homeassistant.util import dt as dt_util
 
 from . import export_runner
+from .cost_form import TravelCostForm
 from .country_finder import CountryFinder
 from .download_links import RENEW_INTERVAL, DownloadLinks
 from .export_runner import NOMINATIM_INTERVAL_S, async_export, event_data, media_base
@@ -108,6 +109,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.export_choice: str | None = None
         self.late_form = LateEntryForm(self)
         self.countries = CountryFinder(self)
+        self.cost_form = TravelCostForm(self)
 
     async def async_start(self) -> None:
         """Restore detector, trip log and logbook, reconcile with the current D+ state and subscribe."""
@@ -509,6 +511,8 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 self._publish()
         if self.settings.place_names:
             info = self.last_export if self.last_export and self.last_export.start == trip_event.start else None
+            if info is not None:
+                self.countries.expect(info.folder)
             self.config_entry.async_create_background_task(
                 self.hass, self._async_after_export(trip_event.start, info, raw), "reiseverlauftracker trip places"
             )
