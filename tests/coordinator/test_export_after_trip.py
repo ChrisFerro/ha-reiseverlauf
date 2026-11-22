@@ -320,3 +320,47 @@ async def test_old_stops_are_pruned_at_start(
     await hass.async_block_till_done()
 
     assert config_entry.runtime_data.coordinator.logbook.logbook.stops == []
+
+
+async def test_countries_of_the_trip_are_looked_up_after_the_export(
+    hass: HomeAssistant, config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory, media_dir: Path
+) -> None:
+    coordinator = await setup(hass, config_entry)
+    await drive(hass, freezer, 0, 10_000)
+    await advance(hass, freezer, timedelta(minutes=60))
+    await advance(hass, freezer, timedelta(seconds=5))
+
+    info = coordinator.data.last_export
+    assert info is not None
+    assert info.countries == ("DE", "AT")
+    assert coordinator.exports[0].countries == ("DE", "AT")
+    metadata = json.loads((media_dir / "reiseverlauf" / info.folder / "export.json").read_text())
+    assert metadata["countries"] == ["DE", "AT"]
+
+
+async def test_countries_of_an_older_export_are_looked_up_once_when_needed(
+    hass: HomeAssistant, config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory, media_dir: Path
+) -> None:
+    coordinator = await setup(hass, config_entry)
+    await drive(hass, freezer, 0, 5000)
+    await advance(hass, freezer, timedelta(minutes=60))
+    await advance(hass, freezer, timedelta(seconds=5))
+    info = coordinator.data.last_export
+    assert info is not None
+    path = media_dir / "reiseverlauf" / info.folder / "export.json"
+    metadata = json.loads(path.read_text())
+    metadata.pop("countries")
+    path.write_text(json.dumps(metadata))
+    await coordinator.async_refresh_exports()
+    assert coordinator.exports[0].countries is None
+
+    with patch(
+        "custom_components.reiseverlauftracker.coordinator.country_finder.async_country", return_value="FR"
+    ) as lookup:
+        coordinator.countries.ensure(coordinator.exports[0])
+        coordinator.countries.ensure(coordinator.exports[0])
+        await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert coordinator.exports[0].countries == ("FR",)
+    assert lookup.call_count == 2
+    assert json.loads(path.read_text())["countries"] == ["FR"]

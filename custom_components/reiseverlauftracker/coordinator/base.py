@@ -36,9 +36,11 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.loader import async_get_loaded_integration
 from homeassistant.util import dt as dt_util
 
+from . import export_runner
+from .country_finder import CountryFinder
 from .download_links import RENEW_INTERVAL, DownloadLinks
 from .export_runner import NOMINATIM_INTERVAL_S, async_export, event_data, media_base
-from .exports import ExportInfo, list_exports, remove_files
+from .exports import ExportInfo, list_exports, read_raw, remove_files, set_countries
 from .late_form import LateEntryForm
 from .logbook import LogbookEntry, Occasion
 from .logbook_keeper import EntryContext, LogbookKeeper
@@ -100,6 +102,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.exports: tuple[ExportInfo, ...] = ()
         self.export_choice: str | None = None
         self.late_form = LateEntryForm(self)
+        self.countries = CountryFinder(self)
 
     async def async_start(self) -> None:
         """Restore detector, trip log and logbook, reconcile with the current D+ state and subscribe."""
@@ -241,6 +244,29 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
     async def _async_load_exports(self) -> None:
         exports = await self.hass.async_add_executor_job(list_exports, media_base(self.hass, self.settings))
         self.exports = tuple(exports)
+
+    async def async_raw_log(self, info: ExportInfo) -> TripLog | None:
+        """Return the track of an export from its raw data, or None without readable raw data."""
+        raw = await self.hass.async_add_executor_job(read_raw, media_base(self.hass, self.settings), info)
+        if raw is None:
+            return None
+        try:
+            return TripLog.from_dict(raw, self.log_settings())
+        except KeyError, ValueError, TypeError:
+            LOGGER.warning("Raw data of the export %s is unreadable", info.folder)
+            return None
+
+    async def async_store_countries(self, folder: str, countries: tuple[str, ...]) -> None:
+        """Store the countries of an export in its metadata, never while an export writes it."""
+        base = media_base(self.hass, self.settings)
+        async with self._export_lock:
+            info = await self.hass.async_add_executor_job(set_countries, base, folder, countries)
+        if info is None:
+            return
+        self.exports = tuple(info if i.folder == info.folder else i for i in self.exports)
+        if self.last_export is not None and self.last_export.folder == info.folder:
+            self.last_export = info
+        self._publish()
 
     async def async_logbook_context(self) -> EntryContext:
         """Return trip and position for a manual logbook entry; the place is looked up like a stop's."""
@@ -473,9 +499,17 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 self._exporting = False
                 self._publish()
         if self.settings.place_names:
+            info = self.last_export if self.last_export and self.last_export.start == trip_event.start else None
             self.config_entry.async_create_background_task(
-                self.hass, self._async_name_stops(trip_event.start), "reiseverlauftracker stop places"
+                self.hass, self._async_after_export(trip_event.start, info, raw), "reiseverlauftracker trip places"
             )
+
+    async def _async_after_export(self, trip_start: datetime, info: ExportInfo | None, raw: dict[str, Any]) -> None:
+        """Name the trip's stops, then find its countries; one after the other, so Nominatim sees one request a second."""
+        await self._async_name_stops(trip_start)
+        if info is not None:
+            await asyncio.sleep(export_runner.NOMINATIM_INTERVAL_S)
+            await self.countries.async_find(info.folder, TripLog.from_dict(raw, self.log_settings()))
 
     async def _async_name_stops(self, trip_start: datetime) -> None:
         """Look up the places of the trip's stops that have none yet, mostly short ones, one per second."""

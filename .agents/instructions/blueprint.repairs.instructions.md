@@ -119,6 +119,7 @@ return ConfirmRepairFlow()
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.components.repairs.models import RepairsFlowResult
 
+
 class MyRepairFlow(RepairsFlow):
     async def async_step_init(self, user_input=None) -> RepairsFlowResult:
         if user_input is not None:

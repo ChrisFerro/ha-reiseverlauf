@@ -8,20 +8,11 @@ the export that contains it (docs/features/feat-09-nachtraege.md 6.2).
 
 from dataclasses import replace
 from datetime import datetime
-import json
-from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from custom_components.reiseverlauftracker.const import (
-    EXPORT_CHOICE_ALL,
-    LATE_CHOICE_CURRENT,
-    LATE_CHOICE_OTHER,
-    LOGGER,
-)
-from custom_components.reiseverlauftracker.export import ExportFile
+from custom_components.reiseverlauftracker.const import EXPORT_CHOICE_ALL, LATE_CHOICE_CURRENT, LATE_CHOICE_OTHER
 from homeassistant.util import dt as dt_util
 
-from .export_runner import media_base
 from .late_entry import (
     LatePoint,
     TripSpan,
@@ -164,21 +155,4 @@ class LateEntryForm:
         if (log := coordinator.log) is not None and log.start == span.start:
             return log
         info = next((i for i in coordinator.exports if i.folder == span.folder), None)
-        if info is None or ExportFile.RAW not in info.files:
-            return None
-        path = media_base(coordinator.hass, coordinator.settings) / info.folder / info.files[ExportFile.RAW]
-        raw = await coordinator.hass.async_add_executor_job(_read_json, path)
-        if raw is None:
-            return None
-        try:
-            return TripLog.from_dict(raw, coordinator.log_settings())
-        except KeyError, ValueError, TypeError:
-            LOGGER.warning("Raw data of the export %s is unreadable", info.folder)
-            return None
-
-
-def _read_json(path: Path) -> dict[str, Any] | None:
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except OSError, ValueError:
-        return None
+        return await coordinator.async_raw_log(info) if info is not None else None

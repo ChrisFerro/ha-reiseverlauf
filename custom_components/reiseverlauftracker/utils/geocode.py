@@ -7,6 +7,9 @@ from aiohttp import ClientError, ClientSession
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
 REQUEST_TIMEOUT_S = 10
+PLACE_ZOOM = 14
+# Zoom 3 asks for the country only, which keeps the response small.
+COUNTRY_ZOOM = 3
 PLACE_KEYS = ("city", "town", "village", "municipality", "hamlet", "suburb", "county")
 
 
@@ -22,16 +25,34 @@ async def async_reverse_geocode(
 
     Any network or format problem yields None, because the title then falls back to the date.
     """
-    params = {"format": "jsonv2", "lat": f"{lat:.5f}", "lon": f"{lon:.5f}", "zoom": "14", "addressdetails": "1"}
+    return place_name(await _async_reverse(session, lat, lon, PLACE_ZOOM, language, user_agent))
+
+
+async def async_reverse_country(session: ClientSession, lat: float, lon: float, user_agent: str) -> str | None:
+    """Return the ISO 3166-1 alpha-2 code of the country at a coordinate, or None (e.g. at sea or on errors)."""
+    return country_code(await _async_reverse(session, lat, lon, COUNTRY_ZOOM, "en", user_agent))
+
+
+async def _async_reverse(
+    session: ClientSession, lat: float, lon: float, zoom: int, language: str, user_agent: str
+) -> Any:
+    params = {"format": "jsonv2", "lat": f"{lat:.5f}", "lon": f"{lon:.5f}", "zoom": str(zoom), "addressdetails": "1"}
     headers = {"User-Agent": user_agent, "Accept-Language": language}
     try:
         async with asyncio.timeout(REQUEST_TIMEOUT_S):
             response = await session.get(NOMINATIM_URL, params=params, headers=headers)
             response.raise_for_status()
-            data: Any = await response.json()
+            return await response.json()
     except ClientError, TimeoutError, ValueError:
         return None
-    return place_name(data)
+
+
+def country_code(data: Any) -> str | None:
+    """Return the upper-case country code of a Nominatim reverse response."""
+    if not isinstance(data, dict) or not isinstance(address := data.get("address"), dict):
+        return None
+    code = address.get("country_code")
+    return code.upper() if isinstance(code, str) and len(code) == 2 and code.isalpha() else None
 
 
 def place_name(data: Any) -> str | None:

@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 from custom_components.reiseverlauftracker.const import DOMAIN
-from custom_components.reiseverlauftracker.utils.geocode import async_reverse_geocode
+from custom_components.reiseverlauftracker.utils.geocode import async_reverse_country, async_reverse_geocode
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
 
@@ -25,7 +25,16 @@ async def async_place_name(
     """Return the place name at a position, or None when lookups are off or fail."""
     if not settings.place_names or lat is None or lon is None:
         return None
+    return await async_reverse_geocode(async_get_clientsession(hass), lat, lon, hass.config.language, _agent(hass))
+
+
+async def async_country(hass: HomeAssistant, settings: ReiseverlaufSettings, lat: float, lon: float) -> str | None:
+    """Return the country code at a position, or None when lookups are off or fail."""
+    if not settings.place_names:
+        return None
+    return await async_reverse_country(async_get_clientsession(hass), lat, lon, _agent(hass))
+
+
+def _agent(hass: HomeAssistant) -> str:
     version = async_get_loaded_integration(hass, DOMAIN).version
-    return await async_reverse_geocode(
-        async_get_clientsession(hass), lat, lon, hass.config.language, user_agent(str(version) if version else None)
-    )
+    return user_agent(str(version) if version else None)

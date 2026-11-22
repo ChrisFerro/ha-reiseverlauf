@@ -12,6 +12,7 @@ from custom_components.reiseverlauftracker.coordinator.exports import (
     list_exports,
     read_export,
     remove_files,
+    set_countries,
     write_metadata,
 )
 from custom_components.reiseverlauftracker.coordinator.trip_log import TrackCounters
@@ -71,6 +72,17 @@ def test_metadata_round_trip_with_start_counters(tmp_path: Path) -> None:
     write_metadata(tmp_path, info)
 
     assert read_export(tmp_path, "a") == info
+
+
+def test_countries_are_stored_in_the_metadata(tmp_path: Path) -> None:
+    info = make_export(tmp_path, "a", datetime(2026, 10, 1, tzinfo=UTC))
+    assert info.countries is None
+
+    changed = set_countries(tmp_path, "a", ("DE", "AT"))
+
+    assert changed == replace(info, countries=("DE", "AT"))
+    assert read_export(tmp_path, "a") == changed
+    assert set_countries(tmp_path, "missing", ("DE",)) is None
 
 
 def test_list_exports_newest_first_and_skips_foreign_folders(tmp_path: Path) -> None:
