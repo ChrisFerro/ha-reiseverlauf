@@ -112,6 +112,7 @@ class LogbookKeeper:
         csv_folder: Path,
         on_change: Callable[[], None] = lambda: None,
         trip_titles: Callable[[], dict[datetime, str]] = dict,
+        on_trip_changed: Callable[[datetime], None] = lambda _start: None,
     ) -> None:
         """Create an empty keeper; `async_load()` restores the stored logbook."""
         self.hass = hass
@@ -126,6 +127,7 @@ class LogbookKeeper:
         self._current_draft: Draft | None = None
         self._on_change = on_change
         self._trip_titles = trip_titles
+        self._on_trip_changed = on_trip_changed
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}.logbook")
 
     @property
@@ -397,6 +399,7 @@ class LogbookKeeper:
         self.select_late(None)
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
+        self._trip_changed(entry.trip_start)
         return entry
 
     async def async_add_late(
@@ -436,6 +439,7 @@ class LogbookKeeper:
         entry = self._store_late(point, **values)
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
+        self._trip_changed(entry.trip_start)
         return entry
 
     def _store_late(self, point: LatePoint, **values: Any) -> LogbookEntry:
@@ -487,6 +491,7 @@ class LogbookKeeper:
         )
         self.discard()
         await self._async_refresh_csv()
+        self._trip_changed(entry.trip_start)
         return entry
 
     async def async_add(self, entry_kwargs: dict[str, Any], context: EntryContext) -> LogbookEntry:
@@ -509,6 +514,7 @@ class LogbookKeeper:
         )
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
+        self._trip_changed(entry.trip_start)
         return entry
 
     async def async_update(self, entry_id: str, changes: dict[str, Any]) -> LogbookEntry:
@@ -522,7 +528,9 @@ class LogbookKeeper:
             KeyError: No entry has `entry_id`.
 
         """
+        before = self.logbook.get(entry_id)
         entry = self.logbook.update(entry_id, **changes)
+        self._trip_changed(before.trip_start if before else None, entry.trip_start)
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
         return entry
@@ -535,7 +543,9 @@ class LogbookKeeper:
             KeyError: No entry has `entry_id`.
 
         """
+        entry = self.logbook.get(entry_id)
         self.logbook.remove(entry_id)
+        self._trip_changed(entry.trip_start if entry else None)
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
 
@@ -563,6 +573,7 @@ class LogbookKeeper:
             day, category, amount, trip_start=trip_start, country=country, note=note, recorded=dt_util.utcnow()
         )
         await self._async_travel_costs_changed()
+        self._trip_changed(cost.trip_start)
         return cost
 
     async def async_update_travel_cost(self, cost_id: str, changes: dict[str, Any]) -> TravelCost:
@@ -577,8 +588,10 @@ class LogbookKeeper:
             ValueError: The changed amount or country is invalid.
 
         """
+        before = self.logbook.get_travel_cost(cost_id)
         cost = self.logbook.update_travel_cost(cost_id, **changes)
         await self._async_travel_costs_changed()
+        self._trip_changed(before.trip_start if before else None, cost.trip_start)
         return cost
 
     async def async_remove_travel_cost(self, cost_id: str) -> None:
@@ -589,8 +602,10 @@ class LogbookKeeper:
             KeyError: No cost has `cost_id`.
 
         """
+        cost = self.logbook.get_travel_cost(cost_id)
         self.logbook.remove_travel_cost(cost_id)
         await self._async_travel_costs_changed()
+        self._trip_changed(cost.trip_start if cost else None)
 
     async def async_set_no_toll(self, trip_start: datetime, no_toll: bool) -> None:
         """Mark a trip as having no toll, or remove the mark."""
@@ -654,6 +669,12 @@ class LogbookKeeper:
             self._current_draft = draft
         else:
             self.draft = draft
+
+    def _trip_changed(self, *trip_starts: datetime | None) -> None:
+        """Tell that entries or costs of these trips changed, so their exports can be renewed."""
+        for start in dict.fromkeys(trip_starts):
+            if start is not None:
+                self._on_trip_changed(start)
 
     def _changed(self) -> None:
         self.save()

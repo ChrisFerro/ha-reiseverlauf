@@ -175,5 +175,5 @@ neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeb
 | Feat-06 | Fahrtenbuch              | [feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)                     | 6      | umgesetzt                 |
 | Feat-07 | Geschützter Download     | [feat-07-downloads.md](features/feat-07-downloads.md)                         | 7      | umgesetzt                 |
 | Feat-08 | Verbrauchsmodell         | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | Zwischenschritt umgesetzt |
-| Feat-09 | Nachträge (Tank, Kosten) | [feat-09-nachtraege.md](features/feat-09-nachtraege.md)                       | 9      | in Arbeit (4 von 6)       |
+| Feat-09 | Nachträge (Tank, Kosten) | [feat-09-nachtraege.md](features/feat-09-nachtraege.md)                       | 9      | in Arbeit (5 von 6)       |
 | Feat-10 | Tour                     | [feat-10-tour.md](features/feat-10-tour.md)                                   | 10     | Entwurf zur Freigabe      |

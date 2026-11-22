@@ -40,6 +40,7 @@ from . import export_runner
 from .cost_form import TravelCostForm
 from .country_finder import CountryFinder
 from .download_links import RENEW_INTERVAL, DownloadLinks
+from .export_refresher import ExportRefresher
 from .export_runner import NOMINATIM_INTERVAL_S, async_export, event_data, media_base
 from .exports import ExportInfo, list_exports, read_raw, remove_files, set_countries
 from .late_form import LateEntryForm
@@ -90,6 +91,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             media_base(hass, settings),
             on_change=self._publish,
             trip_titles=self.trip_titles,
+            on_trip_changed=lambda start: self.refresher.schedule(start),
         )
         self._detector_store: Store[dict[str, Any]] = Store(
             hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}.detector"
@@ -110,6 +112,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.late_form = LateEntryForm(self)
         self.countries = CountryFinder(self)
         self.cost_form = TravelCostForm(self)
+        self.refresher = ExportRefresher(self)
 
     async def async_start(self) -> None:
         """Restore detector, trip log and logbook, reconcile with the current D+ state and subscribe."""
@@ -165,6 +168,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 unsub()
         self._unsub_states = self._unsub_deadline = self._unsub_refresh = self._unsub_stop_check = None
         self._unsub_links = None
+        self.refresher.cancel()
         await self._detector_store.async_save(self.detector.as_dict())
         if self.log is not None:
             await self._log_store.async_save(self.log.as_dict())
@@ -272,8 +276,16 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         base = media_base(self.hass, self.settings)
         async with self._export_lock:
             info = await self.hass.async_add_executor_job(set_countries, base, folder, countries)
-        if info is None:
-            return
+        if info is not None:
+            self.replace_export(info)
+
+    @property
+    def export_lock(self) -> asyncio.Lock:
+        """Return the lock held while an export writes its folder."""
+        return self._export_lock
+
+    def replace_export(self, info: ExportInfo) -> None:
+        """Take over the changed metadata of one export, for the list and the last trip."""
         self.exports = tuple(info if i.folder == info.folder else i for i in self.exports)
         if self.last_export is not None and self.last_export.folder == info.folder:
             self.last_export = info

@@ -180,7 +180,7 @@ ginge die seitdem gefahrene Strecke für den Kilometerstand verloren. Für Autom
   Export), getankte Liter, Kosten und Ø-Verbrauch in der Statistik, als zweite Zeile im Kopf des Gesamtbilds, in
   `export.json` (`logbook`) und im Event `_beendet` (`fahrtenbuch`: `kilometerstand_start`, `kilometerstand_ende`,
   `diesel_liter`, `diesel_kosten`, `gas_liter`, `gas_kosten`, `kosten`, `verbrauch_l_100km`). Ohne Einträge im
-  Fahrtenbuch bleibt der Export wie bisher. Ein später korrigierter Eintrag ändert einen fertigen Export nicht. (Geplante Änderung: Export wird nach Nachträgen und Korrekturen automatisch aktualisiert, siehe [feat-09-nachtraege.md](feat-09-nachtraege.md) 5.8.)
+  Fahrtenbuch bleibt der Export wie bisher. Seit 22.11.2026 erneuert die Integration den Export einer fertigen Reise nach Nachträgen und Korrekturen automatisch (siehe [feat-09-nachtraege.md](feat-09-nachtraege.md) 5.8, 6.4).
 - **CSV:** eine Zeile je Eintrag, Spalten wie 6.1, Trennzeichen und Dezimalzeichen passend zur Sprache
   (deutsch: `;` und `,`).
 

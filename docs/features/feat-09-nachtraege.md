@@ -248,13 +248,26 @@ Stand: 20.11.2026, an die Entscheidungen 5.1–5.11 angepasst.
 
 ### 6.4 Export aktualisieren (5.8)
 
-- Nach jeder Änderung an Fahrtenbuch-Einträgen oder Reisekosten einer fertigen Reise: Statistik, `export.json`
-  (`logbook` mit Reisekosten je Kategorie und Gesamtkosten) und Gesamtbild neu erstellen. Mehrere Änderungen
-  kurz hintereinander werden zusammengefasst (z. B. 30 s warten).
+Umgesetzt 22.11.2026:
+
+- Nach jeder Änderung an Fahrtenbuch-Einträgen oder Reisekosten einer fertigen Reise (Speichern, Nachtragen,
+  Ändern, Löschen; bei geänderter Zuordnung alte und neue Reise): Statistik, `export.json` und Gesamtbild neu
+  erstellen. Änderungen innerhalb von 30 s werden zusammengefasst; je Reise wird einmal erneuert, unter dem
+  Export-Lock. Nur automatische Exporte; eine noch aktive (fortgesetzte) Reise nicht, ihr Export folgt am Ende.
+- **Kennzahlen:** `logbook` in `export.json` bekommt `reisekosten` (je Kategorie); `kosten` enthält ab jetzt Diesel,
+  Gas und Reisekosten. Kilometerstand Ende fortgeschrieben bis zum Ende der Reise (Zähler aus den Rohdaten bzw. vom
+  Beginn der nächsten Reise; sonst bleibt der gespeicherte Wert). Ø-Verbrauch über die Einträge bis zum Beginn der
+  nächsten Reise, also wie beim Export damals und nicht der heutige Wert.
+- **Statistik:** Zeile „Kosten“ als Gesamtsumme und Zeile „Reisekosten“ (z. B. `Maut 83,30 € · Fähre 85,00 €`).
+  **Gesamtbild:** Kopfzeile wie bisher, „Kosten“ als Gesamtsumme (keine zusätzliche Spalte).
 - Gesamtbild aus der vorhandenen Kartendatei und dem aus den Rohdaten neu gezeichneten Profil (ohne Titel, wie beim
-  Export); in einem Executor, nie im Event-Loop. Kopfzeile wie bisher, Kosten inklusive Reisekosten.
-- Fehlen Dateien (nach `aufraeumen`), wird nur erneuert, was vorhanden ist; ohne `export.json` gar nichts.
+  Export); in einem Executor, nie im Event-Loop, ohne Kachel-Downloads.
+- Fehlen Dateien (nach `aufraeumen`), wird nur erneuert, was vorhanden ist; ohne Rohdaten nur `export.json`
+  (Statistik und Gesamtbild bleiben), ohne `export.json` gar nichts.
+- `export.json` hält den Zeitpunkt der Erneuerung (`updated`); die Bild-Entität lädt das Gesamtbild damit neu.
 - Kein erneutes Event `_beendet`. Sensoren „Letzte Reise“ und die Bild-Entität zeigen danach den neuen Stand.
+- Ein Neustart innerhalb der 30 s verwirft die ausstehende Erneuerung; die nächste Änderung an der Reise holt sie
+  nach.
 
 ### 6.5 Kostensensoren und Erinnerung
 
@@ -290,5 +303,6 @@ Jeder Schritt mit Tests, grünem `script/check` und einem Prüfpunkt in der Entw
 4. Reisekosten: Länder der Reise, Formular, Dienste, CSV. Prüfpunkt: Maut für zwei Länder eintragen.
    – umgesetzt 22.11.2026
 5. Export aktualisieren (6.4). Prüfpunkt: Statistik und Gesamtbild zeigen die nachgetragenen Kosten.
+   – umgesetzt 22.11.2026
 6. Kostensensoren ersetzen und Erinnerung (6.5), Blueprint, README (deutsch/englisch), Release-Notes für den
    Breaking Change. Danach (nach Freigabe) Dashboard des Nutzers anpassen.
