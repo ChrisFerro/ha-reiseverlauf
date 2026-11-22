@@ -155,6 +155,7 @@ async def test_no_toll_toggles_the_mark_of_the_chosen_trip(
 
 
 async def test_pitch_without_trip_on_a_chosen_day(hass: HomeAssistant, trip: ReiseverlaufDataUpdateCoordinator) -> None:
+    await call(hass, Platform.SELECT, SERVICE_SELECT_OPTION, COUNTRY, **{ATTR_OPTION: "it"})
     await call(hass, Platform.SELECT, SERVICE_SELECT_OPTION, CHOICE, **{ATTR_OPTION: EXPORT_CHOICE_ALL})
     assert hass.states.get(CHOICE).attributes["reisekosten"] is None
     assert hass.states.get(COUNTRY).state == "none"

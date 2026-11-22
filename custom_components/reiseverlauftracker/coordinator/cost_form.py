@@ -3,7 +3,8 @@ The travel costs form: category, country, amount, note and day for the trip chos
 
 With "all exports" chosen, a cost is saved without a trip on the chosen day
 (docs/features/feat-09-nachtraege.md 6.3, feat-10-tour.md 5.4). The day follows
-the start of the chosen trip until it is changed for that trip.
+the start of the chosen trip until it is changed for that trip; the country
+likewise starts at the trip's first toll country.
 """
 
 from datetime import date
@@ -33,6 +34,7 @@ class TravelCostForm:
         self.coordinator = coordinator
         self.category = CostCategory.TOLL
         self._country: str | None = None
+        self._country_trip: str | None = None
         self.amount: float | None = None
         self.note = ""
         self._day: date | None = None
@@ -46,20 +48,22 @@ class TravelCostForm:
         exports = self.coordinator.find_exports(choice)
         return exports[0] if exports else None
 
+    def _trip_key(self) -> str | None:
+        trip = self.trip()
+        return trip.folder if trip else None
+
     @property
     def day(self) -> date:
         """Return the chosen day; it starts at the trip's first day, without a trip at today."""
         trip = self.trip()
-        key = trip.folder if trip else None
-        if self._day is not None and self._day_trip == key:
+        if self._day is not None and self._day_trip == self._trip_key():
             return self._day
         moment = trip.start if trip else dt_util.utcnow()
         return dt_util.as_local(moment).date()
 
     def set_day(self, value: date) -> None:
         """Set the day for the chosen trip; choosing another trip starts again at its first day."""
-        trip = self.trip()
-        self._day, self._day_trip = value, trip.folder if trip else None
+        self._day, self._day_trip = value, self._trip_key()
         self.coordinator.async_update_listeners()
 
     def country_options(self) -> list[str]:
@@ -74,9 +78,9 @@ class TravelCostForm:
 
     @property
     def country_option(self) -> str:
-        """Return the chosen country; by default the first toll country of the trip."""
+        """Return the chosen country; by default, and after choosing another trip, the trip's first toll country."""
         options = self.country_options()
-        if self._country is not None and self._country in options:
+        if self._country is not None and self._country in options and self._country_trip == self._trip_key():
             return self._country
         trip = self.trip()
         tolls = self.coordinator.settings.toll_countries
@@ -84,8 +88,8 @@ class TravelCostForm:
         return first.lower() if first else COUNTRY_NONE
 
     def set_country(self, option: str) -> None:
-        """Choose a country, or "no country"."""
-        self._country = option
+        """Choose a country, or "no country", for the chosen trip."""
+        self._country, self._country_trip = option, self._trip_key()
         self.coordinator.async_update_listeners()
 
     def set_category(self, option: str) -> None:
