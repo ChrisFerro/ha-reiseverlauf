@@ -5,7 +5,14 @@ from typing import TYPE_CHECKING
 from .current_trip import ENTITY_DESCRIPTIONS as CURRENT_TRIP_DESCRIPTIONS
 from .entity import ReiseverlaufSensor
 from .last_trip import ENTITY_DESCRIPTIONS as LAST_TRIP_DESCRIPTIONS
-from .logbook import LOGBOOK_DESCRIPTIONS, LOGBOOK_ENTRY, ReiseverlaufLogbookEntrySensor, ReiseverlaufLogbookSensor
+from .logbook import (
+    LOGBOOK_DESCRIPTIONS,
+    LOGBOOK_ENTRY,
+    OPEN_TOLL,
+    ReiseverlaufLogbookEntrySensor,
+    ReiseverlaufLogbookSensor,
+    ReiseverlaufOpenTollSensor,
+)
 
 PARALLEL_UPDATES = 0
 
@@ -29,5 +36,6 @@ async def async_setup_entry(
             *(ReiseverlaufSensor(coordinator, description) for description in ENTITY_DESCRIPTIONS),
             ReiseverlaufLogbookEntrySensor(coordinator, LOGBOOK_ENTRY),
             *(ReiseverlaufLogbookSensor(coordinator, description) for description in LOGBOOK_DESCRIPTIONS),
+            ReiseverlaufOpenTollSensor(coordinator, OPEN_TOLL),
         ]
     )

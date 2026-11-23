@@ -111,6 +111,36 @@ async def async_handle_save_form(hass: HomeAssistant, call: ServiceCall) -> Serv
     return {ATTR_ENTRY: entry_data(entry)}
 
 
+async def async_handle_late(hass: HomeAssistant, call: ServiceCall) -> ServiceResponse:
+    """
+    Add a refill at an earlier time; a remembered stop close to that time is taken as its stop.
+
+    Returns:
+        The new or completed entry.
+
+    Raises:
+        ServiceValidationError: Neither litres are given, or the odometer at that time is unknown and not given.
+
+    """
+    data = dict(call.data)
+    refills = {name: _refill(data, litres, amount) for name, (litres, amount) in REFILL_FIELDS.items()}
+    if not any(refills.values()):
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="late_without_refill")
+    try:
+        entry = await _coordinator(hass, call).late_form.async_add(
+            data[ATTR_TIME], odometer_km=data.get(ATTR_ODOMETER), **refills
+        )
+    except ValueError as err:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="late_odometer_required") from err
+    return {ATTR_ENTRY: entry_data(entry)}
+
+
+def _refill(data: dict[str, Any], litres_key: str, amount_key: str) -> Refill | None:
+    """Return the refill of the action fields, or None without litres."""
+    litres = data.get(litres_key) or 0
+    return Refill(litres, data.get(amount_key) or None) if litres > 0 else None
+
+
 async def async_handle_update(hass: HomeAssistant, call: ServiceCall) -> ServiceResponse:
     """
     Change fields of a logbook entry.

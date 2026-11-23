@@ -12,6 +12,8 @@ from pathlib import Path
 import re
 import unicodedata
 
+from PIL import Image
+
 from .chart import render_profile
 from .composite import render_composite
 from .gpx import build_gpx
@@ -100,7 +102,8 @@ def export_trip(
     stats = compute_stats(track.points, track.speed, options)
     rows = stats_rows(stats, texts, tz)
     logbook = logbook_rows(options.logbook, texts, options.currency)
-    text = stats_text(title, rows + logbook, stop_lines(options.stops, texts, tz))
+    details = logbook_rows(options.logbook, texts, options.currency, travel_details=True)
+    text = stats_text(title, rows + details, stop_lines(options.stops, texts, tz))
 
     out_dir.mkdir(parents=True, exist_ok=True)
     files: dict[ExportFile, Path] = {}
@@ -140,3 +143,63 @@ def export_trip(
             image.close()
 
     return ExportResult(title=title, basename=basename, files=files, stats=stats, stats_text=text)
+
+
+def refresh_export(
+    positions: Sequence[TrackPoint],
+    speed: StepSeries | None,
+    altitude: StepSeries | None,
+    out_dir: Path,
+    options: ExportOptions,
+    files: dict[ExportFile, str],
+) -> str:
+    """
+    Rewrite statistics and composite image of an existing export with new logbook figures.
+
+    The title comes from `options.title`. Map, profile, GPX and raw data stay; the
+    composite is put together from the map file that is there and a newly drawn
+    profile, so no tiles are downloaded. Files missing from `files` are not created.
+
+    Returns:
+        The new statistics text.
+
+    Raises:
+        NotEnoughPointsError: Fewer than two usable positions.
+        NoMovementError: The vehicle never left the minimum movement radius.
+
+    """
+    texts = texts_for(options.language)
+    tz = options.timezone
+    scale = min(max(options.scale, MIN_SCALE), MAX_SCALE)
+    title = options.title or ""
+    track = prepare_track(positions, speed, altitude, options)
+    stats = compute_stats(track.points, track.speed, options)
+    rows = stats_rows(stats, texts, tz)
+    logbook = logbook_rows(options.logbook, texts, options.currency)
+    details = logbook_rows(options.logbook, texts, options.currency, travel_details=True)
+    text = stats_text(title, rows + details, stop_lines(options.stops, texts, tz))
+    if (name := files.get(ExportFile.STATS)) is not None:
+        (out_dir / name).write_text(text, encoding="utf-8")
+
+    if (name := files.get(ExportFile.COMPOSITE)) is not None:
+        map_image = _open_image(out_dir / files[ExportFile.MAP]) if ExportFile.MAP in files else None
+        window = (track.chart_start, track.chart_end)
+        profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale)
+        composite = render_composite([map_image, profile], title, rows[0][1], rows[1:], scale, logbook)
+        if composite is not None:
+            composite.save(out_dir / name)
+            composite.close()
+        for image in (map_image, profile):
+            if image is not None:
+                image.close()
+    return text
+
+
+def _open_image(path: Path) -> Image.Image | None:
+    """Return the image at `path` loaded into memory, or None if it is missing or unreadable."""
+    try:
+        with Image.open(path) as image:
+            image.load()
+            return image.copy()
+    except OSError:
+        return None

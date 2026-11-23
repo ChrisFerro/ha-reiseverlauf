@@ -9,11 +9,14 @@ import pytest
 
 from custom_components.reiseverlauftracker.coordinator.exports import (
     ExportInfo,
+    existing_files,
     list_exports,
     read_export,
     remove_files,
+    set_countries,
     write_metadata,
 )
+from custom_components.reiseverlauftracker.coordinator.trip_log import TrackCounters
 from custom_components.reiseverlauftracker.export import ExportFile, LogbookFigures
 
 pytestmark = pytest.mark.unit
@@ -61,6 +64,37 @@ def test_metadata_round_trip_with_logbook(tmp_path: Path) -> None:
     write_metadata(tmp_path, info)
 
     assert read_export(tmp_path, "a") == info
+
+
+def test_metadata_round_trip_with_start_counters(tmp_path: Path) -> None:
+    info = replace(
+        make_export(tmp_path, "a", datetime(2026, 10, 1, tzinfo=UTC)), counter_start=TrackCounters(5000, 12, 34)
+    )
+    write_metadata(tmp_path, info)
+
+    assert read_export(tmp_path, "a") == info
+
+
+def test_countries_are_stored_in_the_metadata(tmp_path: Path) -> None:
+    info = make_export(tmp_path, "a", datetime(2026, 10, 1, tzinfo=UTC))
+    assert info.countries is None
+
+    changed = set_countries(tmp_path, "a", ("DE", "AT"))
+
+    assert changed == replace(info, countries=("DE", "AT"))
+    assert read_export(tmp_path, "a") == changed
+    assert set_countries(tmp_path, "missing", ("DE",)) is None
+
+
+def test_update_time_round_trip_and_existing_files(tmp_path: Path) -> None:
+    info = replace(
+        make_export(tmp_path, "a", datetime(2026, 10, 1, tzinfo=UTC)), updated=datetime(2026, 11, 1, tzinfo=UTC)
+    )
+    write_metadata(tmp_path, info)
+    (tmp_path / "a" / info.files[ExportFile.MAP]).unlink()
+
+    assert read_export(tmp_path, "a") == info
+    assert set(existing_files(tmp_path, info)) == {ExportFile.COMPOSITE, ExportFile.GPX}
 
 
 def test_list_exports_newest_first_and_skips_foreign_folders(tmp_path: Path) -> None:

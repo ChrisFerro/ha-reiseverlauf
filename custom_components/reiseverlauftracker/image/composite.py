@@ -22,7 +22,7 @@ class ReiseverlaufCompositeImage(ImageEntity, ReiseverlaufEntity):
         ReiseverlaufEntity.__init__(self, coordinator, description)
         ImageEntity.__init__(self, coordinator.hass)
         self._path: Path | None = None
-        self._key: tuple[Path | None, datetime | None] = (None, None)
+        self._key: tuple[Path | None, datetime | None, datetime | None] = (None, None, None)
         self._update_path()
 
     def image(self) -> bytes | None:
@@ -45,7 +45,7 @@ class ReiseverlaufCompositeImage(ImageEntity, ReiseverlaufEntity):
         path = (
             media_base(self.coordinator.hass, self.coordinator.settings) / info.folder / name if info and name else None
         )
-        key = (path, info.end if info else None)
+        key = (path, info.end if info else None, info.updated if info else None)
         if key != self._key:
             self._key = key
             self._path = path

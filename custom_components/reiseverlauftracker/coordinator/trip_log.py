@@ -29,6 +29,30 @@ class RunningStatsSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class TrackCounters:
+    """Distance, ascent and descent counters of the logbook at one point in time."""
+
+    distance_m: float
+    ascent_m: float = 0.0
+    descent_m: float = 0.0
+
+    def __add__(self, other: TrackCounters) -> TrackCounters:
+        """Return both counters added up."""
+        return TrackCounters(
+            self.distance_m + other.distance_m, self.ascent_m + other.ascent_m, self.descent_m + other.descent_m
+        )
+
+    def as_dict(self) -> dict[str, float]:
+        """Return the counters as a JSON-serialisable dict."""
+        return {"distance_m": self.distance_m, "ascent_m": self.ascent_m, "descent_m": self.descent_m}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> TrackCounters:
+        """Rebuild the counters from `as_dict()` output."""
+        return cls(data["distance_m"], data.get("ascent_m", 0.0), data.get("descent_m", 0.0))
+
+
+@dataclass(frozen=True, slots=True)
 class TripStop:
     """
     D+ was off during the trip; open while `end` is None.
@@ -95,6 +119,7 @@ class TripLog:
         self._ascent_reference: float | None = None
         self.start_place: str | None = None
         self.stops: list[TripStop] = []
+        self.counter_start: TrackCounters | None = None
         self._last_usable: TrackPoint | None = None
         self._previous_usable: TrackPoint | None = None
         self._last_segment = _Segment()
@@ -244,6 +269,38 @@ class TripLog:
         for time, value in altitude:
             self.add_altitude(time, value)
 
+    @property
+    def counters(self) -> TrackCounters:
+        """Return distance, ascent and descent of the trip so far."""
+        return TrackCounters(self.distance_m, self.ascent_m, self.descent_m)
+
+    def counters_at(self, time: datetime) -> TrackCounters | None:
+        """
+        Return the logbook counters at `time`: the counters at the trip start plus the track up to then.
+
+        The track is replayed with the same filters as the running statistics.
+
+        Returns:
+            The counters, or None for a log that does not know its start counters.
+
+        """
+        if self.counter_start is None:
+            return None
+        replay = TripLog(self.start, self.settings)
+        for point in self.positions:
+            if point.time > time:
+                break
+            replay.add_position(point.time, point.lat, point.lon, point.accuracy)
+        replay._set_altitude([(t, v) for t, v in self.altitude if t <= time])
+        return self.counter_start + replay.counters
+
+    def position_at(self, time: datetime) -> Position | None:
+        """Return the last usable position at or before `time`, else the first usable one."""
+        usable = [p for p in self.positions if p.accuracy is None or p.accuracy <= self.settings.max_accuracy_m]
+        before = [p for p in usable if p.time <= time]
+        point = before[-1] if before else (usable[0] if usable else None)
+        return point.position if point else None
+
     def last_position(self) -> Position | None:
         """Return the most recent position, usable or not."""
         return self.positions[-1].position if self.positions else None
@@ -267,6 +324,7 @@ class TripLog:
             "altitude": [[t.timestamp(), v] for t, v in self.altitude],
             "start_place": self.start_place,
             "stops": [stop.as_dict() for stop in self.stops],
+            "counter_start": self.counter_start.as_dict() if self.counter_start else None,
         }
 
     @classmethod
@@ -295,6 +353,8 @@ class TripLog:
         log._set_altitude([(_from_ts(ts), v) for ts, v in data["altitude"]])
         log.start_place = data.get("start_place")
         log.stops = [TripStop.from_dict(stop) for stop in data.get("stops", [])]
+        counter_start = data.get("counter_start")
+        log.counter_start = TrackCounters.from_dict(counter_start) if counter_start else None
         return log
 
 

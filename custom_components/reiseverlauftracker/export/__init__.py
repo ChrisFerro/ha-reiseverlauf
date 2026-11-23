@@ -1,6 +1,6 @@
 """Trip export: statistics, GPX, map, profile and composite image, independent of Home Assistant."""
 
-from .exporter import FILE_SUFFIXES, ExportFile, ExportResult, export_trip, slugify
+from .exporter import FILE_SUFFIXES, ExportFile, ExportResult, export_trip, refresh_export, slugify
 from .model import ExportOptions, LogbookFigures, StepSeries, Stop, TrackPoint
 from .stats import TripStats
 from .track import NoMovementError, NotEnoughPointsError, decode_speed
@@ -19,5 +19,6 @@ __all__ = [
     "TripStats",
     "decode_speed",
     "export_trip",
+    "refresh_export",
     "slugify",
 ]

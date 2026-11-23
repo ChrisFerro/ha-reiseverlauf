@@ -22,6 +22,7 @@ URL_BASE: Final = f"/api/{DOMAIN}"
 FILE_URL: Final = URL_BASE + "/{entry_id}/datei/{folder}/{name}"
 ZIP_URL: Final = URL_BASE + "/{entry_id}/zip/{folder}"
 LOGBOOK_URL: Final = URL_BASE + "/{entry_id}/fahrtenbuch"
+TRAVEL_COSTS_URL: Final = URL_BASE + "/{entry_id}/reisekosten"
 
 LINK_VALIDITY: Final = timedelta(hours=24)
 RENEW_INTERVAL: Final = timedelta(hours=1)
@@ -43,6 +44,11 @@ def zip_path(entry_id: str, folder: str) -> str:
 def logbook_path(entry_id: str) -> str:
     """Return the unsigned download path of the logbook CSV."""
     return LOGBOOK_URL.format(entry_id=entry_id)
+
+
+def travel_costs_path(entry_id: str) -> str:
+    """Return the unsigned download path of the travel costs CSV."""
+    return TRAVEL_COSTS_URL.format(entry_id=entry_id)
 
 
 class DownloadLinks:
@@ -76,6 +82,13 @@ class DownloadLinks:
             )
         return links
 
-    def for_logbook(self, name: str) -> list[dict[str, Any]]:
-        """Return the link of the logbook CSV, as the `downloads` attribute lists it."""
-        return [{"typ": TYPE_CSV, "name": name, "url": self.sign(logbook_path(self._entry_id))}]
+    def for_logbook(self, name: str | None, travel_costs_name: str | None = None) -> list[dict[str, Any]]:
+        """Return the links of the logbook CSV and the travel costs CSV, as the `downloads` attribute lists them."""
+        links = []
+        if name is not None:
+            links.append({"typ": TYPE_CSV, "name": name, "url": self.sign(logbook_path(self._entry_id))})
+        if travel_costs_name is not None:
+            links.append(
+                {"typ": TYPE_CSV, "name": travel_costs_name, "url": self.sign(travel_costs_path(self._entry_id))}
+            )
+        return links

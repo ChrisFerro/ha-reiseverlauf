@@ -69,9 +69,15 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
   Fahrtenbuch-Eintrag: signierte Links (siehe [Downloads](features/feat-07-downloads.md))
 - Fahrtenbuch-Formular: `number.…_fahrtenbuch_*` (Kilometerstand, Kraftstoff, Gas 1/2, Diesel und Gas getankt und
   Betrag), `button.…_fahrtenbuch_speichern`/`_verwerfen`, `sensor.…_fahrtenbuch_eintrag` (siehe
-  [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.2)
+  [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.2); Nachtrag für einen früheren Zeitpunkt:
+  `select.…_fahrtenbuch_zeitpunkt`, `datetime.…_fahrtenbuch_nachtrag_zeit`, `button.…_fahrtenbuch_nachtragen` (siehe
+  [Nachträge](features/feat-09-nachtraege.md) 6.2)
+- Reisekosten-Formular: `select.…_reisekosten_kategorie`, `…_reisekosten_land`, `number.…_reisekosten_betrag`,
+  `text.…_reisekosten_notiz`, `date.…_reisekosten_datum`, `button.…_reisekosten_speichern`, `button.…_keine_maut`;
+  Reise aus der Export-Auswahl (Attribut `reisekosten`), siehe [Nachträge](features/feat-09-nachtraege.md) 6.3
 - Fahrtenbuch-Auswertung: `sensor.…_kilometerstand`, `…_kraftstoff`, `…_gas_1`, `…_gas_2`, `…_durchschnittsverbrauch`,
-  `…_tank_und_gaskosten_monat`, `…_tank_und_gaskosten_jahr` (siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.5),
+  `…_reisekosten_monat`, `…_reisekosten_jahr` (alle Kosten, seit 0.3.0 statt `…_tank_und_gaskosten_*`), `…_maut_offen`
+  (siehe [Nachträge](features/feat-09-nachtraege.md) 6.5),
   `…_heizung_im_stand_abgelesen` (siehe [Verbrauchsmodell](features/feat-08-verbrauchsmodell.md) 5.5)
 
 Dienste (alle mit Pflichtfeld `config_entry_id`):
@@ -83,6 +89,10 @@ Dienste (alle mit Pflichtfeld `config_entry_id`):
   Profil, GPX, Statistik, Rohdaten)
 - `reiseverlauftracker.reise_starten` / `reise_beenden` (manuell, siehe [Reiseerkennung](features/feat-01-reiseerkennung.md) 5.2)
 - `reiseverlauftracker.fahrtenbuch_eintragen` / `_speichern` / `_aendern` / `_loeschen` / `_csv` (siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.4)
+- `reiseverlauftracker.fahrtenbuch_nachtragen` (zeit, Liter, Betrag, kilometerstand): Tankstopp für einen früheren
+  Zeitpunkt (siehe [Nachträge](features/feat-09-nachtraege.md) 6.2)
+- `reiseverlauftracker.reisekosten_eintragen` (reise, datum, kategorie, betrag, land, notiz) / `_aendern` / `_loeschen`
+  und `reiseverlauftracker.keine_maut` (reise, an), siehe [Nachträge](features/feat-09-nachtraege.md) 6.3
 
 Events:
 
@@ -102,7 +112,8 @@ Blueprint (siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 5.9).
 D+-Entität und „Ein“-Wert, Verzögerung (min), Zusammenführungsfenster (h), Mindestbewegung (m), Positions-Tracker, Geschwindigkeits-
 und Höhensensor (Höhe optional), Ausgabeordner, Standard-Skala, Standard-Rand (min), Schwellen:
 Stillstand 3 km/h, GPS-Genauigkeit 50 m, Punktabstand 15 m, Höhen-Hysterese 5 m, Mindestdauer eines Halts 5 min.
-Fahrtenbuch: Tankgröße (Liter, Standard 90, siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 5.8).
+Fahrtenbuch: Tankgröße (Liter, Standard 90, siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 5.8) und Mautländer
+(siehe [Nachträge](features/feat-09-nachtraege.md) 6.5).
 
 ## 8. Bisheriger Aufbau (abgelöst)
 
@@ -141,6 +152,10 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 7. Geschützter Download aller Dateien (siehe [features/feat-07-downloads.md](features/feat-07-downloads.md)). – umgesetzt 19.11.2026
 8. Verbrauchsmodell mit Höhenmetern und Heizung im Stand (siehe [features/feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)),
    erst wenn genug Fahrtenbuch-Daten vorliegen.
+9. Nachträge: Tankstopp und Reisekosten (Maut je Reise und Land) später erfassen (siehe
+   [features/feat-09-nachtraege.md](features/feat-09-nachtraege.md)).
+10. Tour: mehrere Reisen und Standzeiten (z. B. Urlaub, Werkstattaufenthalt) mit Reiseverlauf und Kostenaufstellung
+    zusammenfassen (siehe [features/feat-10-tour.md](features/feat-10-tour.md)).
 
 ## 11. Feature-Dokumente
 
@@ -151,13 +166,15 @@ offenen Fragen und Entscheidungen. Dieses Dokument bleibt die Übersicht und ent
 Die Dokumente sind fortlaufend nummeriert: Dateiname `feat-<NN>-<name>.md`, Überschrift `Feat-<NN>: <Name>`. Ein
 neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeben.
 
-| Nr.     | Feature                 | Dokument                                                                      | Etappe | Stand                     |
-| ------- | ----------------------- | ----------------------------------------------------------------------------- | ------ | ------------------------- |
-| Feat-01 | Reiseerkennung          | [feat-01-reiseerkennung.md](features/feat-01-reiseerkennung.md)               | 1, 3   | umgesetzt                 |
-| Feat-02 | Halte und Live-Werte    | [feat-02-halte.md](features/feat-02-halte.md)                                 | 3      | umgesetzt, 1 Frage offen  |
-| Feat-03 | Export und Verwaltung   | [feat-03-export.md](features/feat-03-export.md)                               | 2, 3   | umgesetzt                 |
-| Feat-04 | Push-Benachrichtigung   | [feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md) | 4      | umgesetzt                 |
-| Feat-05 | Dashboard und Migration | [feat-05-dashboard.md](features/feat-05-dashboard.md)                         | 5      | umgesetzt                 |
-| Feat-06 | Fahrtenbuch             | [feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)                     | 6      | umgesetzt                 |
-| Feat-07 | Geschützter Download    | [feat-07-downloads.md](features/feat-07-downloads.md)                         | 7      | umgesetzt                 |
-| Feat-08 | Verbrauchsmodell        | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | Zwischenschritt umgesetzt |
+| Nr.     | Feature                  | Dokument                                                                      | Etappe | Stand                     |
+| ------- | ------------------------ | ----------------------------------------------------------------------------- | ------ | ------------------------- |
+| Feat-01 | Reiseerkennung           | [feat-01-reiseerkennung.md](features/feat-01-reiseerkennung.md)               | 1, 3   | umgesetzt                 |
+| Feat-02 | Halte und Live-Werte     | [feat-02-halte.md](features/feat-02-halte.md)                                 | 3      | umgesetzt, 1 Frage offen  |
+| Feat-03 | Export und Verwaltung    | [feat-03-export.md](features/feat-03-export.md)                               | 2, 3   | umgesetzt                 |
+| Feat-04 | Push-Benachrichtigung    | [feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md) | 4      | umgesetzt                 |
+| Feat-05 | Dashboard und Migration  | [feat-05-dashboard.md](features/feat-05-dashboard.md)                         | 5      | umgesetzt                 |
+| Feat-06 | Fahrtenbuch              | [feat-06-fahrtenbuch.md](features/feat-06-fahrtenbuch.md)                     | 6      | umgesetzt                 |
+| Feat-07 | Geschützter Download     | [feat-07-downloads.md](features/feat-07-downloads.md)                         | 7      | umgesetzt                 |
+| Feat-08 | Verbrauchsmodell         | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | Zwischenschritt umgesetzt |
+| Feat-09 | Nachträge (Tank, Kosten) | [feat-09-nachtraege.md](features/feat-09-nachtraege.md)                       | 9      | umgesetzt                 |
+| Feat-10 | Tour                     | [feat-10-tour.md](features/feat-10-tour.md)                                   | 10     | Entwurf zur Freigabe      |

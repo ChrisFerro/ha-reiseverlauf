@@ -23,11 +23,16 @@ blueprint then sends a push notification with the composite image to your phone.
 - **Logbook:** odometer (carried forward from the measured distance), levels of the fuel tank and two gas tanks,
   fuel and gas stops with litres and amount. Push reminder at trip start and at each stop; average consumption,
   costs per month and year, a CSV file and the figures in the trip export.
+- **Late entries:** assign a fuel stop later to a stop, a short stop or a time; odometer and consumption come out
+  as if it had been entered right away.
+- **Travel costs:** toll per trip and country, vignette, ferry, tunnel, pitch; the countries of the trip are
+  suggested, and a reminder lists trips through toll countries without a toll entry. Statistics and composite image
+  of a trip are renewed after each late entry.
 - **Titles with place names:** such as "Hamburg – Kiel, 2026-10-12"; or date only, or places only.
 - **Own recording:** the points of each trip are stored, independent of how long the recorder keeps data.
 - **Protected storage:** all files are written to the Home Assistant media folder and need a login to open.
-- **Downloads in the dashboard:** GPX, statistics, raw points, images, a ZIP of each trip and `fahrtenbuch.csv`
-  through signed links, valid for 24 h and renewed hourly.
+- **Downloads in the dashboard:** GPX, statistics, raw points, images, a ZIP of each trip, `fahrtenbuch.csv` and
+  `reisekosten.csv` through signed links, valid for 24 h and renewed hourly.
 - **UI only:** setup, options, entities and actions; no YAML required.
 
 ## Requirements
@@ -62,7 +67,8 @@ output folder inside the media folder (default `reiseverlauf`). Everything can b
 **Configure** offers the options in four sections: trip detection (end delay, merge window, minimum movement),
 export (title format, place-name lookup, image scale, chart margin), thresholds (standstill speed, maximum
 GPS inaccuracy, minimum point distance, elevation hysteresis, minimum stop duration) and logbook (tank size,
-default 90 l). A trip that never got further from its start than
+default 90 l; toll countries, default AT, BE, CH, CZ, ES, FR, HR, HU, IT, NO, PL, PT, SI, SK, where motorhomes over
+3.5 t pay distance-based toll). A trip that never got further from its start than
 the minimum movement (default 100 m) is discarded.
 
 ## Entities
@@ -73,21 +79,30 @@ time, duration and end of the last trip (the title carries the file list with UR
 attributes), an image entity with the composite image, and an export selection used by the cleanup action.
 For the logbook there are the form (numbers for odometer, fuel, gas 1 and 2, litres and amounts refuelled, buttons to
 save and discard), a logbook entry sensor (pending or saved, with the latest entries), and sensors for odometer,
-last levels, average consumption, heating while parked (read) and fuel and gas costs of the month and year.
+last levels, average consumption, heating while parked (read), all costs of the month and year (fuel, gas and travel
+costs, each kind as an attribute) and open toll (finished trips through a toll country without a toll entry). The
+logbook time selection, late entry time and late entry button fill the form for an earlier time; the travel cost
+category, country, amount, note and date with save and no-toll buttons add travel costs to the trip chosen in the
+export selection, whose attribute `reisekosten` lists them.
 
 ## Actions
 
-| Action                                      | Purpose                                                                                            |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `reiseverlauftracker.exportieren`           | Export any period from the recorder, optionally with title, scale and margin; returns the result   |
-| `reiseverlauftracker.aufraeumen`            | Delete file types of one export or of all exports; without an export, the export selection applies |
-| `reiseverlauftracker.reise_starten`         | Start a trip without D+, or resume the last one within the merge window                            |
-| `reiseverlauftracker.reise_beenden`         | End the running trip now and export it                                                             |
-| `reiseverlauftracker.fahrtenbuch_speichern` | Save the logbook form like the button; with `anlass_zeit` only while that occasion is pending      |
-| `reiseverlauftracker.fahrtenbuch_eintragen` | Add a logbook entry without the form; returns the entry                                            |
-| `reiseverlauftracker.fahrtenbuch_aendern`   | Change fields of an entry; litres of 0 remove a fuel or gas stop                                   |
-| `reiseverlauftracker.fahrtenbuch_loeschen`  | Delete an entry; its ID is in the attribute `letzte_eintraege`                                     |
-| `reiseverlauftracker.fahrtenbuch_csv`       | Write `fahrtenbuch.csv` to the output folder (also done after every change)                        |
+| Action                                       | Purpose                                                                                            |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `reiseverlauftracker.exportieren`            | Export any period from the recorder, optionally with title, scale and margin; returns the result   |
+| `reiseverlauftracker.aufraeumen`             | Delete file types of one export or of all exports; without an export, the export selection applies |
+| `reiseverlauftracker.reise_starten`          | Start a trip without D+, or resume the last one within the merge window                            |
+| `reiseverlauftracker.reise_beenden`          | End the running trip now and export it                                                             |
+| `reiseverlauftracker.fahrtenbuch_speichern`  | Save the logbook form like the button; with `anlass_zeit` only while that occasion is pending      |
+| `reiseverlauftracker.fahrtenbuch_eintragen`  | Add a logbook entry without the form; returns the entry                                            |
+| `reiseverlauftracker.fahrtenbuch_aendern`    | Change fields of an entry; litres of 0 remove a fuel or gas stop                                   |
+| `reiseverlauftracker.fahrtenbuch_loeschen`   | Delete an entry; its ID is in the attribute `letzte_eintraege`                                     |
+| `reiseverlauftracker.fahrtenbuch_csv`        | Write `fahrtenbuch.csv` to the output folder (also done after every change)                        |
+| `reiseverlauftracker.fahrtenbuch_nachtragen` | Add a fuel or gas stop for an earlier time; a stop within 5 min of the time is matched             |
+| `reiseverlauftracker.reisekosten_eintragen`  | Add a travel cost for a trip (folder, selection entry or start time) or only a date                |
+| `reiseverlauftracker.reisekosten_aendern`    | Change a travel cost; its ID is in the attribute `reisekosten` of the export selection             |
+| `reiseverlauftracker.reisekosten_loeschen`   | Delete a travel cost                                                                               |
+| `reiseverlauftracker.keine_maut`             | Mark a trip as having no toll, or remove the mark with `an: false`                                 |
 
 ## Storage
 
@@ -137,6 +152,20 @@ Entries are kept in the integration's storage and are part of every Home Assista
 output folder (German format: semicolon, decimal comma) is rewritten after every change. After a trip, odometer
 from/to, litres, costs and consumption are part of the statistics and the composite image.
 
+### Late entries and travel costs
+
+To enter a fuel stop later, choose the stop (or "other time" and set the time) in the logbook time selection; the
+form shows the odometer at that time from the recorded track (attribute `geschaetzt` if it is only estimated). Enter
+litres and amount and press the late entry button. Stops are kept for 120 days.
+
+Travel costs belong to the trip chosen in the export selection; the date starts at the trip start and the country
+selection lists the countries of the trip first. With "all exports" chosen, a cost is saved without a trip on the
+chosen date. Costs count in the month of their date, and `reisekosten.csv` is rewritten after every change. The
+countries of a trip are looked up after its export along the track (about every 20 km, only with place names on); for older trips at start (last 12 months) or once the trip is chosen.
+30 s after any change to a finished trip, its statistics, composite image and `export.json` are renewed; map,
+profile, GPX and raw points stay. Toll is usually billed the month after, so "open toll" counts the trips through toll
+countries without a toll entry; a trip on country roads only can be marked with "no toll".
+
 ### Push reminder (blueprint)
 
 [![Import the blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FChrisFerro%2Fha-reiseverlauf%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freiseverlauftracker%2Ffahrtenbuch.yaml)
@@ -146,21 +175,26 @@ with the form (default `/dashboard-reiseverlauf/fahrtenbuch`). At trip start and
 suggestion, for example `34439 km · Diesel 72 % · Gas 81 % / 60 %`. The button **Übernehmen** saves it, and a
 confirmation replaces the notification; a tap on the notification opens the form to correct it or to add a fuel
 stop. An old notification whose occasion was already saved or replaced saves nothing. The blueprint texts are
-German and can be changed.
+German and can be changed. On the first of each month at 09:00 (time adjustable), the blueprint also reminds of
+open toll while there is any; a tap opens the travel costs view (default `/dashboard-reiseverlauf/reisekosten`).
 
-A dashboard view for the form and the evaluation is shown in the [German README](README.md#dashboard-ansicht).
+Dashboard views for the form, the travel costs and the evaluation are shown in the
+[German README](README.md#dashboard-ansicht).
 
 ## Events
 
 `reiseverlauftracker_gestartet` (trip started or resumed), `reiseverlauftracker_beendet` (export of an ended trip
 is ready), `reiseverlauftracker_exportiert` (manual export is ready) and `reiseverlauftracker_fahrtenbuch` (logbook
 occasion: trip start or stop, with the suggestion). The payload keys are German, see the
-[German README](README.md#events).
+[German README](README.md#events); `fahrtenbuch.kosten` includes the travel costs, listed by category in
+`fahrtenbuch.reisekosten`.
 
 ## Privacy
 
-Map tiles come from OpenStreetMap; for place names the start and end position are sent to Nominatim
-(OpenStreetMap), once per trip. The place-name lookup can be turned off in the options. Diagnostics contain no
+Map tiles come from OpenStreetMap, once per trip. For place names and countries, positions are sent to Nominatim
+(OpenStreetMap): start, end and stops of a trip, and for its countries a point of the track about every 20 km, at
+most one request a second. The place-name lookup can be turned off in the options; then neither places nor
+countries are looked up. Diagnostics contain no
 positions.
 
 ## AI-assisted development

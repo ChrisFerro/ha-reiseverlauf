@@ -56,10 +56,12 @@ import probatio
 
 from homeassistant.helpers import config_validation as cv
 
-SERVICE_SCHEMA = probatio.Schema({
-    probatio.Required("device_id"): cv.string,
-    probatio.Optional("force", default=False): cv.boolean,
-})
+SERVICE_SCHEMA = probatio.Schema(
+    {
+        probatio.Required("device_id"): cv.string,
+        probatio.Optional("force", default=False): cv.boolean,
+    }
+)
 ```
 
 ## Exception Handling
@@ -108,6 +110,7 @@ Example with datetime conversion:
 ```python
 from homeassistant.core import SupportsResponse
 
+
 async def search_items(call: ServiceCall) -> ServiceResponse:
     items = await client.search(call.data["start"], call.data["end"])
     return {
@@ -120,8 +123,11 @@ async def search_items(call: ServiceCall) -> ServiceResponse:
         ],
     }
 
+
 hass.services.async_register(
-    DOMAIN, "search", search_items,
+    DOMAIN,
+    "search",
+    search_items,
     supports_response=SupportsResponse.ONLY,
 )
 ```

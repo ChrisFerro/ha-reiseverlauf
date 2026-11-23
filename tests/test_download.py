@@ -1,6 +1,6 @@
 """Tests for the download views: export files, ZIP per export and the logbook CSV."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 import io
 from pathlib import Path
 import zipfile
@@ -19,6 +19,7 @@ from custom_components.reiseverlauftracker.coordinator.download_links import (
     zip_path,
 )
 from custom_components.reiseverlauftracker.coordinator.exports import ExportInfo, write_metadata
+from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory
 from custom_components.reiseverlauftracker.export import ExportFile
 from homeassistant.components.http.auth import DATA_SIGN_SECRET, async_sign_path
 from homeassistant.core import HomeAssistant
@@ -414,3 +415,22 @@ async def test_head_answers_without_body(
         assert head.headers["Content-Type"] == get.headers["Content-Type"]
         assert head.headers["Content-Length"] == get.headers["Content-Length"]
         assert await head.read() == b""
+
+
+async def test_travel_costs_csv_is_listed_and_served(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    entry = await setup(hass, config_entry)
+    keeper = entry.runtime_data.coordinator.logbook
+    await keeper.async_add_travel_cost(date(2026, 11, 2), CostCategory.TOLL, 23.4, country="AT")
+    await hass.async_block_till_done()
+
+    links = downloads(hass, LOGBOOK_ENTRY)
+    assert [(link["typ"], link["name"]) for link in links] == [("csv", "reisekosten.csv")]
+    client = await hass_client_no_auth()
+    response = await client.get(links[0]["url"])
+    assert response.status == 200
+    assert response.headers["Content-Disposition"].startswith('attachment; filename="reisekosten.csv"')
+    assert "AT" in await response.text()

@@ -4,7 +4,8 @@ blueprint:
     Erinnert per Push-Nachricht an die Companion-App an den Fahrtenbuch-Eintrag: beim Reisebeginn und bei jedem Halt
     ab der Mindestdauer. Die Nachricht zeigt den Vorschlag (berechneter Kilometerstand, Füllstände von Kraftstoff
     und Gas). Der Knopf „Übernehmen“ speichert ihn direkt; Tippen auf die Nachricht öffnet die Dashboard-Ansicht mit
-    dem Formular zum Korrigieren. Eine neue Erinnerung ersetzt die vorige.
+    dem Formular zum Korrigieren. Eine neue Erinnerung ersetzt die vorige. Dazu kommt am Monatsanfang eine
+    Maut-Erinnerung für Reisen durch Mautländer, für die noch keine Maut eingetragen ist.
   domain: automation
   author: ChrisFerro
   homeassistant:
@@ -61,6 +62,30 @@ blueprint:
           default: /dashboard-reiseverlauf/fahrtenbuch
           selector:
             text:
+    maut:
+      name: Maut-Erinnerung
+      icon: mdi:boom-gate-alert-outline
+      input:
+        maut_erinnerung:
+          name: Maut-Erinnerung
+          description: >-
+            Am 1. des Monats erinnern, solange fertige Reisen durch Mautländer keinen Maut-Eintrag haben (Sensor „Maut
+            offen“). Eine Reise lässt sich mit „Keine Maut“ abhaken.
+          default: true
+          selector:
+            boolean:
+        maut_uhrzeit:
+          name: Uhrzeit
+          default: "09:00:00"
+          selector:
+            time:
+        maut_dashboard:
+          name: Ansicht beim Tippen
+          description: >-
+            Pfad der Dashboard-Ansicht mit dem Reisekosten-Formular. Leer lassen, damit Tippen nur die App öffnet.
+          default: /dashboard-reiseverlauf/reisekosten
+          selector:
+            text:
     texte:
       name: Texte
       icon: mdi:format-title
@@ -86,6 +111,11 @@ blueprint:
           default: Übernehmen
           selector:
             text:
+        titel_maut:
+          name: Überschrift der Maut-Erinnerung
+          default: Maut eintragen
+          selector:
+            text:
 
 mode: queued
 max_exceeded: silent
@@ -109,6 +139,10 @@ triggers:
     event_type: mobile_app_notification_action
     id: knopf
     enabled: !input mit_knopf
+  - trigger: time
+    at: !input maut_uhrzeit
+    id: maut
+    enabled: !input maut_erinnerung
 
 variables:
   fahrzeug: !input fahrzeug
@@ -119,6 +153,8 @@ variables:
   titel_halt: !input titel_halt
   titel_gespeichert: !input titel_gespeichert
   knopf_text: !input knopf_text
+  maut_dashboard: !input maut_dashboard
+  titel_maut: !input titel_maut
   # The action carries vehicle and occasion, so that only this automation answers and an old
   # notification cannot save the form for a later occasion.
   aktion_prefix: "REISEVERLAUF_FAHRTENBUCH_{{ fahrzeug }}_"
@@ -128,6 +164,8 @@ conditions:
   - condition: template
     value_template: >-
       {{ trigger.id != 'knopf' or (trigger.event.data.action | default('')).startswith(aktion_prefix) }}
+  - condition: template
+    value_template: "{{ trigger.id != 'maut' or now().day == 1 }}"
 
 actions:
   - choose:
@@ -194,5 +232,39 @@ actions:
                 - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
                   data:
                     title: "{{ titel_gespeichert }}"
+                    message: "{{ nachricht }}"
+                    data: "{{ zusatz }}"
+      - conditions:
+          - condition: trigger
+            id: maut
+        sequence:
+          # The open toll sensor of this vehicle: the entity of its entry with the attribute "reisen".
+          - variables:
+              reisen: >-
+                {% set ns = namespace(reisen=[]) %}
+                {% for s in states.sensor
+                  if config_entry_id(s.entity_id) == fahrzeug and s.attributes.reisen is defined %}
+                  {% set ns.reisen = s.attributes.reisen %}
+                {% endfor %}
+                {{ ns.reisen }}
+          - condition: template
+            value_template: "{{ reisen | count > 0 }}"
+          - variables:
+              nachricht: >-
+                {% set ns = namespace(zeilen=[]) %}
+                {% for r in reisen[:5] %}
+                  {% set ns.zeilen = ns.zeilen + [r.titel ~ (' (' ~ r.laender | join(', ') ~ ')' if r.laender else '')] %}
+                {% endfor %}
+                {{ reisen | count }} {{ 'Reise' if reisen | count == 1 else 'Reisen' }} ohne Maut: {{ ns.zeilen | join('; ') }}{{ ' …' if reisen | count > 5 else '' }}
+              zusatz: >-
+                {% set d = {'tag': 'reiseverlauf_maut_' ~ fahrzeug} %}
+                {% if maut_dashboard %}{% set d = dict(d, clickAction=maut_dashboard, url=maut_dashboard) %}{% endif %}
+                {{ d }}
+          - repeat:
+              for_each: "{{ geraete }}"
+              sequence:
+                - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+                  data:
+                    title: "{{ titel_maut }}"
                     message: "{{ nachricht }}"
                     data: "{{ zusatz }}"

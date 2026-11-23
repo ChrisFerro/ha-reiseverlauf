@@ -16,6 +16,8 @@ from custom_components.reiseverlauftracker.const import (
     CONF_STANDSTILL_SPEED,
     CONF_TANK_SIZE,
     CONF_TITLE_FORMAT,
+    CONF_TOLL_COUNTRIES,
+    COUNTRIES,
     DEFAULT_ELEVATION_HYSTERESIS_M,
     DEFAULT_END_DELAY_MIN,
     DEFAULT_MARGIN_MIN,
@@ -29,6 +31,7 @@ from custom_components.reiseverlauftracker.const import (
     DEFAULT_STANDSTILL_SPEED_KMH,
     DEFAULT_TANK_LITRES,
     DEFAULT_TITLE_FORMAT,
+    DEFAULT_TOLL_COUNTRIES,
     SECTION_DETECTION,
     SECTION_EXPORT,
     SECTION_LOGBOOK,
@@ -85,6 +88,16 @@ def get_options_schema() -> probatio.Schema:
     logbook = probatio.Schema(
         {
             probatio.Required(CONF_TANK_SIZE, default=DEFAULT_TANK_LITRES): _number(10, 500, 1, "L"),
+            probatio.Required(
+                CONF_TOLL_COUNTRIES, default=[c.lower() for c in DEFAULT_TOLL_COUNTRIES]
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[c.lower() for c in COUNTRIES],  # option keys must be lower case
+                    multiple=True,
+                    translation_key="country",
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                ),
+            ),
         },
     )
     return probatio.Schema(

@@ -58,14 +58,23 @@ def _fake_place(_session: Any, lat: float, _lon: float, _language: str, _user_ag
     return "Startort" if lat < 50.0001 else "Zielort"
 
 
+def _fake_country(_session: Any, lat: float, _lon: float, _user_agent: str) -> str:
+    """Put the test tracks in Germany up to about 5.5 km north of the start point, in Austria beyond."""
+    return "DE" if lat < 50.05 else "AT"
+
+
 @pytest.fixture(autouse=True)
 def geocode() -> Generator[AsyncMock]:
-    """Answer place-name lookups by position instead of asking Nominatim."""
+    """Answer place-name and country lookups by position instead of asking Nominatim."""
     with (
         patch(
             "custom_components.reiseverlauftracker.coordinator.places.async_reverse_geocode",
             side_effect=_fake_place,
         ) as mock,
+        patch(
+            "custom_components.reiseverlauftracker.coordinator.places.async_reverse_country",
+            side_effect=_fake_country,
+        ),
         patch("custom_components.reiseverlauftracker.coordinator.export_runner.NOMINATIM_INTERVAL_S", 0),
     ):
         yield mock

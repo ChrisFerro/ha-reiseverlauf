@@ -1,5 +1,6 @@
 """Constants for reiseverlauftracker."""
 
+from datetime import timedelta
 from logging import Logger, getLogger
 
 LOGGER: Logger = getLogger(__package__)
@@ -28,6 +29,7 @@ CONF_MIN_POINT_DISTANCE = "min_point_distance"
 CONF_MIN_STOP_DURATION = "min_stop_duration"
 CONF_PLACE_NAMES = "place_names"
 CONF_TANK_SIZE = "tank_size"
+CONF_TOLL_COUNTRIES = "toll_countries"
 CONF_SCALE = "scale"
 CONF_STANDSTILL_SPEED = "standstill_speed"
 CONF_TITLE_FORMAT = "title_format"
@@ -53,9 +55,24 @@ DEFAULT_STANDSTILL_SPEED_KMH = 3.0
 DEFAULT_TANK_LITRES = 90.0
 DEFAULT_TITLE_FORMAT = TITLE_FORMAT_DATE_PLACE
 
+# Countries offered for travel costs and toll settings, as ISO 3166-1 alpha-2 codes; the UI translates them.
+COUNTRIES = (
+    "AD", "AL", "AT", "BA", "BE", "BG", "CH", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GB", "GR", "HR",
+    "HU", "IE", "IS", "IT", "LI", "LT", "LU", "LV", "MA", "MC", "ME", "MK", "MT", "NL", "NO", "PL", "PT", "RO",
+    "RS", "SE", "SI", "SK", "SM", "TR",
+)  # fmt: skip
+# Distance-based toll or a toll for motorhomes over 3.5 t (docs/features/feat-09-nachtraege.md 6.5); not DE,
+# where motorhomes are exempt from the truck toll.
+# Trips this recent count for the open toll sensor; their countries are looked up at start.
+OPEN_TOLL_PERIOD = timedelta(days=365)
+DEFAULT_TOLL_COUNTRIES = ("AT", "BE", "CH", "CZ", "ES", "FR", "HR", "HU", "IT", "NO", "PL", "PT", "SI", "SK")
+
 EVENT_TRIP_ENDED = f"{DOMAIN}_beendet"
 EVENT_TRIP_EXPORTED = f"{DOMAIN}_exportiert"
 EVENT_LOGBOOK = f"{DOMAIN}_fahrtenbuch"
 EVENT_TRIP_STARTED = f"{DOMAIN}_gestartet"
 
 EXPORT_CHOICE_ALL = "all"
+# Fixed options of the logbook time selection; the stops in between are labelled with their time and place.
+LATE_CHOICE_CURRENT = "current"
+LATE_CHOICE_OTHER = "other"

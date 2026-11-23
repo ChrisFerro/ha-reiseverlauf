@@ -1,11 +1,11 @@
-"""CSV file of the whole logbook, one row per entry, in the instance language."""
+"""CSV files of the whole logbook and of the travel costs, one row per entry, in the instance language."""
 
 import csv
 from dataclasses import dataclass
-from datetime import tzinfo
+from datetime import datetime, tzinfo
 import io
 
-from custom_components.reiseverlauftracker.coordinator.logbook import LogbookEntry, Occasion
+from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory, LogbookEntry, Occasion, TravelCost
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,10 +15,13 @@ class CsvTexts:
     delimiter: str
     decimal_separator: str
     datetime_format: str
+    date_format: str
     yes: str
     no: str
     headers: tuple[str, ...]
     occasions: dict[Occasion, str]
+    travel_headers: tuple[str, ...]
+    categories: dict[CostCategory, str]
 
 
 CSV_TEXTS: dict[str, CsvTexts] = {
@@ -26,6 +29,7 @@ CSV_TEXTS: dict[str, CsvTexts] = {
         delimiter=";",
         decimal_separator=",",
         datetime_format="%d.%m.%Y %H:%M",
+        date_format="%d.%m.%Y",
         yes="ja",
         no="nein",
         headers=(
@@ -48,12 +52,23 @@ CSV_TEXTS: dict[str, CsvTexts] = {
             Occasion.TRIP_START: "Reisestart",
             Occasion.STOP: "Halt",
             Occasion.MANUAL: "Manuell",  # codespell:ignore manuell
+            Occasion.LATE: "Nachtrag",
+        },
+        travel_headers=("Datum", "Reise", "Titel", "Kategorie", "Land", "Betrag €", "Notiz"),
+        categories={
+            CostCategory.TOLL: "Maut",
+            CostCategory.VIGNETTE: "Vignette",
+            CostCategory.FERRY: "Fähre",
+            CostCategory.TUNNEL: "Tunnel",
+            CostCategory.PITCH: "Stellplatz",
+            CostCategory.OTHER: "Sonstiges",
         },
     ),
     "en": CsvTexts(
         delimiter=",",
         decimal_separator=".",
         datetime_format="%Y-%m-%d %H:%M",
+        date_format="%Y-%m-%d",
         yes="yes",
         no="no",
         headers=(
@@ -72,7 +87,21 @@ CSV_TEXTS: dict[str, CsvTexts] = {
             "Gas l",
             "Gas €",
         ),
-        occasions={Occasion.TRIP_START: "Trip start", Occasion.STOP: "Stop", Occasion.MANUAL: "Manual"},
+        occasions={
+            Occasion.TRIP_START: "Trip start",
+            Occasion.STOP: "Stop",
+            Occasion.MANUAL: "Manual",
+            Occasion.LATE: "Late entry",
+        },
+        travel_headers=("Date", "Trip", "Title", "Category", "Country", "Amount €", "Note"),
+        categories={
+            CostCategory.TOLL: "Toll",
+            CostCategory.VIGNETTE: "Vignette",
+            CostCategory.FERRY: "Ferry",
+            CostCategory.TUNNEL: "Tunnel",
+            CostCategory.PITCH: "Pitch",
+            CostCategory.OTHER: "Other",
+        },
     ),
 }
 
@@ -82,14 +111,18 @@ def csv_texts(language: str) -> CsvTexts:
     return CSV_TEXTS.get(language.split("-", maxsplit=1)[0], CSV_TEXTS["en"])
 
 
+def _number(texts: CsvTexts, value: float | None, digits: int) -> str:
+    if value is None:
+        return ""
+    return f"{value:.{digits}f}".replace(".", texts.decimal_separator)
+
+
 def logbook_csv(entries: list[LogbookEntry], language: str, timezone: tzinfo) -> str:
     """Return the entries as CSV text with a header row; times in `timezone`."""
     texts = csv_texts(language)
 
     def number(value: float | None, digits: int) -> str:
-        if value is None:
-            return ""
-        return f"{value:.{digits}f}".replace(".", texts.decimal_separator)
+        return _number(texts, value, digits)
 
     out = io.StringIO()
     writer = csv.writer(out, delimiter=texts.delimiter, lineterminator="\r\n")
@@ -111,6 +144,27 @@ def logbook_csv(entries: list[LogbookEntry], language: str, timezone: tzinfo) ->
                 number(e.fuel.amount if e.fuel else None, 2),
                 number(e.gas.litres if e.gas else None, 2),
                 number(e.gas.amount if e.gas else None, 2),
+            )
+        )
+    return out.getvalue()
+
+
+def travel_costs_csv(costs: list[TravelCost], trip_titles: dict[datetime, str], language: str, timezone: tzinfo) -> str:
+    """Return the travel costs as CSV text with a header row; trips by start time in `timezone` and title."""
+    texts = csv_texts(language)
+    out = io.StringIO()
+    writer = csv.writer(out, delimiter=texts.delimiter, lineterminator="\r\n")
+    writer.writerow(texts.travel_headers)
+    for c in costs:
+        writer.writerow(
+            (
+                c.day.strftime(texts.date_format),
+                c.trip_start.astimezone(timezone).strftime(texts.datetime_format) if c.trip_start else "",
+                trip_titles.get(c.trip_start, "") if c.trip_start else "",
+                texts.categories[c.category],
+                c.country or "",
+                _number(texts, c.amount, 2),
+                c.note or "",
             )
         )
     return out.getvalue()

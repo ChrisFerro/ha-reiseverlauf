@@ -10,8 +10,12 @@ lokale
 manuell
 oder
 offen
+offener
 ordner
 sie
+stopp
+stopps
+tage
 titel
 unter
 vor

@@ -1,5 +1,6 @@
 """Tests for the export that runs when a trip ends."""
 
+from dataclasses import replace
 from datetime import timedelta
 import json
 from pathlib import Path
@@ -13,6 +14,7 @@ from custom_components.reiseverlauftracker.const import EVENT_TRIP_ENDED, SECTIO
 from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUpdateCoordinator
 from custom_components.reiseverlauftracker.coordinator.logbook import FormField, Occasion
 from custom_components.reiseverlauftracker.coordinator.models import TripStatus
+from custom_components.reiseverlauftracker.coordinator.trip_log import TrackCounters
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -188,7 +190,6 @@ async def test_stops_are_tracked_live_and_listed_in_the_export(
     await drive(hass, freezer, 0, 5000)
 
     await advance(hass, freezer, timedelta(minutes=2))
-    assert coordinator.data.stops == ()
     await advance(hass, freezer, timedelta(minutes=4))
     assert [(s.place, s.end) for s in coordinator.data.stops] == [("Zielort", None)]
 
@@ -262,3 +263,104 @@ async def test_export_contains_the_logbook_of_the_trip(
     stored = json.loads((media_dir / "reiseverlauf" / info.folder / "export.json").read_text(encoding="utf-8"))
     assert stored["logbook"]["kilometerstand_ende"] == 34304
     assert events[0].data["fahrtenbuch"]["kosten"] == 70
+
+
+async def test_short_stops_are_remembered_with_counters_for_late_entries(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+    media_dir: Path,
+    geocode: AsyncMock,
+) -> None:
+    coordinator = await setup(hass, config_entry)
+    book = coordinator.logbook.logbook
+    await drive(hass, freezer, 0, 5000)
+    assert coordinator.log is not None
+    trip_start = coordinator.log.start
+    assert coordinator.log.counter_start == TrackCounters(0, 0, 0)
+
+    await advance(hass, freezer, timedelta(minutes=2))
+    [short] = book.stops
+    assert short.trip_start == trip_start
+    assert short.end is None
+    assert short.distance_counter_m == pytest.approx(5000, abs=1)
+    assert short.ascent_counter_m == 100
+    geocode.reset_mock()
+
+    await drive(hass, freezer, 5000, 5000)
+    await advance(hass, freezer, timedelta(minutes=60))
+    await advance(hass, freezer, timedelta(seconds=5))
+
+    first, last = book.stops_of_trip(trip_start)
+    assert first.start == short.start
+    assert first.end is not None
+    assert first.is_short(timedelta(minutes=5), dt_util.utcnow())
+    assert first.place == "Zielort"
+    assert last.end is None
+    assert last.distance_counter_m == pytest.approx(10_000, abs=1)
+    info = coordinator.data.last_export
+    assert info is not None
+    assert info.stops == ()
+    assert info.counter_start == TrackCounters(0, 0, 0)
+    metadata = json.loads((media_dir / "reiseverlauf" / info.folder / "export.json").read_text())
+    assert metadata["counter_start"] == {"distance_m": 0, "ascent_m": 0, "descent_m": 0}
+
+
+async def test_old_stops_are_pruned_at_start(
+    hass: HomeAssistant, config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    coordinator = await setup(hass, config_entry)
+    await drive(hass, freezer, 0, 5000)
+    await advance(hass, freezer, timedelta(minutes=60))
+    assert len(coordinator.logbook.logbook.stops) == 1
+    await coordinator.logbook.async_save_now()
+    await hass.config_entries.async_unload(config_entry.entry_id)
+
+    freezer.tick(timedelta(days=121))
+    await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert config_entry.runtime_data.coordinator.logbook.logbook.stops == []
+
+
+async def test_countries_of_the_trip_are_looked_up_after_the_export(
+    hass: HomeAssistant, config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory, media_dir: Path
+) -> None:
+    coordinator = await setup(hass, config_entry)
+    await drive(hass, freezer, 0, 10_000)
+    await advance(hass, freezer, timedelta(minutes=60))
+    await advance(hass, freezer, timedelta(seconds=5))
+
+    info = coordinator.data.last_export
+    assert info is not None
+    assert info.countries == ("DE", "AT")
+    assert coordinator.exports[0].countries == ("DE", "AT")
+    metadata = json.loads((media_dir / "reiseverlauf" / info.folder / "export.json").read_text())
+    assert metadata["countries"] == ["DE", "AT"]
+
+
+async def test_countries_of_an_older_export_are_looked_up_once_when_needed(
+    hass: HomeAssistant, config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory, media_dir: Path
+) -> None:
+    coordinator = await setup(hass, config_entry)
+    await drive(hass, freezer, 0, 5000)
+    await advance(hass, freezer, timedelta(minutes=60))
+    await advance(hass, freezer, timedelta(seconds=5))
+    info = coordinator.data.last_export
+    assert info is not None
+    path = media_dir / "reiseverlauf" / info.folder / "export.json"
+    metadata = json.loads(path.read_text())
+    metadata.pop("countries")
+    path.write_text(json.dumps(metadata))
+
+    # After a restart, the country selection of the travel costs form asks for the countries of the chosen trip.
+    assert await hass.config_entries.async_reload(config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    coordinator = config_entry.runtime_data.coordinator
+
+    assert coordinator.exports[0].countries == ("DE",)
+    assert json.loads(path.read_text())["countries"] == ["DE"]
+    with patch("custom_components.reiseverlauftracker.coordinator.country_finder.async_country") as lookup:
+        coordinator.countries.ensure(replace(coordinator.exports[0], countries=None))
+        await hass.async_block_till_done(wait_background_tasks=True)
+    lookup.assert_not_called()

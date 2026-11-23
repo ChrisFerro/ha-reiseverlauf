@@ -2,8 +2,9 @@
 
 from bisect import bisect_right
 from collections.abc import Iterable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta, tzinfo
+from typing import Any
 
 from custom_components.reiseverlauftracker.utils.geo import Position
 
@@ -86,14 +87,21 @@ class LogbookFigures:
     gas_litres: float = 0.0
     gas_cost: float = 0.0
     consumption_l_100km: float | None = None
-    """Average consumption over all refills so far, not of this trip alone."""
+    """Average consumption over all refills up to the end of the trip, not of this trip alone."""
+    travel_costs: dict[str, float] = field(default_factory=dict)
+    """Travel costs of the trip (toll, ferry …) by category, usually entered after the trip."""
 
     @property
-    def cost(self) -> float:
+    def fuel_and_gas_cost(self) -> float:
         """Return fuel and gas costs together."""
         return self.fuel_cost + self.gas_cost
 
-    def as_dict(self) -> dict[str, float | None]:
+    @property
+    def cost(self) -> float:
+        """Return all costs: fuel, gas and travel costs."""
+        return self.fuel_and_gas_cost + sum(self.travel_costs.values())
+
+    def as_dict(self) -> dict[str, Any]:
         """Return the figures as stored in `export.json` and sent with the events, keyed in German."""
         return {
             "kilometerstand_start": self.odometer_start_km,
@@ -102,12 +110,13 @@ class LogbookFigures:
             "diesel_kosten": round(self.fuel_cost, 2),
             "gas_liter": self.gas_litres,
             "gas_kosten": round(self.gas_cost, 2),
+            "reisekosten": {category: round(amount, 2) for category, amount in self.travel_costs.items()},
             "kosten": round(self.cost, 2),
             "verbrauch_l_100km": round(self.consumption_l_100km, 1) if self.consumption_l_100km is not None else None,
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, float | None]) -> LogbookFigures:
+    def from_dict(cls, data: dict[str, Any]) -> LogbookFigures:
         """Rebuild the figures from `as_dict()` output."""
         return cls(
             odometer_start_km=data.get("kilometerstand_start"),
@@ -117,6 +126,7 @@ class LogbookFigures:
             gas_litres=data.get("gas_liter") or 0.0,
             gas_cost=data.get("gas_kosten") or 0.0,
             consumption_l_100km=data.get("verbrauch_l_100km"),
+            travel_costs=dict(data.get("reisekosten") or {}),
         )
 
 

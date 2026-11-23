@@ -103,10 +103,12 @@
           "logbook": {
             "name": "Fahrtenbuch",
             "data": {
-              "tank_size": "Tankgröße"
+              "tank_size": "Tankgröße",
+              "toll_countries": "Mautländer"
             },
             "data_description": {
-              "tank_size": "Inhalt des Kraftstofftanks. Daraus wird der Füllstand berechnet vorgeschlagen, sobald ein Durchschnittsverbrauch vorliegt."
+              "tank_size": "Inhalt des Kraftstofftanks. Daraus wird der Füllstand berechnet vorgeschlagen, sobald ein Durchschnittsverbrauch vorliegt.",
+              "toll_countries": "Länder mit Maut für das Fahrzeug. Für Reisen durch diese Länder erinnert die Integration an fehlende Maut-Einträge; sie stehen auch in der Länder-Auswahl der Reisekosten."
             }
           }
         }
@@ -130,6 +132,62 @@
         "stats": "Statistik",
         "raw": "Rohdaten"
       }
+    },
+    "country": {
+      "options": {
+        "ad": "Andorra",
+        "al": "Albanien",
+        "at": "Österreich",
+        "ba": "Bosnien und Herzegowina",
+        "be": "Belgien",
+        "bg": "Bulgarien",
+        "ch": "Schweiz",
+        "cy": "Zypern",
+        "cz": "Tschechien",
+        "de": "Deutschland",
+        "dk": "Dänemark",
+        "ee": "Estland",
+        "es": "Spanien",
+        "fi": "Finnland",
+        "fr": "Frankreich",
+        "gb": "Vereinigtes Königreich",
+        "gr": "Griechenland",
+        "hr": "Kroatien",
+        "hu": "Ungarn",
+        "ie": "Irland",
+        "is": "Island",
+        "it": "Italien",
+        "li": "Liechtenstein",
+        "lt": "Litauen",
+        "lu": "Luxemburg",
+        "lv": "Lettland",
+        "ma": "Marokko",
+        "mc": "Monaco",
+        "me": "Montenegro",
+        "mk": "Nordmazedonien",
+        "mt": "Malta",
+        "nl": "Niederlande",
+        "no": "Norwegen",
+        "pl": "Polen",
+        "pt": "Portugal",
+        "ro": "Rumänien",
+        "rs": "Serbien",
+        "se": "Schweden",
+        "si": "Slowenien",
+        "sk": "Slowakei",
+        "sm": "San Marino",
+        "tr": "Türkei"
+      }
+    },
+    "travel_cost_category": {
+      "options": {
+        "maut": "Maut",
+        "vignette": "Vignette",
+        "faehre": "Fähre",
+        "tunnel": "Tunnel",
+        "stellplatz": "Stellplatz",
+        "sonstiges": "Sonstiges"
+      }
     }
   },
   "entity": {
@@ -148,6 +206,88 @@
         "name": "Export-Auswahl",
         "state": {
           "all": "Alle Exporte"
+        }
+      },
+      "logbook_time": {
+        "name": "Fahrtenbuch Zeitpunkt",
+        "state": {
+          "current": "Aktuell",
+          "other": "Andere Uhrzeit …"
+        },
+        "state_attributes": {
+          "zeit": {
+            "name": "Zeit"
+          },
+          "ort": {
+            "name": "Ort"
+          },
+          "geschaetzt": {
+            "name": "Kilometerstand geschätzt"
+          }
+        }
+      },
+      "travel_cost_category": {
+        "name": "Reisekosten Kategorie",
+        "state": {
+          "maut": "Maut",
+          "vignette": "Vignette",
+          "faehre": "Fähre",
+          "tunnel": "Tunnel",
+          "stellplatz": "Stellplatz",
+          "sonstiges": "Sonstiges"
+        }
+      },
+      "travel_cost_country": {
+        "name": "Reisekosten Land",
+        "state": {
+          "ad": "Andorra",
+          "al": "Albanien",
+          "at": "Österreich",
+          "ba": "Bosnien und Herzegowina",
+          "be": "Belgien",
+          "bg": "Bulgarien",
+          "ch": "Schweiz",
+          "cy": "Zypern",
+          "cz": "Tschechien",
+          "de": "Deutschland",
+          "dk": "Dänemark",
+          "ee": "Estland",
+          "es": "Spanien",
+          "fi": "Finnland",
+          "fr": "Frankreich",
+          "gb": "Vereinigtes Königreich",
+          "gr": "Griechenland",
+          "hr": "Kroatien",
+          "hu": "Ungarn",
+          "ie": "Irland",
+          "is": "Island",
+          "it": "Italien",
+          "li": "Liechtenstein",
+          "lt": "Litauen",
+          "lu": "Luxemburg",
+          "lv": "Lettland",
+          "ma": "Marokko",
+          "mc": "Monaco",
+          "me": "Montenegro",
+          "mk": "Nordmazedonien",
+          "mt": "Malta",
+          "nl": "Niederlande",
+          "no": "Norwegen",
+          "pl": "Polen",
+          "pt": "Portugal",
+          "ro": "Rumänien",
+          "rs": "Serbien",
+          "se": "Schweden",
+          "si": "Slowenien",
+          "sk": "Slowakei",
+          "sm": "San Marino",
+          "tr": "Türkei",
+          "none": "Ohne Land"
+        },
+        "state_attributes": {
+          "laender_der_reise": {
+            "name": "Länder der Reise"
+          }
         }
       }
     },
@@ -264,11 +404,71 @@
       "parked_heating_read": {
         "name": "Heizung im Stand (abgelesen)"
       },
-      "costs_month": {
-        "name": "Tank- und Gaskosten Monat"
+      "travel_costs_month": {
+        "name": "Reisekosten Monat",
+        "state_attributes": {
+          "maut": {
+            "name": "Maut"
+          },
+          "vignette": {
+            "name": "Vignette"
+          },
+          "faehre": {
+            "name": "Fähre"
+          },
+          "tunnel": {
+            "name": "Tunnel"
+          },
+          "stellplatz": {
+            "name": "Stellplatz"
+          },
+          "sonstiges": {
+            "name": "Sonstiges"
+          },
+          "diesel": {
+            "name": "Diesel"
+          },
+          "gas": {
+            "name": "Gas"
+          }
+        }
       },
-      "costs_year": {
-        "name": "Tank- und Gaskosten Jahr"
+      "travel_costs_year": {
+        "name": "Reisekosten Jahr",
+        "state_attributes": {
+          "maut": {
+            "name": "Maut"
+          },
+          "vignette": {
+            "name": "Vignette"
+          },
+          "faehre": {
+            "name": "Fähre"
+          },
+          "tunnel": {
+            "name": "Tunnel"
+          },
+          "stellplatz": {
+            "name": "Stellplatz"
+          },
+          "sonstiges": {
+            "name": "Sonstiges"
+          },
+          "diesel": {
+            "name": "Diesel"
+          },
+          "gas": {
+            "name": "Gas"
+          }
+        }
+      },
+      "open_toll": {
+        "name": "Maut offen",
+        "state_attributes": {
+          "reisen": {
+            "name": "Reisen"
+          }
+        }
       }
     },
     "number": {
@@ -295,6 +495,9 @@
       },
       "logbook_gas_amount": {
         "name": "Fahrtenbuch Gas Betrag"
+      },
+      "travel_cost_amount": {
+        "name": "Reisekosten Betrag"
       }
     },
     "button": {
@@ -303,6 +506,30 @@
       },
       "logbook_discard": {
         "name": "Fahrtenbuch verwerfen"
+      },
+      "logbook_late": {
+        "name": "Fahrtenbuch nachtragen"
+      },
+      "travel_cost_save": {
+        "name": "Reisekosten speichern"
+      },
+      "no_toll": {
+        "name": "Keine Maut"
+      }
+    },
+    "datetime": {
+      "logbook_late_time": {
+        "name": "Fahrtenbuch Nachtrag Zeit"
+      }
+    },
+    "text": {
+      "travel_cost_note": {
+        "name": "Reisekosten Notiz"
+      }
+    },
+    "date": {
+      "travel_cost_date": {
+        "name": "Reisekosten Datum"
       }
     }
   },
@@ -508,6 +735,144 @@
           "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
         }
       }
+    },
+    "fahrtenbuch_nachtragen": {
+      "name": "Tankstopp nachtragen",
+      "description": "Trägt einen Tank- oder Gasstopp für einen früheren Zeitpunkt nach, z. B. nach dem Beleg. Liegt ein gemerkter Stopp bis 5 Minuten um die Zeit, wird der Eintrag diesem Stopp zugeordnet bzw. dessen Eintrag ergänzt. Zählerstände und Position kommen aus der Spur.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "zeit": {
+          "name": "Zeit",
+          "description": "Zeitpunkt des Tankstopps."
+        },
+        "kilometerstand": {
+          "name": "Kilometerstand",
+          "description": "Stand des Tachos in km. Leer lassen für den fortgeschriebenen Stand; nötig, wenn die Strecke zu dieser Zeit nicht bekannt ist."
+        },
+        "diesel_liter": {
+          "name": "Diesel getankt",
+          "description": "Getankte Liter. 0 entfernt den Tankstopp."
+        },
+        "diesel_betrag": {
+          "name": "Diesel Betrag",
+          "description": "Bezahlter Betrag für den Diesel."
+        },
+        "gas_liter": {
+          "name": "Gas getankt",
+          "description": "Getankte Liter Gas für beide Tanks zusammen. 0 entfernt den Gasstopp."
+        },
+        "gas_betrag": {
+          "name": "Gas Betrag",
+          "description": "Bezahlter Betrag für das Gas."
+        }
+      }
+    },
+    "reisekosten_eintragen": {
+      "name": "Reisekosten eintragen",
+      "description": "Trägt Reisekosten wie Maut, Vignette, Fähre, Tunnel oder Stellplatz für eine Reise oder für einen Tag ohne Reise ein. Maut wird je Reise und Land eingetragen.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "reise": {
+          "name": "Reise",
+          "description": "Ordner des Exports, Eintrag der Export-Auswahl oder Startzeit der Reise. Leer lassen für Kosten ohne Reise, z. B. Stellplatz während einer Standzeit."
+        },
+        "datum": {
+          "name": "Datum",
+          "description": "Tag, in dessen Monat die Kosten zählen. Ohne Angabe gilt der Reisebeginn; ohne Reise ist das Datum nötig."
+        },
+        "kategorie": {
+          "name": "Kategorie",
+          "description": "Art der Kosten."
+        },
+        "betrag": {
+          "name": "Betrag",
+          "description": "Bezahlter Betrag in der Währung der Instanz."
+        },
+        "land": {
+          "name": "Land",
+          "description": "Ländercode nach ISO 3166-1, z. B. AT für Österreich."
+        },
+        "notiz": {
+          "name": "Notiz",
+          "description": "Freier Text, z. B. Name der Fähre oder des Stellplatzes."
+        }
+      }
+    },
+    "reisekosten_aendern": {
+      "name": "Reisekosten ändern",
+      "description": "Ändert einen Reisekosten-Eintrag. Nur angegebene Felder werden geändert; ein leeres Land oder eine leere Notiz entfernt sie.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "eintrag": {
+          "name": "Eintrag",
+          "description": "ID des Eintrags aus dem Attribut „reisekosten“ der Export-Auswahl."
+        },
+        "reise": {
+          "name": "Reise",
+          "description": "Neue Reise: Ordner, Eintrag der Export-Auswahl oder Startzeit."
+        },
+        "datum": {
+          "name": "Datum",
+          "description": "Neues Datum."
+        },
+        "kategorie": {
+          "name": "Kategorie",
+          "description": "Neue Art der Kosten."
+        },
+        "betrag": {
+          "name": "Betrag",
+          "description": "Neuer Betrag."
+        },
+        "land": {
+          "name": "Land",
+          "description": "Neuer Ländercode."
+        },
+        "notiz": {
+          "name": "Notiz",
+          "description": "Neue Notiz."
+        }
+      }
+    },
+    "reisekosten_loeschen": {
+      "name": "Reisekosten löschen",
+      "description": "Löscht einen Reisekosten-Eintrag.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "eintrag": {
+          "name": "Eintrag",
+          "description": "ID des Eintrags aus dem Attribut „reisekosten“ der Export-Auswahl."
+        }
+      }
+    },
+    "keine_maut": {
+      "name": "Keine Maut",
+      "description": "Kennzeichnet eine Reise als ohne Maut (z. B. nur Landstraße), damit keine Erinnerung an fehlende Maut kommt.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "reise": {
+          "name": "Reise",
+          "description": "Ordner des Exports, Eintrag der Export-Auswahl oder Startzeit der Reise."
+        },
+        "an": {
+          "name": "Keine Maut",
+          "description": "Aus entfernt das Kennzeichen wieder."
+        }
+      }
     }
   },
   "exceptions": {
@@ -555,6 +920,33 @@
     },
     "logbook_occasion_not_pending": {
       "message": "Der Fahrtenbuch-Anlass von {time} ist nicht mehr offen."
+    },
+    "no_late_time": {
+      "message": "Im Fahrtenbuch Zeitpunkt ist kein früherer Zeitpunkt gewählt."
+    },
+    "late_without_refill": {
+      "message": "Bitte Diesel- oder Gas-Liter angeben."
+    },
+    "late_odometer_required": {
+      "message": "Die Strecke zu dieser Zeit ist nicht bekannt. Bitte den Kilometerstand angeben."
+    },
+    "unknown_trip": {
+      "message": "Keine Reise „{trip}“ gefunden. Ordner, Eintrag der Export-Auswahl oder Startzeit angeben."
+    },
+    "travel_cost_needs_day": {
+      "message": "Bitte eine Reise oder ein Datum angeben."
+    },
+    "invalid_travel_cost": {
+      "message": "Der Betrag muss größer als 0 sein und das Land ein Code aus zwei Buchstaben (z. B. AT)."
+    },
+    "unknown_travel_cost": {
+      "message": "Kein Reisekosten-Eintrag mit der ID {entry}."
+    },
+    "travel_cost_without_amount": {
+      "message": "Bitte einen Betrag eintragen."
+    },
+    "travel_cost_without_trip": {
+      "message": "Bitte in der Export-Auswahl eine Reise wählen."
     }
   }
 }

@@ -35,6 +35,10 @@ Ausführliche Anforderungen und der Ist-Zustand stehen in der importierten Datei
    `docs/features/feat-07-downloads.md`.
 8. Verbrauchsmodell (Höhenmeter, Heizung im Stand) für Ø-Verbrauch und Kraftstoff-Vorschlag; erst mit genug
    Fahrtenbuch-Daten. Anforderungen und offene Fragen in `docs/features/feat-08-verbrauchsmodell.md`.
+9. Nachträge: Tankstopp (Beleg) und Reisekosten (Maut je Reise und Land) später erfassen; Anforderungen und offene
+   Fragen in `docs/features/feat-09-nachtraege.md`.
+10. Tour: mehrere Reisen und Standzeiten (z. B. Urlaub, Werkstattaufenthalt) mit Reiseverlauf und Kostenaufstellung
+    zusammenfassen; Anforderungen und offene Fragen in `docs/features/feat-10-tour.md`.
 
 Jedes Feature hat ein eigenes Dokument in `docs/features/` (Verzeichnis in `docs/ANFORDERUNGEN.md` Abschnitt 11),
 fortlaufend nummeriert: Dateiname `feat-<NN>-<name>.md`, Überschrift `Feat-<NN>: <Name>` (nächste freie Nummer).

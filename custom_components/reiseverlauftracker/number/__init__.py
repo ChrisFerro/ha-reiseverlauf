@@ -1,4 +1,4 @@
-"""Number platform for reiseverlauftracker: the fields of the logbook form."""
+"""Number platform for reiseverlauftracker: the fields of the logbook form and the travel cost amount."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -87,6 +87,16 @@ ENTITY_DESCRIPTIONS = (
     _amount("logbook_gas_amount", FormField.GAS_AMOUNT),
 )
 
+COST_AMOUNT = NumberEntityDescription(
+    key="travel_cost_amount",
+    translation_key="travel_cost_amount",
+    native_min_value=0,
+    native_max_value=10000,
+    native_step=0.01,
+    device_class=NumberDeviceClass.MONETARY,
+    mode=NumberMode.BOX,
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -94,8 +104,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the number platform."""
+    coordinator = entry.runtime_data.coordinator
     async_add_entities(
-        ReiseverlaufLogbookNumber(entry.runtime_data.coordinator, description) for description in ENTITY_DESCRIPTIONS
+        [
+            *(ReiseverlaufLogbookNumber(coordinator, description) for description in ENTITY_DESCRIPTIONS),
+            ReiseverlaufCostAmount(coordinator, COST_AMOUNT),
+        ]
     )
 
 
@@ -120,3 +134,23 @@ class ReiseverlaufLogbookNumber(NumberEntity, ReiseverlaufEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Change the value in the form."""
         self.coordinator.logbook.set_field(self.entity_description.form_field, value)
+
+
+class ReiseverlaufCostAmount(NumberEntity, ReiseverlaufEntity):
+    """Amount of the next travel cost, in the currency of the instance."""
+
+    def __init__(
+        self, coordinator: ReiseverlaufDataUpdateCoordinator, entity_description: NumberEntityDescription
+    ) -> None:
+        """Initialize the field with the currency of the instance."""
+        super().__init__(coordinator, entity_description)
+        self._attr_native_unit_of_measurement = coordinator.hass.config.currency
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the amount in the form."""
+        return self.coordinator.cost_form.amount
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Change the amount in the form."""
+        self.coordinator.cost_form.set_amount(value)

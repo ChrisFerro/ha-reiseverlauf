@@ -65,6 +65,8 @@ async def test_export_period_from_history(
     media_dir: Path,
     freezer: FrozenDateTimeFactory,
 ) -> None:
+    # A fixed midday time keeps the period on one day, so the folder name has the short form.
+    freezer.move_to("2026-10-31 10:00:00+00:00")
     hass.config.language = "de"
     entry = await setup(hass, config_entry, media_dir)
     events = async_capture_events(hass, EVENT_TRIP_EXPORTED)
