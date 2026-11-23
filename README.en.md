@@ -132,7 +132,8 @@ instead of downloading them. A full example is in the [German README](README.md#
 
 A tour combines several trips and the stays between them, for example the drive out, a week on a camp site and
 the drive home, or a trip to the workshop and back. It is created afterwards from the stored points of the trips,
-not from the recorder, so tours longer than 10 days are complete. Choose the first trip in the export selection,
+not from the recorder, so tours longer than 10 days are complete. Manual exports with raw data count as trips too;
+if one overlaps an automatically detected trip, the automatic one counts, so no distance counts twice. Choose the first trip in the export selection,
 check tour from and tour until, optionally enter a title and press create tour. The tour folder
 `tour-<start>-<end>` holds the composite image (key figures, overall map, days by place, costs), map, GPX with one
 track per trip, statistics, a CSV with one row per day, raw data and `export.json`. The place of a night is where

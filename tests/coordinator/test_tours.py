@@ -1,7 +1,9 @@
 """Tests for tours: two trips with a stay between them, combined afterwards (docs/features/feat-10-tour.md)."""
 
-from datetime import date, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+import shutil
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
@@ -9,7 +11,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 
 from custom_components.reiseverlauftracker.const import DOMAIN, EVENT_TOUR
 from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUpdateCoordinator
-from custom_components.reiseverlauftracker.coordinator.exports import ExportKind, read_export
+from custom_components.reiseverlauftracker.coordinator.exports import ExportKind, read_export, write_metadata
 from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory, Occasion, Refill
 from custom_components.reiseverlauftracker.export import ExportFile
 from homeassistant.core import HomeAssistant
@@ -219,6 +221,42 @@ async def test_tour_keeps_its_own_raw_data(
         return_response=True,
     )
     assert response["strecke_km"] == created["strecke_km"]
+
+
+async def test_manual_exports_join_without_overlap(
+    hass: HomeAssistant, two_trips: ReiseverlaufDataUpdateCoordinator, config_entry: MockConfigEntry, media_dir: Path
+) -> None:
+    base = media_dir / "reiseverlauf"
+    first, second = sorted((i for i in two_trips.exports if i.automatic), key=lambda i: i.start)
+    # The second trip was exported by hand, e.g. before the integration recorded trips.
+    write_metadata(base, replace(second, automatic=False))
+    # A manual export of the first trip overlaps it and must not count twice.
+    shutil.copytree(base / first.folder, base / "2026-10-10_0805-0900")
+    write_metadata(
+        base,
+        replace(first, folder="2026-10-10_0805-0900", start=first.start + timedelta(minutes=5), automatic=False),
+    )
+    # A manual export without raw data is left out instead of stopping the tour.
+    (base / "2026-10-11_1000-1100").mkdir()
+    files = {kind: name for kind, name in first.files.items() if kind is not ExportFile.RAW}
+    write_metadata(
+        base,
+        replace(
+            first,
+            folder="2026-10-11_1000-1100",
+            start=datetime(2026, 10, 11, 8, tzinfo=UTC),
+            end=datetime(2026, 10, 11, 9, tzinfo=UTC),
+            files=files,
+            automatic=False,
+        ),
+    )
+    await two_trips.async_refresh_exports()
+
+    response = await create(hass, config_entry.entry_id, **PERIOD)
+
+    assert response["reisen"] == [first.folder, second.folder]
+    assert response["strecke_km"] == pytest.approx(20, abs=0.5)
+    assert response["naechte"] == 2
 
 
 async def test_no_trip_in_the_period(hass: HomeAssistant, two_trips, config_entry: MockConfigEntry) -> None:

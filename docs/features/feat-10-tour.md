@@ -238,7 +238,11 @@ Jeder Schritt mit Tests, grünem `script/check` und einem Prüfpunkt in der Entw
 - **Gas-Schätzung (5.5):** Summe beider Füllstände am Anfang minus am Ende plus die Gasstopps. Gasstopps werden über
   „Liter je Prozentpunkt“ umgerechnet, ermittelt aus allen Gasstopps mit einer Ablesung davor (Liter ÷ aufgefüllte
   Prozentpunkte). Ohne diese Angabe nur der Prozentwert, wenn es keinen Gasstopp gab.
-- **Reisen der Tour:** nur automatisch erkannte Reisen, die im Zeitraum beginnen; Reisen ohne Bewegung entfallen.
+- **Reisen der Tour:** Reisen und manuelle Exporte, die im Zeitraum beginnen; Reisen ohne Bewegung entfallen.
+  Manuelle Exporte zählen seit 0.3.2 mit (23.11.2026: die Reisen vor der Installation liegen nur als manuelle Exporte
+  vor). Überschneiden sich zwei, zählt nur einer: die Kopie in der Tour vor einer automatischen Reise, eine
+  automatische Reise vor einem manuellen Export, ein früherer manueller Export vor einem späteren. Ein manueller Export
+  ohne Rohdaten entfällt; fehlen die Rohdaten einer automatischen Reise, bricht das Erstellen ab.
   Der Ordner bleibt bei Änderungen gleich; Dateinamen folgen dem Titel. Die Karte wird nur neu gezeichnet, wenn sich
   die Reisen der Tour ändern.
 - **Export-Auswahl:** Label `<Start>–<Ende> · Tour · <Titel>`; Attribute `art`, `standorte` (Zeilen mit `nacht`,

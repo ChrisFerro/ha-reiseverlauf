@@ -343,8 +343,13 @@ class Tours:
         """
         Return the trips starting in the period: the tour's own copy if it has one, else the trip's raw data.
 
+        Manual exports count as trips too, so trips exported before the integration recorded them can join
+        a tour. A trip is left out if it overlaps one taken already: the tour's copy wins over an automatic
+        trip, an automatic trip over a manual export, and an earlier manual export over a later one. A
+        manual export without raw data is left out; an automatic trip without raw data is an error.
+
         Raises:
-            TourError: No trip in the period, or one that has neither raw data nor a copy in the tour.
+            TourError: No trip in the period, or an automatic one that has neither raw data nor a copy in the tour.
 
         """
         coordinator = self.coordinator
@@ -358,12 +363,17 @@ class Tours:
         trips = {start_: trip for start_, trip in known.items() if start <= start_ <= end}
         missing: list[str] = []
         tz = dt_util.get_default_time_zone()
-        for info in coordinator.exports:
-            if not info.automatic or info.is_tour or not start <= info.start <= end or info.start in trips:
+        candidates = sorted(
+            (info for info in coordinator.exports if not info.is_tour and start <= info.start <= end),
+            key=lambda info: (not info.automatic, info.start),
+        )
+        for info in candidates:
+            if any(info.start < trip.end and trip.start < info.end for trip in trips.values()):
                 continue
             raw = await coordinator.hass.async_add_executor_job(read_raw, base, info)
             if raw is None:
-                missing.append(info.label(tz))
+                if info.automatic:
+                    missing.append(info.label(tz))
                 continue
             trips[info.start] = RawTrip(info.folder, info.title, info.start, info.end, raw, info.countries or ())
         if missing:
