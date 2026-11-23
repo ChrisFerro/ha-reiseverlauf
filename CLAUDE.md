@@ -41,6 +41,8 @@ Ausführliche Anforderungen und der Ist-Zustand stehen in der importierten Datei
     zusammenfassen; Anforderungen und offene Fragen in `docs/features/feat-10-tour.md`.
 11. Einträge bearbeiten: Fahrtenbuch-Einträge (ggf. Reisekosten) im Dashboard ändern und löschen; Anforderungen
     und offene Fragen in `docs/features/feat-11-eintraege-bearbeiten.md`.
+12. Kartensymbole: Halte, Tank- und Gasstopps, Stellplätze u. a. mit Symbolen auf den Karten; Anforderungen und
+    offene Fragen in `docs/features/feat-12-kartensymbole.md`.
 
 Jedes Feature hat ein eigenes Dokument in `docs/features/` (Verzeichnis in `docs/ANFORDERUNGEN.md` Abschnitt 11),
 fortlaufend nummeriert: Dateiname `feat-<NN>-<name>.md`, Überschrift `Feat-<NN>: <Name>` (nächste freie Nummer).
