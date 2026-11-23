@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.1...v0.3.2) (2026-11-23)
+
+
+### Bug Fixes
+
+* **tour:** count manual exports as trips of a tour ([#43](https://github.com/ChrisFerro/ha-reiseverlauf/issues/43)) ([176b25f](https://github.com/ChrisFerro/ha-reiseverlauf/commit/176b25f99c5c4b6dd437cdc57ea25192a46e23e9))
+
 ## [0.3.1](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.0...v0.3.1) (2026-11-23)
 
 
