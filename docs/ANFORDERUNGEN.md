@@ -156,6 +156,8 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
    [features/feat-09-nachtraege.md](features/feat-09-nachtraege.md)).
 10. Tour: mehrere Reisen und Standzeiten (z. B. Urlaub, Werkstattaufenthalt) mit Reiseverlauf und Kostenaufstellung
     zusammenfassen (siehe [features/feat-10-tour.md](features/feat-10-tour.md)).
+11. Einträge bearbeiten: Fahrtenbuch-Einträge im Dashboard ändern und löschen (siehe
+    [features/feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)).
 
 ## 11. Feature-Dokumente
 
@@ -178,3 +180,4 @@ neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeb
 | Feat-08 | Verbrauchsmodell         | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | Zwischenschritt umgesetzt |
 | Feat-09 | Nachträge (Tank, Kosten) | [feat-09-nachtraege.md](features/feat-09-nachtraege.md)                       | 9      | umgesetzt                 |
 | Feat-10 | Tour                     | [feat-10-tour.md](features/feat-10-tour.md)                                   | 10     | Entwurf zur Freigabe      |
+| Feat-11 | Einträge bearbeiten      | [feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)   | 11     | Entwurf zur Freigabe      |
