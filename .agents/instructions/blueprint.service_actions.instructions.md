@@ -56,12 +56,10 @@ import probatio
 
 from homeassistant.helpers import config_validation as cv
 
-SERVICE_SCHEMA = probatio.Schema(
-    {
-        probatio.Required("device_id"): cv.string,
-        probatio.Optional("force", default=False): cv.boolean,
-    }
-)
+SERVICE_SCHEMA = probatio.Schema({
+    probatio.Required("device_id"): cv.string,
+    probatio.Optional("force", default=False): cv.boolean,
+})
 ```
 
 ## Exception Handling
@@ -78,6 +76,13 @@ translation keys.
 **Authentication failures need `entry.async_start_reauth(hass)`.** `ConfigEntryAuthFailed` only triggers the reauth
 flow when it is raised from `async_setup_entry` in `__init__.py` or from the coordinator. Raised in an action handler
 it does nothing but log, so start the flow explicitly and raise a translated `HomeAssistantError` for the caller.
+
+**Wrap every device and library failure in `HomeAssistantError`.** An automation step with `continue_on_error` skips
+only a `HomeAssistantError` (`ServiceValidationError` included); any other exception stops the run, and so do
+configuration errors — schema, template, unknown action or entity (`CONFIGURATION_ERRORS` in `helpers/script.py`).
+
+**Calling an action twice is harmless.** Automations retrigger more often than anyone expects; a second identical
+call must not double an effect.
 
 ## Target Field
 
@@ -99,6 +104,8 @@ Services can return JSON-serializable data (`homeassistant.util.json.JsonObjectT
 - Response MUST be a `dict`
 - **datetime objects MUST use `.isoformat()`** - Template engine cannot handle raw datetime
 - Raise exceptions for errors, never return error codes in response data
+- The shape is an interface automations are built against: changing a key or the structure is a breaking change
+  ([`ha-breaking-changes`](../skills/ha-breaking-changes/SKILL.md))
 
 **SupportsResponse modes:**
 
@@ -109,7 +116,6 @@ Example with datetime conversion:
 
 ```python
 from homeassistant.core import SupportsResponse
-
 
 async def search_items(call: ServiceCall) -> ServiceResponse:
     items = await client.search(call.data["start"], call.data["end"])
@@ -123,11 +129,8 @@ async def search_items(call: ServiceCall) -> ServiceResponse:
         ],
     }
 
-
 hass.services.async_register(
-    DOMAIN,
-    "search",
-    search_items,
+    DOMAIN, "search", search_items,
     supports_response=SupportsResponse.ONLY,
 )
 ```
