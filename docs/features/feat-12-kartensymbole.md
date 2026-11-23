@@ -1,7 +1,6 @@
 # Feat-12: Kartensymbole
 
-Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf der Umsetzung zur Freigabe (Abschnitt 6), Punkt 6.10.2
-zur Entscheidung offen.
+Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf der Umsetzung zur Freigabe (Abschnitt 6).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Halte](feat-02-halte.md), [Export](feat-03-export.md), [Fahrtenbuch](feat-06-fahrtenbuch.md),
 [Nachträge](feat-09-nachtraege.md), [Tour](feat-10-tour.md).
@@ -138,6 +137,9 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
   getrennt („Fähre: 18 km, 45 min“), ebenso Gesamtbild, `export.json` und Event `_beendet` (neue Felder
   `faehre_km`, `faehre_min`), bei einer Tour summiert. Gilt ab dieser Version; ändert sich die Markierung nachträglich,
   werden Strecke und Zählerstände beim Erneuern neu berechnet. Hinweis in den Release-Notes.
+- **5.11 Grundkarte speichern** (23.11.2026): Jeder Export mit Karte speichert zusätzlich die Karte ohne Symbole
+  (Grundkarte) und ihre Projektion (6.5). Erneuern zeichnet die Symbole darauf neu, ohne Kacheln zu laden; die
+  zusätzliche Datei (bei Skala 2 einige MB) wird in Kauf genommen.
 
 ## 6. Entwurf der Umsetzung (zur Freigabe)
 
@@ -252,8 +254,7 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 ### 6.10 Zur Entscheidung vor der Umsetzung
 
 1. ~~**Strecke auf der Fähre:** herausrechnen oder nur einzeichnen?~~ – entschieden, siehe 5.10.
-2. **Grundkarte speichern** (6.5): eine zusätzliche Bilddatei je Export (bei Skala 2 einige MB), dafür Erneuern ohne
-   Kacheln. Alternative: keine Grundkarte; Symbole ändern sich dann nur über „Karte neu zeichnen“ (mit Kacheln).
+2. ~~**Grundkarte speichern** (6.5): ja oder nein?~~ – entschieden, siehe 5.11.
 
 ### 6.11 Teilschritte
 
