@@ -1,6 +1,6 @@
 # Feat-11: Einträge bearbeiten
 
-Stand: 23.11.2026, Fragen geklärt (Abschnitt 5); Entwurf der Umsetzung zur Freigabe (Abschnitt 6).
+Stand: 23.11.2026, Fragen 1–5 geklärt (Abschnitt 5), Frage 6 offen; Entwurf der Umsetzung zur Freigabe (Abschnitt 6).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Fahrtenbuch](feat-06-fahrtenbuch.md), [Nachträge](feat-09-nachtraege.md).
 
@@ -19,6 +19,8 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
 - Nach dem Ändern wie bisher: CSV neu, Kostensensoren und Ø-Verbrauch neu, Export der betroffenen Reise(n) erneuert
   ([Nachträge](feat-09-nachtraege.md) 5.8).
 - Bedienbar auf dem Handy; die bestehenden Formulare (Eintrag, Nachtrag, Reisekosten) bleiben verständlich.
+- **„Nicht abgelesen“ erkennbar:** Ein Feld ohne Wert (kein Vorschlag, nicht abgelesen) ist im Formular deutlich von
+  0 % zu unterscheiden, beim Erfassen, Nachtragen und Bearbeiten (6.7).
 
 ## 3. Ausgangslage (Stand v0.3.0)
 
@@ -33,6 +35,9 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
   bleiben die der alten Zeit. Für das spätere [Verbrauchsmodell](feat-08-verbrauchsmodell.md) passen sie dann nicht
   mehr zur neuen Zeit.
 - **Reisekosten** haben im Dashboard eine Liste je Reise, aber auch nur Ändern und Löschen über Aktionen.
+- **Leere Felder:** Ohne Vorschlag (z. B. Nachtrag vor dem ersten Eintrag) zeigt das Formular ein leeres Feld; das
+  liest sich leicht als 0 %, gespeichert wird aber „nicht abgelesen“ (`null`). Beim Nachtragen der Tour 27.09.–03.10.
+  stand so Gas 1 zweimal leer statt 0 % und wurde mit `fahrtenbuch_aendern` korrigiert (23.11.2026).
 
 ## 4. Offene Fragen (vor der Umsetzung einzeln klären)
 
@@ -47,6 +52,9 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
    5.4.
 5. ~~**Löschen:** Knopf mit Bestätigung im Dashboard reicht, oder zusätzlich „Rückgängig“ (z. B. letzter gelöschter
    Eintrag wiederherstellbar)?~~ – entschieden, siehe 5.5.
+6. **Leere Felder:** Wie wird „nicht abgelesen“ im Formular sichtbar (z. B. Hinweis im Formular-Text „Gas 1: nicht
+   abgelesen“ über ein Attribut der Formular-Entität, Rückfrage beim Speichern mit leeren Feldern), und lässt sich
+   ein Wert wieder auf „nicht abgelesen“ zurücksetzen?
 
 ## 5. Entscheidungen
 
@@ -111,5 +119,12 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
 3. Reisekosten-Auswahl, Ändern und Löschen (6.3).
 4. README, Release-Notes, Feature-Dokumente; Prüfpunkt in `script/develop`.
 
+Die Anzeige leerer Felder (6.7) kommt in Teilschritt 2 dazu, sobald Frage 6 geklärt ist.
+
 Neue Entitäten: 2 Auswahlen und 4 Knöpfe (44 → 50). Kein Breaking Change; `fahrtenbuch_aendern` bestimmt bei neuer
 Zeit zusätzlich die Zählerstände neu (Release-Notes).
+
+### 6.7 Leere Felder (offen, Frage 6)
+
+Ein leeres Feld bedeutet „nicht abgelesen“ und bleibt beim Speichern leer; 0 % ist ein abgelesener Wert. Wie das
+Formular den Unterschied zeigt, wird mit Frage 6 vor Teilschritt 2 entschieden.
