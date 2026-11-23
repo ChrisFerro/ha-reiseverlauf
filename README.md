@@ -123,8 +123,11 @@ z. B. `sensor.wohnmobil_gps_reisestatus`.
 | Fahrtenbuch Kilometerstand, Kraftstoff, Gas 1, Gas 2, Diesel getankt, Diesel Betrag, Gas getankt, Gas Betrag        | Formular für den nächsten Fahrtenbuch-Eintrag, vorbelegt mit dem Vorschlag (siehe [Fahrtenbuch](#fahrtenbuch))                                                                           |
 | Fahrtenbuch speichern, Fahrtenbuch verwerfen                                                                        | Knöpfe des Formulars                                                                                                                                                                     |
 | Fahrtenbuch Zeitpunkt, Fahrtenbuch Nachtrag Zeit, Fahrtenbuch nachtragen                                            | Formular für einen früheren Zeitpunkt (siehe [Nachträge](#nachträge)); Attribute `zeit`, `ort`, `geschaetzt`                                                                             |
+| Fahrtenbuch bearbeiten; Fahrtenbuch ändern, Fahrtenbuch löschen                                                     | Gespeicherten Eintrag wählen, ändern oder löschen (siehe [Einträge ändern und löschen](#einträge-ändern-und-löschen)); Attribut `eintrag`                                                |
+| Fahrtenbuch Feld leeren                                                                                             | Setzt ein Feld des Formulars zurück auf „nicht abgelesen“ (Liter und Beträge auf 0)                                                                                                      |
 | Reisekosten Kategorie, Land, Betrag, Notiz, Datum; Reisekosten speichern, Keine Maut                                | Formular für Reisekosten der Reise in der Export-Auswahl (siehe [Reisekosten](#reisekosten))                                                                                             |
-| Fahrtenbuch Eintrag                                                                                                 | „Offen“, solange ein Anlass auf den Eintrag wartet, sonst „Gespeichert“; Attribute Anlass, Ort, `letzte_eintraege`, `downloads`                                                          |
+| Reisekosten Eintrag; Reisekosten ändern, Reisekosten löschen                                                        | Gespeicherte Reisekosten wählen, ändern oder löschen; Attribut `eintrag`                                                                                                                 |
+| Fahrtenbuch Eintrag                                                                                                 | „Offen“, solange ein Anlass auf den Eintrag wartet, sonst „Gespeichert“; Attribute Anlass, Ort, `nicht_abgelesen`, `letzte_eintraege`, `downloads`                                       |
 | Kilometerstand, Kraftstoff, Gas 1, Gas 2                                                                            | Aktueller Kilometerstand und letzte Füllstände                                                                                                                                           |
 | Durchschnittsverbrauch                                                                                              | Auswertung des Fahrtenbuchs (ab dem zweiten vollen Tank)                                                                                                                                 |
 | Reisekosten Monat, Reisekosten Jahr                                                                                 | Alle Kosten im laufenden Monat bzw. Jahr; Attribute `diesel`, `gas` und je Kategorie (`maut`, `faehre` …)                                                                                |
@@ -145,7 +148,7 @@ Alle Aktionen brauchen das Feld **Fahrzeug** (den Eintrag der Integration).
 | Reise beenden (`reiseverlauftracker.reise_beenden`)                          | Laufende Reise sofort beenden und auswerten                                                                                                                    |
 | Fahrtenbuch-Formular speichern (`reiseverlauftracker.fahrtenbuch_speichern`) | Formular speichern wie der Knopf; mit `anlass_zeit` nur, solange dieser Anlass offen ist (für Push-Knöpfe)                                                     |
 | Fahrtenbuch-Eintrag anlegen (`reiseverlauftracker.fahrtenbuch_eintragen`)    | Eintrag ohne Formular, z. B. aus einer Automation; liefert den Eintrag als Antwort                                                                             |
-| Fahrtenbuch-Eintrag ändern (`reiseverlauftracker.fahrtenbuch_aendern`)       | Felder eines Eintrags ändern; Liter 0 entfernt einen Tank- oder Gasstopp                                                                                       |
+| Fahrtenbuch-Eintrag ändern (`reiseverlauftracker.fahrtenbuch_aendern`)       | Felder eines Eintrags ändern; Liter 0 entfernt einen Tank- oder Gasstopp; eine neue Zeit bringt Zählerstände und Ort dieser Zeit                               |
 | Fahrtenbuch-Eintrag löschen (`reiseverlauftracker.fahrtenbuch_loeschen`)     | Eintrag löschen; die ID steht im Attribut `letzte_eintraege`                                                                                                   |
 | Fahrtenbuch als CSV (`reiseverlauftracker.fahrtenbuch_csv`)                  | `fahrtenbuch.csv` im Ausgabeordner schreiben (geschieht auch nach jeder Änderung)                                                                              |
 | Tankstopp nachtragen (`reiseverlauftracker.fahrtenbuch_nachtragen`)          | Tank- oder Gasstopp für eine frühere Zeit; ein Stopp bis 5 min um die Zeit wird zugeordnet                                                                     |
@@ -326,6 +329,29 @@ Rohdaten bleiben); die Statistik nennt dann „Reisekosten: Maut 83,30 € · F�
 Die Mautbox rechnet meist erst im Folgemonat ab. **Maut offen** zählt deshalb die Reisen durch Mautländer ohne
 Maut-Eintrag; eine Reise nur über Landstraßen lässt sich mit **Keine Maut** abhaken.
 
+### Einträge ändern und löschen
+
+Gespeicherte Fahrtenbuch-Einträge und Reisekosten lassen sich im Dashboard korrigieren, ohne IDs:
+
+1. In der **Export-Auswahl** die Reise wählen. **Fahrtenbuch bearbeiten** zeigt dann alle Einträge dieser Reise und
+   der Standzeit danach bis zur nächsten Reise, z. B. „27.09. 17:30 · Nachtrag · Irschenberg · 33768 km“;
+   **Reisekosten Eintrag** die Kosten dieser Reise. Mit „Alle Exporte“ sind es die 30 neuesten Fahrtenbuch-Einträge
+   bzw. die Kosten ohne Reise.
+2. Einen Eintrag wählen: Das Formular zeigt seine Werte, beim Fahrtenbuch auch die Zeit in **Fahrtenbuch Nachtrag
+   Zeit**. Ein offener Anlass wartet währenddessen.
+3. Werte ändern und **Fahrtenbuch ändern** bzw. **Reisekosten ändern** drücken, oder **… löschen** (endgültig, kein
+   Wiederherstellen). Danach springt die Auswahl auf „Neu“; „Verwerfen“ kehrt ohne Änderung zurück.
+
+Solange ein Eintrag gewählt ist, sind „Fahrtenbuch speichern“, „Fahrtenbuch nachtragen“ und „Reisekosten speichern“
+gesperrt, damit kein zweiter Eintrag entsteht. Eine neue Zeit verschiebt den Eintrag: Strecke und Höhenmeter
+werden wie beim Nachtrag für die neue Zeit bestimmt, der Kilometerstand bleibt der im Formular. Danach werden CSV,
+Kostensensoren, Ø-Verbrauch und die Exporte der betroffenen Reisen erneuert. Reisekosten behalten ihre Reise; einer
+anderen Reise zuordnen geht mit der Aktion „Reisekosten ändern“.
+
+**Leer heißt „nicht abgelesen“:** Ein leeres Feld (z. B. Gas 1 ohne Vorschlag) wird als „nicht abgelesen“
+gespeichert, 0 % ist ein abgelesener Wert. Das Attribut `nicht_abgelesen` von **Fahrtenbuch Eintrag** nennt die
+leeren Felder; mit **Fahrtenbuch Feld leeren** lässt sich ein Wert wieder auf „nicht abgelesen“ setzen.
+
 ### Erinnerung per Push (Blueprint)
 
 [![Blueprint importieren](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FChrisFerro%2Fha-reiseverlauf%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Freiseverlauftracker%2Ffahrtenbuch.yaml)
@@ -371,14 +397,21 @@ sections:
         heading: Eintrag
       - type: tile
         entity: sensor.wohnmobil_gps_fahrtenbuch_eintrag
+      - type: markdown
+        show_empty: false
+        content: >-
+          {% set leer = state_attr('sensor.wohnmobil_gps_fahrtenbuch_eintrag', 'nicht_abgelesen') %}
+          {% if leer %}Nicht abgelesen: {{ leer | join(', ') }}{% endif %}
       - type: entities
         entities:
+          - select.wohnmobil_gps_fahrtenbuch_bearbeiten
           - select.wohnmobil_gps_fahrtenbuch_zeitpunkt
           - datetime.wohnmobil_gps_fahrtenbuch_nachtrag_zeit
           - number.wohnmobil_gps_fahrtenbuch_kilometerstand
           - number.wohnmobil_gps_fahrtenbuch_kraftstoff
           - number.wohnmobil_gps_fahrtenbuch_gas_1
           - number.wohnmobil_gps_fahrtenbuch_gas_2
+          - select.wohnmobil_gps_fahrtenbuch_feld_leeren
       - type: entities
         title: Tank- und Gasstopp
         entities:
@@ -391,6 +424,42 @@ sections:
           - button.wohnmobil_gps_fahrtenbuch_speichern
           - button.wohnmobil_gps_fahrtenbuch_nachtragen
           - button.wohnmobil_gps_fahrtenbuch_verwerfen
+        visibility:
+          - condition: state
+            entity: select.wohnmobil_gps_fahrtenbuch_bearbeiten
+            state: new
+      - type: horizontal-stack
+        cards:
+          - type: button
+            entity: button.wohnmobil_gps_fahrtenbuch_aendern
+            name: Ändern
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target:
+                entity_id: button.wohnmobil_gps_fahrtenbuch_aendern
+          - type: button
+            entity: button.wohnmobil_gps_fahrtenbuch_loeschen
+            name: Löschen
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target:
+                entity_id: button.wohnmobil_gps_fahrtenbuch_loeschen
+              confirmation:
+                text: Den unter „Fahrtenbuch bearbeiten“ gewählten Eintrag löschen?
+          - type: button
+            entity: button.wohnmobil_gps_fahrtenbuch_verwerfen
+            name: Abbrechen
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target:
+                entity_id: button.wohnmobil_gps_fahrtenbuch_verwerfen
+        visibility:
+          - condition: state
+            entity: select.wohnmobil_gps_fahrtenbuch_bearbeiten
+            state_not: new
   - type: grid
     cards:
       - type: heading
@@ -428,6 +497,7 @@ sections:
       - type: entities
         entities:
           - select.wohnmobil_gps_export_auswahl
+          - select.wohnmobil_gps_reisekosten_eintrag
           - select.wohnmobil_gps_reisekosten_kategorie
           - select.wohnmobil_gps_reisekosten_land
           - number.wohnmobil_gps_reisekosten_betrag
@@ -435,6 +505,30 @@ sections:
           - date.wohnmobil_gps_reisekosten_datum
           - button.wohnmobil_gps_reisekosten_speichern
           - button.wohnmobil_gps_keine_maut
+      - type: horizontal-stack
+        cards:
+          - type: button
+            entity: button.wohnmobil_gps_reisekosten_aendern
+            name: Ändern
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target:
+                entity_id: button.wohnmobil_gps_reisekosten_aendern
+          - type: button
+            entity: button.wohnmobil_gps_reisekosten_loeschen
+            name: Löschen
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target:
+                entity_id: button.wohnmobil_gps_reisekosten_loeschen
+              confirmation:
+                text: Die unter „Reisekosten Eintrag“ gewählten Kosten löschen?
+        visibility:
+          - condition: state
+            entity: select.wohnmobil_gps_reisekosten_eintrag
+            state_not: new
       - type: markdown
         content: |
           {% set k = state_attr('select.wohnmobil_gps_export_auswahl', 'reisekosten') %}

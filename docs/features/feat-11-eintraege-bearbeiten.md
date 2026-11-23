@@ -1,6 +1,6 @@
 # Feat-11: Einträge bearbeiten
 
-Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf freigegeben, Umsetzung läuft (Abschnitt 6).
+Stand: 23.11.2026, umgesetzt (Abschnitt 6, Teilschritte 1–4); Live-Dashboard erst nach dem Release und nach Freigabe.
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Fahrtenbuch](feat-06-fahrtenbuch.md), [Nachträge](feat-09-nachtraege.md).
 
@@ -77,7 +77,7 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
   „Feld leeren“ (`select.…_fahrtenbuch_feld_leeren`: Kraftstoff, Gas 1, Gas 2 …) setzt das gewählte Feld wieder auf
   „nicht abgelesen“ und springt danach zurück; gilt beim Erfassen, Nachtragen und Bearbeiten.
 
-## 6. Entwurf der Umsetzung (zur Freigabe)
+## 6. Umsetzung
 
 ### 6.1 Zählerstände bei neuer Zeit (5.4)
 
@@ -110,6 +110,12 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
 - README (de/en): Abschnitt „Einträge ändern und löschen“, Entitäten-Tabelle, Dashboard-Beispiele mit den Knöpfen
   (Sichtbarkeit nach Auswahl, Bestätigung beim Löschen).
 - Live-Dashboard erst nach dem Release und nach Freigabe.
+
+- Sicherheitsabfrage: Die Bestätigung einer Dashboard-Karte kann keine Vorlage auswerten. Das Beispiel fragt daher
+  „Den unter „Fahrtenbuch bearbeiten“ gewählten Eintrag löschen?“; Zeit und Ort stehen direkt darüber in der Auswahl
+  (Abweichung vom Wortlaut in 5.5).
+- Hinweis „Nicht abgelesen“: Markdown-Karte mit `show_empty: false`, weil Sichtbarkeitsbedingungen keine Vorlagen
+  kennen.
 
 ### 6.5 Abgrenzung
 

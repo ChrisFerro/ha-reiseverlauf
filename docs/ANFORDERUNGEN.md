@@ -71,9 +71,12 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
   Betrag), `button.…_fahrtenbuch_speichern`/`_verwerfen`, `sensor.…_fahrtenbuch_eintrag` (siehe
   [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.2); Nachtrag für einen früheren Zeitpunkt:
   `select.…_fahrtenbuch_zeitpunkt`, `datetime.…_fahrtenbuch_nachtrag_zeit`, `button.…_fahrtenbuch_nachtragen` (siehe
-  [Nachträge](features/feat-09-nachtraege.md) 6.2)
+  [Nachträge](features/feat-09-nachtraege.md) 6.2); gespeicherte Einträge bearbeiten: `select.…_fahrtenbuch_bearbeiten`
+  (Attribut `eintrag`), `button.…_fahrtenbuch_aendern`/`_loeschen`, `select.…_fahrtenbuch_feld_leeren`; Attribut
+  `nicht_abgelesen` an `sensor.…_fahrtenbuch_eintrag` (siehe [Einträge bearbeiten](features/feat-11-eintraege-bearbeiten.md) 6)
 - Reisekosten-Formular: `select.…_reisekosten_kategorie`, `…_reisekosten_land`, `number.…_reisekosten_betrag`,
   `text.…_reisekosten_notiz`, `date.…_reisekosten_datum`, `button.…_reisekosten_speichern`, `button.…_keine_maut`;
+  gespeicherte Kosten bearbeiten: `select.…_reisekosten_eintrag`, `button.…_reisekosten_aendern`/`_loeschen`;
   Reise aus der Export-Auswahl (Attribut `reisekosten`), siehe [Nachträge](features/feat-09-nachtraege.md) 6.3
 - Tour-Formular: `datetime.…_tour_von`, `…_tour_bis`, `text.…_tour_titel`, `button.…_tour_erstellen`,
   `…_tour_aktualisieren`; bei einer Tour in der Export-Auswahl Attribute `art`, `standorte`, `tourkosten` (siehe
@@ -165,7 +168,7 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 10. Tour: mehrere Reisen und Standzeiten (z. B. Urlaub, Werkstattaufenthalt) mit Reiseverlauf und Kostenaufstellung
     zusammenfassen (siehe [features/feat-10-tour.md](features/feat-10-tour.md)). – umgesetzt 23.11.2026
 11. Einträge bearbeiten: Fahrtenbuch-Einträge im Dashboard ändern und löschen (siehe
-    [features/feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)).
+    [features/feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)). – umgesetzt 23.11.2026
 
 ## 11. Feature-Dokumente
 
@@ -188,4 +191,4 @@ neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeb
 | Feat-08 | Verbrauchsmodell         | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | Zwischenschritt umgesetzt |
 | Feat-09 | Nachträge (Tank, Kosten) | [feat-09-nachtraege.md](features/feat-09-nachtraege.md)                       | 9      | umgesetzt                 |
 | Feat-10 | Tour                     | [feat-10-tour.md](features/feat-10-tour.md)                                   | 10     | umgesetzt                 |
-| Feat-11 | Einträge bearbeiten      | [feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)   | 11     | in Umsetzung              |
+| Feat-11 | Einträge bearbeiten      | [feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)   | 11     | umgesetzt                 |
