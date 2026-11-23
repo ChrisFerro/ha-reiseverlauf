@@ -59,7 +59,7 @@ Siehe [features/feat-03-export.md](features/feat-03-export.md).
 
 Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `sensor.arto88b_gps_reisestatus`):
 
-- `binary_sensor.…_reise_aktiv`
+- `binary_sensor.…_reise_aktiv`, `binary_sensor.…_tour_in_arbeit` (an, solange eine Tour entsteht, siehe [Tour](features/feat-10-tour.md) 7)
 - `sensor.…_reisestatus` (`bereit`, `unterwegs`, `pause`, `auswertung`, `zusammenfuehrbar`, `fehler`, siehe [Reiseerkennung](features/feat-01-reiseerkennung.md) 5.3)
 - Laufende Reise: `sensor.…_reisebeginn` (Attribut `startort`), `…_strecke_laufende_reise`, `…_fahrzeit_laufende_reise`,
   `…_pausenzeit_laufende_reise` (Attribut `halte`), `…_durchschnitt_laufende_reise` (siehe [Halte](features/feat-02-halte.md))

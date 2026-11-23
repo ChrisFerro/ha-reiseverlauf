@@ -18,6 +18,12 @@
         "state": {
           "off": "mdi:parking"
         }
+      },
+      "tour_busy": {
+        "default": "mdi:map-marker-multiple",
+        "state": {
+          "on": "mdi:progress-clock"
+        }
       }
     },
     "image": {

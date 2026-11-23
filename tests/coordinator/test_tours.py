@@ -14,6 +14,7 @@ from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUp
 from custom_components.reiseverlauftracker.coordinator.exports import ExportKind, read_export, write_metadata
 from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory, Occasion, Refill
 from custom_components.reiseverlauftracker.export import ExportFile
+from homeassistant.const import EVENT_STATE_CHANGED, STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util import dt as dt_util
@@ -273,6 +274,24 @@ async def test_manual_exports_join_without_overlap(
     assert exports[response["ordner"]]["art"] == "tour"
     assert exports[response["ordner"]]["auswahl"] in options
     assert exports[first.folder]["strecke_km"] == pytest.approx(10, abs=0.5)
+
+
+async def test_busy_sensor_is_on_while_the_tour_is_built(
+    hass: HomeAssistant, two_trips: ReiseverlaufDataUpdateCoordinator, config_entry: MockConfigEntry
+) -> None:
+    busy = "binary_sensor.camper_gps_tour_in_arbeit"
+    changes = async_capture_events(hass, EVENT_STATE_CHANGED)
+    assert hass.states.get(busy).state == STATE_OFF
+
+    await create(hass, config_entry.entry_id, **PERIOD)
+
+    states = [e.data["new_state"].state for e in changes if e.data["entity_id"] == busy]
+    assert states == [STATE_ON, STATE_OFF]
+
+    # A failing build switches it off again.
+    with pytest.raises(ServiceValidationError):
+        await create(hass, config_entry.entry_id, von="2026-09-01 00:00:00", bis="2026-09-05 00:00:00")
+    assert hass.states.get(busy).state == STATE_OFF
 
 
 async def test_no_trip_in_the_period(hass: HomeAssistant, two_trips, config_entry: MockConfigEntry) -> None:
