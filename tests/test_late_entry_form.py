@@ -179,3 +179,30 @@ async def test_action_needs_litres(hass: HomeAssistant, loaded: MockConfigEntry)
         )
 
     assert err.value.translation_key == "late_without_refill"
+
+
+async def test_changing_the_time_takes_the_counters_of_the_new_time(
+    hass: HomeAssistant, loaded: MockConfigEntry
+) -> None:
+    coordinator = coordinator_of(loaded)
+    remember_stops(coordinator)
+    book = coordinator.logbook.logbook
+    yesterday = dt_util.utcnow() - timedelta(days=1)
+    entry = book.add(yesterday, Occasion.MANUAL, odometer_km=33_900, distance_counter_m=0, place="Daheim")
+    later = dt_util.utcnow().replace(second=0, microsecond=0)
+
+    response = await hass.services.async_call(
+        DOMAIN,
+        "fahrtenbuch_aendern",
+        {"config_entry_id": loaded.entry_id, "eintrag": entry.id, "zeit": later.isoformat()},
+        blocking=True,
+        return_response=True,
+    )
+
+    changed = book.get(entry.id)
+    assert response is not None
+    assert changed is not None
+    assert changed.time == later
+    # Parked after the last trip: the counters are the current ones; odometer and place stay.
+    assert changed.distance_counter_m == 150_000
+    assert (changed.odometer_km, changed.odometer_corrected, changed.place) == (33_900, False, "Daheim")

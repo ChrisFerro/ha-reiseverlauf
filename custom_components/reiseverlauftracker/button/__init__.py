@@ -10,6 +10,7 @@ from custom_components.reiseverlauftracker.coordinator.tours import TourError
 from custom_components.reiseverlauftracker.entity import ReiseverlaufEntity
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.util import slugify
 
 PARALLEL_UPDATES = 0
 
@@ -20,19 +21,55 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 
+def _not_editing(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    """Refuse to add an entry while a stored one fills the form, so no second entry arises."""
+    if coordinator.logbook.editing is not None:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="logbook_editing")
+
+
 async def _save(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    _not_editing(coordinator)
     await coordinator.async_save_logbook_form()
 
 
 async def _save_late(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    _not_editing(coordinator)
     if coordinator.logbook.late is None:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_late_time")
     await coordinator.late_form.async_save()
 
 
+async def _update(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    try:
+        await coordinator.edit_form.async_save()
+    except ValueError as err:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_entry_chosen") from err
+
+
+async def _remove(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    try:
+        await coordinator.edit_form.async_remove()
+    except ValueError as err:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_entry_chosen") from err
+
+
 async def _save_cost(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
     try:
         await coordinator.cost_form.async_save()
+    except CostFormError as err:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key=err.args[0]) from err
+
+
+async def _update_cost(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    try:
+        await coordinator.cost_form.async_update()
+    except CostFormError as err:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key=err.args[0]) from err
+
+
+async def _remove_cost(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    try:
+        await coordinator.cost_form.async_remove()
     except CostFormError as err:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key=err.args[0]) from err
 
@@ -75,13 +112,33 @@ class LogbookButtonEntityDescription(ButtonEntityDescription):
     """Describes a button of the logbook form."""
 
     press_fn: Callable[[ReiseverlaufDataUpdateCoordinator], Coroutine[Any, Any, None]]
+    # German object id for names whose umlauts would be dropped (ä → a); None derives it from the name.
+    object_id: str | None = None
 
 
 ENTITY_DESCRIPTIONS = (
     LogbookButtonEntityDescription(key="logbook_save", translation_key="logbook_save", press_fn=_save),
     LogbookButtonEntityDescription(key="logbook_discard", translation_key="logbook_discard", press_fn=_discard),
     LogbookButtonEntityDescription(key="logbook_late", translation_key="logbook_late", press_fn=_save_late),
+    LogbookButtonEntityDescription(
+        key="logbook_update", translation_key="logbook_update", press_fn=_update, object_id="fahrtenbuch_aendern"
+    ),
+    LogbookButtonEntityDescription(
+        key="logbook_remove", translation_key="logbook_remove", press_fn=_remove, object_id="fahrtenbuch_loeschen"
+    ),
     LogbookButtonEntityDescription(key="travel_cost_save", translation_key="travel_cost_save", press_fn=_save_cost),
+    LogbookButtonEntityDescription(
+        key="travel_cost_update",
+        translation_key="travel_cost_update",
+        press_fn=_update_cost,
+        object_id="reisekosten_aendern",
+    ),
+    LogbookButtonEntityDescription(
+        key="travel_cost_remove",
+        translation_key="travel_cost_remove",
+        press_fn=_remove_cost,
+        object_id="reisekosten_loeschen",
+    ),
     LogbookButtonEntityDescription(key="no_toll", translation_key="no_toll", press_fn=_no_toll),
     LogbookButtonEntityDescription(key="tour_create", translation_key="tour_create", press_fn=_tour_create),
     LogbookButtonEntityDescription(key="tour_update", translation_key="tour_update", press_fn=_tour_update),
@@ -103,6 +160,14 @@ class ReiseverlaufLogbookButton(ButtonEntity, ReiseverlaufEntity):
     """Saves the form as a logbook entry, or discards it."""
 
     entity_description: LogbookButtonEntityDescription
+
+    def __init__(
+        self, coordinator: ReiseverlaufDataUpdateCoordinator, entity_description: LogbookButtonEntityDescription
+    ) -> None:
+        """Initialize the button; a fixed object id is prefixed with the device name like the derived ones."""
+        super().__init__(coordinator, entity_description)
+        if entity_description.object_id is not None:
+            self.entity_id = f"button.{slugify(coordinator.config_entry.title)}_{entity_description.object_id}"
 
     async def async_press(self) -> None:
         """Run the action of the button."""

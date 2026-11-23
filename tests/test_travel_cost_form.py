@@ -231,3 +231,83 @@ async def test_unknown_cost_is_rejected(hass: HomeAssistant, trip: ReiseverlaufD
         await action(hass, "reisekosten_loeschen", trip, eintrag="missing")
 
     assert err.value.translation_key == "unknown_travel_cost"
+
+
+ENTRY = "select.camper_gps_reisekosten_eintrag"
+UPDATE = "button.camper_gps_reisekosten_aendern"
+REMOVE = "button.camper_gps_reisekosten_loeschen"
+
+
+async def test_choosing_a_cost_fills_the_form_and_changing_stores_it(
+    hass: HomeAssistant, trip: ReiseverlaufDataUpdateCoordinator
+) -> None:
+    info = trip.last_export
+    assert info is not None
+    await action(hass, "reisekosten_eintragen", trip, reise=info.folder, kategorie="maut", betrag=23.4, land="AT")
+    await action(hass, "reisekosten_eintragen", trip, reise=info.folder, kategorie="vignette", betrag=12.5, land="SI")
+    day = dt_util.as_local(info.start).date()
+    trip.async_update_listeners()
+    await hass.async_block_till_done()
+
+    options = hass.states.get(ENTRY).attributes["options"]
+    assert options[0] == "new"
+    assert f"{day:%d.%m.} · Maut AT · 23,40 €" in options
+    await call(
+        hass, Platform.SELECT, SERVICE_SELECT_OPTION, ENTRY, **{ATTR_OPTION: f"{day:%d.%m.} · Vignette SI · 12,50 €"}
+    )
+
+    assert hass.states.get(CATEGORY).state == "vignette"
+    assert hass.states.get(COUNTRY).state == "si"
+    assert float(hass.states.get(AMOUNT).state) == 12.5
+    assert hass.states.get(ENTRY).attributes["eintrag"]["land"] == "SI"
+    with pytest.raises(ServiceValidationError) as err:
+        await call(hass, Platform.BUTTON, SERVICE_PRESS, SAVE)
+    assert err.value.translation_key == "travel_cost_editing"
+
+    await call(hass, Platform.NUMBER, SERVICE_SET_VALUE, AMOUNT, **{ATTR_VALUE: 15})
+    await call(hass, Platform.TEXT, SET_TEXT, NOTE, value="10 Tage")
+    await call(hass, Platform.BUTTON, SERVICE_PRESS, UPDATE)
+
+    costs = trip.logbook.logbook.travel_costs_of_trip(info.start)
+    assert [(c.category, c.amount, c.country, c.note) for c in costs] == [
+        (CostCategory.TOLL, 23.4, "AT", None),
+        (CostCategory.VIGNETTE, 15, "SI", "10 Tage"),
+    ]
+    assert hass.states.get(ENTRY).state == "new"
+    assert hass.states.get(AMOUNT).state == "unknown"
+
+
+async def test_deleting_removes_the_chosen_cost(hass: HomeAssistant, trip: ReiseverlaufDataUpdateCoordinator) -> None:
+    info = trip.last_export
+    assert info is not None
+    with pytest.raises(ServiceValidationError) as err:
+        await call(hass, Platform.BUTTON, SERVICE_PRESS, REMOVE)
+    assert err.value.translation_key == "no_entry_chosen"
+    await action(hass, "reisekosten_eintragen", trip, reise=info.folder, kategorie="maut", betrag=23.4, land="AT")
+    trip.async_update_listeners()
+    await hass.async_block_till_done()
+    label = hass.states.get(ENTRY).attributes["options"][1]
+
+    await call(hass, Platform.SELECT, SERVICE_SELECT_OPTION, ENTRY, **{ATTR_OPTION: label})
+    await call(hass, Platform.BUTTON, SERVICE_PRESS, REMOVE)
+
+    assert trip.logbook.logbook.travel_costs == []
+    assert hass.states.get(ENTRY).state == "new"
+
+
+async def test_all_exports_lists_the_costs_without_a_trip(
+    hass: HomeAssistant, trip: ReiseverlaufDataUpdateCoordinator
+) -> None:
+    info = trip.last_export
+    assert info is not None
+    await action(hass, "reisekosten_eintragen", trip, reise=info.folder, kategorie="maut", betrag=23.4, land="AT")
+    await call(hass, Platform.SELECT, SERVICE_SELECT_OPTION, CHOICE, **{ATTR_OPTION: EXPORT_CHOICE_ALL})
+    await action(
+        hass, "reisekosten_eintragen", trip, datum=date(2026, 11, 3).isoformat(), kategorie="stellplatz", betrag=18
+    )
+    trip.async_update_listeners()
+    await hass.async_block_till_done()
+
+    options = hass.states.get(ENTRY).attributes["options"]
+    assert len(options) == 2
+    assert "Stellplatz · 18,00 €" in options[1]

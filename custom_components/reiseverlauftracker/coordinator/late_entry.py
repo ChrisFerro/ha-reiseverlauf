@@ -104,6 +104,8 @@ def resolve_time(
     logbook: Logbook,
     spans: list[TripSpan],
     track: TripLog | None = None,
+    *,
+    exclude: str | None = None,
 ) -> LatePoint:
     """
     Return the counters and position at `time`.
@@ -116,7 +118,8 @@ def resolve_time(
     3. Otherwise interpolated by time between the entries before and after,
        marked as estimated.
 
-    `track` is the track of the trip that contains `time`, if any.
+    `track` is the track of the trip that contains `time`, if any. `exclude` is
+    the id of an entry that is being moved; it is no neighbour for interpolating.
     """
     span = containing_trip(spans, time)
     if span is not None:
@@ -134,14 +137,14 @@ def resolve_time(
                     lat=position.lat if position else None,
                     lon=position.lon if position else None,
                 )
-        return replace(_interpolated(logbook, time), trip_start=span.start)
+        return replace(_interpolated(logbook, time, exclude), trip_start=span.start)
     later = sorted((s for s in spans if s.start > time), key=lambda s: s.start)
     if not later:
         return LatePoint(time=time, counters=_current(logbook))
     following = later[0].counter_start or _trip_start_counters(logbook, later[0].start)
     if following is not None:
         return LatePoint(time=time, counters=following)
-    return _interpolated(logbook, time)
+    return _interpolated(logbook, time, exclude)
 
 
 def entry_for(logbook: Logbook, point: LatePoint) -> LogbookEntry | None:
@@ -170,10 +173,11 @@ def _trip_start_counters(logbook: Logbook, trip_start: datetime) -> TrackCounter
     return None
 
 
-def _interpolated(logbook: Logbook, time: datetime) -> LatePoint:
-    """Return counters interpolated by time between the entries before and after `time`."""
-    before = next((e for e in reversed(logbook.entries) if e.time <= time), None)
-    after = next((e for e in logbook.entries if e.time > time), None)
+def _interpolated(logbook: Logbook, time: datetime, exclude: str | None = None) -> LatePoint:
+    """Return counters interpolated by time between the entries before and after `time`, except `exclude`."""
+    entries = [e for e in logbook.entries if e.id != exclude]
+    before = next((e for e in reversed(entries) if e.time <= time), None)
+    after = next((e for e in entries if e.time > time), None)
     if before is None or after is None:
         known = before or after
         counters = _counters(known) if known is not None else _current(logbook)

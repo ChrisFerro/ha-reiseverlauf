@@ -90,6 +90,18 @@ def test_unknown_counters_are_interpolated_and_marked_as_estimated() -> None:
 
 
 @pytest.mark.unit
+def test_an_entry_being_moved_is_no_neighbour_for_interpolating() -> None:
+    book = Logbook()
+    book.add(at(0), Occasion.MANUAL, odometer_km=34_000, distance_counter_m=10_000)
+    moved = book.add(at(20), Occasion.MANUAL, odometer_km=34_090, distance_counter_m=100_000)
+    book.add(at(100), Occasion.MANUAL, odometer_km=34_100, distance_counter_m=110_000)
+    spans = [TripSpan(at(10), at(90))]
+
+    assert resolve_time(at(50), book, spans).counters.distance_m == pytest.approx(103_750)
+    assert resolve_time(at(50), book, spans, exclude=moved.id).counters.distance_m == pytest.approx(60_000)
+
+
+@pytest.mark.unit
 def test_service_time_is_matched_to_a_stop_close_by() -> None:
     book = Logbook()
     book.record_stop(RecordedStop(T0, at(30), 30_000, end=at(32)))

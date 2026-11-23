@@ -10,7 +10,7 @@ likewise starts at the trip's first toll country.
 from datetime import date
 from typing import TYPE_CHECKING, Any
 
-from custom_components.reiseverlauftracker.const import EXPORT_CHOICE_ALL
+from custom_components.reiseverlauftracker.const import EDIT_CHOICE_NEW, EXPORT_CHOICE_ALL
 from homeassistant.util import dt as dt_util
 
 from .logbook import CostCategory, TravelCost
@@ -20,6 +20,41 @@ if TYPE_CHECKING:
     from .exports import ExportInfo
 
 COUNTRY_NONE = "none"
+
+CATEGORY_WORDS = {
+    "de": {
+        CostCategory.TOLL: "Maut",
+        CostCategory.VIGNETTE: "Vignette",
+        CostCategory.FERRY: "Fähre",
+        CostCategory.TUNNEL: "Tunnel",
+        CostCategory.PITCH: "Stellplatz",
+        CostCategory.OTHER: "Sonstiges",
+    },
+    "en": {
+        CostCategory.TOLL: "Toll",
+        CostCategory.VIGNETTE: "Vignette",
+        CostCategory.FERRY: "Ferry",
+        CostCategory.TUNNEL: "Tunnel",
+        CostCategory.PITCH: "Pitch",
+        CostCategory.OTHER: "Other",
+    },
+}
+CURRENCY_SIGNS = {"EUR": "€", "CHF": "CHF", "GBP": "£", "USD": "$"}
+
+
+def cost_label(cost: TravelCost, language: str, currency: str, today: date) -> str:
+    """Return how a cost appears in the selection, such as `28.09. · Maut AT · 23,40 €`."""
+    language = language.split("-", maxsplit=1)[0]
+    words = CATEGORY_WORDS.get(language, CATEGORY_WORDS["en"])
+    day = f"{cost.day:%d.%m.}" if cost.day.year == today.year else f"{cost.day:%d.%m.%y}"
+    kind = f"{words[cost.category]} {cost.country}" if cost.country else words[cost.category]
+    amount = f"{cost.amount:.2f}"
+    if language == "de":
+        amount = amount.replace(".", ",")
+    parts = [day, kind, f"{amount} {CURRENCY_SIGNS.get(currency, currency)}"]
+    if cost.note:
+        parts.append(cost.note)
+    return " · ".join(parts)
 
 
 class CostFormError(ValueError):
@@ -39,6 +74,8 @@ class TravelCostForm:
         self.note = ""
         self._day: date | None = None
         self._day_trip: str | None = None
+        # A stored cost being edited fills the form (docs/features/feat-11-eintraege-bearbeiten.md 6.3).
+        self.editing: str | None = None
 
     def trip(self) -> ExportInfo | None:
         """Return the trip chosen in the export selection, or None for "all exports" and for a tour."""
@@ -73,7 +110,8 @@ class TravelCostForm:
             # Older exports learn their countries in the background; the options follow once they are known.
             self.coordinator.countries.ensure(trip)
         countries = trip.countries if trip is not None and trip.countries else ()
-        codes = dict.fromkeys((*countries, *self.coordinator.settings.toll_countries))
+        edited = (cost.country,) if (cost := self.edited()) is not None and cost.country else ()
+        codes = dict.fromkeys((*countries, *self.coordinator.settings.toll_countries, *edited))
         return [*(code.lower() for code in codes), COUNTRY_NONE]
 
     @property
@@ -118,6 +156,8 @@ class TravelCostForm:
             CostFormError: No amount is given.
 
         """
+        if self.editing is not None:
+            raise CostFormError("travel_cost_editing")
         if not self.amount or self.amount <= 0:
             raise CostFormError("travel_cost_without_amount")
         trip = self.trip()
@@ -134,6 +174,108 @@ class TravelCostForm:
         self.note = ""
         self.coordinator.async_update_listeners()
         return cost
+
+    def edited(self) -> TravelCost | None:
+        """Return the cost being edited."""
+        return self.coordinator.logbook.logbook.get_travel_cost(self.editing) if self.editing else None
+
+    def entry_options(self) -> list[str]:
+        """Return "new" and the costs of the chosen trip, or those without a trip, newest first."""
+        return [EDIT_CHOICE_NEW, *self._costs_by_label()]
+
+    def entry_option(self) -> str:
+        """Return the label of the cost being edited, or "new"."""
+        cost = self.edited()
+        if cost is None:
+            return EDIT_CHOICE_NEW
+        return next((label for label, c in self._costs_by_label().items() if c.id == cost.id), EDIT_CHOICE_NEW)
+
+    def select_entry(self, option: str) -> None:
+        """Fill the form with the chosen cost, or clear it for a new one with "new"."""
+        cost = self._costs_by_label().get(option)
+        if cost is None:
+            self._reset()
+            return
+        key = self._trip_key()
+        self.editing = cost.id
+        self.category = cost.category
+        self.amount = cost.amount
+        self.note = cost.note or ""
+        self._day, self._day_trip = cost.day, key
+        self._country, self._country_trip = (cost.country.lower() if cost.country else COUNTRY_NONE), key
+        self.coordinator.async_update_listeners()
+
+    async def async_update(self) -> TravelCost:
+        """
+        Store the form in the cost being edited and return to "new"; the cost keeps its trip.
+
+        Returns:
+            The changed cost.
+
+        Raises:
+            CostFormError: No cost is chosen, no amount is given, or the values are invalid.
+
+        """
+        if (cost := self.edited()) is None:
+            raise CostFormError("no_entry_chosen")
+        if not self.amount or self.amount <= 0:
+            raise CostFormError("travel_cost_without_amount")
+        country = self.country_option
+        changes = {
+            "day": self.day,
+            "category": self.category,
+            "amount": self.amount,
+            "country": None if country == COUNTRY_NONE else country.upper(),
+            "note": self.note or None,
+        }
+        changed = await self.coordinator.logbook.async_update_travel_cost(cost.id, changes)
+        self._reset()
+        return changed
+
+    async def async_remove(self) -> TravelCost:
+        """
+        Delete the cost being edited and return to "new".
+
+        Returns:
+            The deleted cost.
+
+        Raises:
+            CostFormError: No cost is chosen.
+
+        """
+        if (cost := self.edited()) is None:
+            raise CostFormError("no_entry_chosen")
+        await self.coordinator.logbook.async_remove_travel_cost(cost.id)
+        self._reset()
+        return cost
+
+    def _reset(self) -> None:
+        """Leave the cost being edited; amount and note are cleared, category, country and day follow the trip."""
+        self.editing = None
+        self.amount = None
+        self.note = ""
+        self._day = self._country = None
+        self.coordinator.async_update_listeners()
+
+    def _costs_by_label(self) -> dict[str, TravelCost]:
+        coordinator = self.coordinator
+        book = coordinator.logbook.logbook
+        trip = self.trip()
+        start = trip.start if trip else None
+        costs = [c for c in book.travel_costs if c.trip_start == start]
+        if (edited := self.edited()) is not None and edited not in costs:
+            costs.append(edited)
+        costs.sort(key=lambda c: (c.day, c.recorded or dt_util.utc_from_timestamp(0)), reverse=True)
+        language, currency = coordinator.hass.config.language, coordinator.hass.config.currency
+        today = dt_util.now().date()
+        labels: dict[str, TravelCost] = {}
+        for cost in costs:
+            label = cost_label(cost, language, currency, today)
+            unique, number = label, 2
+            while unique in labels:
+                unique, number = f"{label} ({number})", number + 1
+            labels[unique] = cost
+        return labels
 
     async def async_toggle_no_toll(self) -> bool:
         """

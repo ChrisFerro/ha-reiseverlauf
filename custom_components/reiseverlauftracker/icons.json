@@ -51,6 +51,15 @@
       },
       "travel_cost_country": {
         "default": "mdi:earth"
+      },
+      "logbook_edit": {
+        "default": "mdi:notebook-edit"
+      },
+      "logbook_clear": {
+        "default": "mdi:eraser"
+      },
+      "travel_cost_entry": {
+        "default": "mdi:cash-edit"
       }
     },
     "sensor": {
@@ -179,6 +188,18 @@
       },
       "tour_update": {
         "default": "mdi:map-check"
+      },
+      "logbook_update": {
+        "default": "mdi:content-save-edit"
+      },
+      "logbook_remove": {
+        "default": "mdi:delete"
+      },
+      "travel_cost_update": {
+        "default": "mdi:content-save-edit"
+      },
+      "travel_cost_remove": {
+        "default": "mdi:delete"
       }
     },
     "datetime": {

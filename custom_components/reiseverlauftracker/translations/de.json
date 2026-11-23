@@ -307,6 +307,42 @@
             "name": "Länder der Reise"
           }
         }
+      },
+      "logbook_edit": {
+        "name": "Fahrtenbuch bearbeiten",
+        "state": {
+          "new": "Neu"
+        },
+        "state_attributes": {
+          "eintrag": {
+            "name": "Eintrag"
+          }
+        }
+      },
+      "logbook_clear": {
+        "name": "Fahrtenbuch Feld leeren",
+        "state": {
+          "none": "–",
+          "odometer_km": "Kilometerstand",
+          "fuel_percent": "Kraftstoff",
+          "gas1_percent": "Gas 1",
+          "gas2_percent": "Gas 2",
+          "fuel_litres": "Diesel getankt",
+          "fuel_amount": "Diesel Betrag",
+          "gas_litres": "Gas getankt",
+          "gas_amount": "Gas Betrag"
+        }
+      },
+      "travel_cost_entry": {
+        "name": "Reisekosten Eintrag",
+        "state": {
+          "new": "Neu"
+        },
+        "state_attributes": {
+          "eintrag": {
+            "name": "Eintrag"
+          }
+        }
       }
     },
     "sensor": {
@@ -401,6 +437,9 @@
           },
           "letzte_eintraege": {
             "name": "Letzte Einträge"
+          },
+          "nicht_abgelesen": {
+            "name": "Nicht abgelesen"
           }
         }
       },
@@ -539,6 +578,18 @@
       },
       "tour_update": {
         "name": "Tour aktualisieren"
+      },
+      "logbook_update": {
+        "name": "Fahrtenbuch ändern"
+      },
+      "logbook_remove": {
+        "name": "Fahrtenbuch löschen"
+      },
+      "travel_cost_update": {
+        "name": "Reisekosten ändern"
+      },
+      "travel_cost_remove": {
+        "name": "Reisekosten löschen"
       }
     },
     "datetime": {
@@ -1054,6 +1105,15 @@
     },
     "tour_without_start": {
       "message": "Bitte einen Beginn der Tour angeben oder in der Export-Auswahl eine Reise wählen."
+    },
+    "logbook_editing": {
+      "message": "Im Fahrtenbuch ist ein gespeicherter Eintrag zum Bearbeiten gewählt. Mit „Fahrtenbuch ändern“ speichern oder unter „Fahrtenbuch bearbeiten“ „Neu“ wählen."
+    },
+    "no_entry_chosen": {
+      "message": "Es ist kein Eintrag gewählt."
+    },
+    "travel_cost_editing": {
+      "message": "Im Reisekosten-Formular ist ein gespeicherter Eintrag gewählt. Mit „Reisekosten ändern“ speichern oder unter „Reisekosten Eintrag“ „Neu“ wählen."
     }
   }
 }

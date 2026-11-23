@@ -87,7 +87,10 @@ last levels, average consumption, heating while parked (read), all costs of the 
 costs, each kind as an attribute) and open toll (finished trips through a toll country without a toll entry). The
 logbook time selection, late entry time and late entry button fill the form for an earlier time; the travel cost
 category, country, amount, note and date with save and no-toll buttons add travel costs to the trip chosen in the
-export selection, whose attribute `reisekosten` lists them.
+export selection, whose attribute `reisekosten` lists them. The edit logbook and travel cost entry selections with
+their change and delete buttons correct stored entries (see [Changing and deleting entries](#changing-and-deleting-entries));
+the logbook clear field selection resets a field to “not read off”, and the logbook entry sensor lists empty fields in
+its attribute `nicht_abgelesen`.
 
 For tours, the tour from, tour until and tour title fields with the buttons create tour and update tour combine
 trips (see [Tours](#tours)); the binary sensor tour in progress is on while a tour is created, changed or renewed;
@@ -96,24 +99,24 @@ with a tour chosen, the export selection has the attributes `art`, `standorte` a
 
 ## Actions
 
-| Action                                       | Purpose                                                                                            |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `reiseverlauftracker.exportieren`            | Export any period from the recorder, optionally with title, scale and margin; returns the result   |
-| `reiseverlauftracker.aufraeumen`             | Delete file types of one export or of all exports; without an export, the export selection applies |
-| `reiseverlauftracker.reise_starten`          | Start a trip without D+, or resume the last one within the merge window                            |
-| `reiseverlauftracker.reise_beenden`          | End the running trip now and export it                                                             |
-| `reiseverlauftracker.fahrtenbuch_speichern`  | Save the logbook form like the button; with `anlass_zeit` only while that occasion is pending      |
-| `reiseverlauftracker.fahrtenbuch_eintragen`  | Add a logbook entry without the form; returns the entry                                            |
-| `reiseverlauftracker.fahrtenbuch_aendern`    | Change fields of an entry; litres of 0 remove a fuel or gas stop                                   |
-| `reiseverlauftracker.fahrtenbuch_loeschen`   | Delete an entry; its ID is in the attribute `letzte_eintraege`                                     |
-| `reiseverlauftracker.fahrtenbuch_csv`        | Write `fahrtenbuch.csv` to the output folder (also done after every change)                        |
-| `reiseverlauftracker.fahrtenbuch_nachtragen` | Add a fuel or gas stop for an earlier time; a stop within 5 min of the time is matched             |
-| `reiseverlauftracker.reisekosten_eintragen`  | Add a travel cost for a trip (folder, selection entry or start time) or only a date                |
-| `reiseverlauftracker.reisekosten_aendern`    | Change a travel cost; its ID is in the attribute `reisekosten` of the export selection             |
-| `reiseverlauftracker.reisekosten_loeschen`   | Delete a travel cost                                                                               |
-| `reiseverlauftracker.keine_maut`             | Mark a trip as having no toll, or remove the mark with `an: false`                                 |
-| `reiseverlauftracker.tour_erstellen`         | Combine all trips starting from `von` to `bis` into a tour; optional title and scale               |
-| `reiseverlauftracker.tour_aendern`           | Change title, period or place names (`standorte`: list of `nacht` and `name`) and renew the tour   |
+| Action                                       | Purpose                                                                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `reiseverlauftracker.exportieren`            | Export any period from the recorder, optionally with title, scale and margin; returns the result                        |
+| `reiseverlauftracker.aufraeumen`             | Delete file types of one export or of all exports; without an export, the export selection applies                      |
+| `reiseverlauftracker.reise_starten`          | Start a trip without D+, or resume the last one within the merge window                                                 |
+| `reiseverlauftracker.reise_beenden`          | End the running trip now and export it                                                                                  |
+| `reiseverlauftracker.fahrtenbuch_speichern`  | Save the logbook form like the button; with `anlass_zeit` only while that occasion is pending                           |
+| `reiseverlauftracker.fahrtenbuch_eintragen`  | Add a logbook entry without the form; returns the entry                                                                 |
+| `reiseverlauftracker.fahrtenbuch_aendern`    | Change fields of an entry; litres of 0 remove a fuel or gas stop; a new time brings the counters and place of that time |
+| `reiseverlauftracker.fahrtenbuch_loeschen`   | Delete an entry; its ID is in the attribute `letzte_eintraege`                                                          |
+| `reiseverlauftracker.fahrtenbuch_csv`        | Write `fahrtenbuch.csv` to the output folder (also done after every change)                                             |
+| `reiseverlauftracker.fahrtenbuch_nachtragen` | Add a fuel or gas stop for an earlier time; a stop within 5 min of the time is matched                                  |
+| `reiseverlauftracker.reisekosten_eintragen`  | Add a travel cost for a trip (folder, selection entry or start time) or only a date                                     |
+| `reiseverlauftracker.reisekosten_aendern`    | Change a travel cost; its ID is in the attribute `reisekosten` of the export selection                                  |
+| `reiseverlauftracker.reisekosten_loeschen`   | Delete a travel cost                                                                                                    |
+| `reiseverlauftracker.keine_maut`             | Mark a trip as having no toll, or remove the mark with `an: false`                                                      |
+| `reiseverlauftracker.tour_erstellen`         | Combine all trips starting from `von` to `bis` into a tour; optional title and scale                                    |
+| `reiseverlauftracker.tour_aendern`           | Change title, period or place names (`standorte`: list of `nacht` and `name`) and renew the tour                        |
 
 ## Storage
 
@@ -190,6 +193,24 @@ countries of a trip are looked up after its export along the track (about every 
 30 s after any change to a finished trip, its statistics, composite image and `export.json` are renewed; map,
 profile, GPX and raw points stay. Toll is usually billed the month after, so "open toll" counts the trips through toll
 countries without a toll entry; a trip on country roads only can be marked with "no toll".
+
+### Changing and deleting entries
+
+Stored logbook entries and travel costs can be corrected on the dashboard, without IDs. Choose the trip in the export
+selection: **edit logbook** then lists all entries of that trip and the parked time after it until the next trip
+(such as “27.09. 17:30 · Late entry · Irschenberg · 33768 km”), **travel cost entry** the costs of that trip. With
+“all exports”, they list the 30 newest logbook entries and the costs without a trip. Choosing an entry fills the form
+(for the logbook also the late entry time); a pending occasion waits meanwhile. Press **change** to store the values
+or **delete** to remove the entry for good; the selection then returns to “New”, and discard returns without a
+change. While an entry is chosen, save, late entry and travel cost save are refused, so no second entry arises.
+
+A new time moves the entry: distance and climb are taken for the new time as for a late entry, the odometer stays the
+one in the form. CSV, cost sensors, average consumption and the exports of the trips concerned are renewed. Travel
+costs keep their trip; the action to change travel costs assigns another one.
+
+An empty field means “not read off”, while 0 % is a reading. The change and delete buttons have the fixed entity IDs
+`button.<device>_fahrtenbuch_aendern`, `_fahrtenbuch_loeschen`, `_reisekosten_aendern` and `_reisekosten_loeschen`.
+The German README has dashboard examples with a confirmation before deleting.
 
 ### Push reminder (blueprint)
 

@@ -1,6 +1,6 @@
 # Feat-11: Einträge bearbeiten
 
-Stand: 23.11.2026, Fragen 1–5 geklärt (Abschnitt 5), Frage 6 offen; Entwurf der Umsetzung zur Freigabe (Abschnitt 6).
+Stand: 23.11.2026, umgesetzt (Abschnitt 6, Teilschritte 1–4); Live-Dashboard erst nach dem Release und nach Freigabe.
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Fahrtenbuch](feat-06-fahrtenbuch.md), [Nachträge](feat-09-nachtraege.md).
 
@@ -52,9 +52,9 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
    5.4.
 5. ~~**Löschen:** Knopf mit Bestätigung im Dashboard reicht, oder zusätzlich „Rückgängig“ (z. B. letzter gelöschter
    Eintrag wiederherstellbar)?~~ – entschieden, siehe 5.5.
-6. **Leere Felder:** Wie wird „nicht abgelesen“ im Formular sichtbar (z. B. Hinweis im Formular-Text „Gas 1: nicht
+6. ~~**Leere Felder:** Wie wird „nicht abgelesen“ im Formular sichtbar (z. B. Hinweis im Formular-Text „Gas 1: nicht
    abgelesen“ über ein Attribut der Formular-Entität, Rückfrage beim Speichern mit leeren Feldern), und lässt sich
-   ein Wert wieder auf „nicht abgelesen“ zurücksetzen?
+   ein Wert wieder auf „nicht abgelesen“ zurücksetzen?~~ – entschieden, siehe 5.6.
 
 ## 5. Entscheidungen
 
@@ -72,8 +72,12 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
   korrigieren. Gilt ebenso für die Aktion `fahrtenbuch_aendern`.
 - **5.5 Löschen** (23.11.2026): Sicherheitsabfrage im Dashboard („Eintrag 27.09. 17:30 löschen?“), dann endgültig;
   kein Wiederherstellen. Notnagel sind die Datensicherung von Home Assistant und die CSV-Dateien.
+- **5.6 Leere Felder** (23.11.2026): Das Formular nennt leere Felder in einem Attribut `nicht_abgelesen` (z. B.
+  „Gas 1“), das Dashboard zeigt daraus „Nicht abgelesen: Gas 1“. Speichern geht ohne Rückfrage. Eine Auswahl
+  „Feld leeren“ (`select.…_fahrtenbuch_feld_leeren`: Kraftstoff, Gas 1, Gas 2 …) setzt das gewählte Feld wieder auf
+  „nicht abgelesen“ und springt danach zurück; gilt beim Erfassen, Nachtragen und Bearbeiten.
 
-## 6. Entwurf der Umsetzung (zur Freigabe)
+## 6. Umsetzung
 
 ### 6.1 Zählerstände bei neuer Zeit (5.4)
 
@@ -107,6 +111,12 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
   (Sichtbarkeit nach Auswahl, Bestätigung beim Löschen).
 - Live-Dashboard erst nach dem Release und nach Freigabe.
 
+- Sicherheitsabfrage: Die Bestätigung einer Dashboard-Karte kann keine Vorlage auswerten. Das Beispiel fragt daher
+  „Den unter „Fahrtenbuch bearbeiten“ gewählten Eintrag löschen?“; Zeit und Ort stehen direkt darüber in der Auswahl
+  (Abweichung vom Wortlaut in 5.5).
+- Hinweis „Nicht abgelesen“: Markdown-Karte mit `show_empty: false`, weil Sichtbarkeitsbedingungen keine Vorlagen
+  kennen.
+
 ### 6.5 Abgrenzung
 
 - Kein Wiederherstellen gelöschter Einträge (5.5).
@@ -119,12 +129,20 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
 3. Reisekosten-Auswahl, Ändern und Löschen (6.3).
 4. README, Release-Notes, Feature-Dokumente; Prüfpunkt in `script/develop`.
 
-Die Anzeige leerer Felder (6.7) kommt in Teilschritt 2 dazu, sobald Frage 6 geklärt ist.
+Die Anzeige leerer Felder (6.7) kommt in Teilschritt 2 dazu.
 
-Neue Entitäten: 2 Auswahlen und 4 Knöpfe (44 → 50). Kein Breaking Change; `fahrtenbuch_aendern` bestimmt bei neuer
+Neue Entitäten: 3 Auswahlen und 4 Knöpfe (50 → 57); Teilschritt 2 bringt 2 Auswahlen und 2 Knöpfe (50 → 54).
+Die Knöpfe heißen auf Deutsch „ändern“/„löschen“; ihre Entity-IDs sind fest `…_fahrtenbuch_aendern`/`…_loeschen`
+(Home Assistant würde aus „ä“ sonst „a“ machen). Kein Breaking Change; `fahrtenbuch_aendern` bestimmt bei neuer
 Zeit zusätzlich die Zählerstände neu (Release-Notes).
 
-### 6.7 Leere Felder (offen, Frage 6)
+### 6.7 Leere Felder (5.6)
 
-Ein leeres Feld bedeutet „nicht abgelesen“ und bleibt beim Speichern leer; 0 % ist ein abgelesener Wert. Wie das
-Formular den Unterschied zeigt, wird mit Frage 6 vor Teilschritt 2 entschieden.
+Ein leeres Feld bedeutet „nicht abgelesen“ und bleibt beim Speichern leer; 0 % ist ein abgelesener Wert.
+
+- Attribut `nicht_abgelesen` (Liste der Feldnamen in der Sprache der Instanz) an `sensor.…_fahrtenbuch_eintrag`,
+  aktuell bei jeder Änderung des Formulars.
+- **Neu:** `select.…_fahrtenbuch_feld_leeren` mit „–“ und den leerbaren Feldern (Kilometerstand, Kraftstoff, Gas 1,
+  Gas 2, Diesel getankt, Diesel Betrag, Gas getankt, Gas Betrag). Ein Feld wählen leert es; die Auswahl springt
+  zurück auf „–“.
+- Dashboard-Beispiel: Markdown-Zeile „Nicht abgelesen: …“, nur sichtbar, wenn die Liste nicht leer ist.

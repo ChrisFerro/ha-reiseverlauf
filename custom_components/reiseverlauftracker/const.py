@@ -77,3 +77,7 @@ EXPORT_CHOICE_ALL = "all"
 # Fixed options of the logbook time selection; the stops in between are labelled with their time and place.
 LATE_CHOICE_CURRENT = "current"
 LATE_CHOICE_OTHER = "other"
+# First option of the entry selections: no stored entry chosen, the form adds a new one.
+EDIT_CHOICE_NEW = "new"
+# Resting option of the selection that clears a logbook form field.
+CLEAR_CHOICE_NONE = "none"

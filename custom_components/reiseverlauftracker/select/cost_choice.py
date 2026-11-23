@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from typing import Any
 
+from custom_components.reiseverlauftracker.coordinator.cost_form import travel_cost_data
 from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory
 from custom_components.reiseverlauftracker.entity import ReiseverlaufEntity
 from homeassistant.components.select import SelectEntity
@@ -45,3 +46,27 @@ class ReiseverlaufCostCountry(SelectEntity, ReiseverlaufEntity):
     async def async_select_option(self, option: str) -> None:
         """Choose the country."""
         self.coordinator.cost_form.set_country(option)
+
+
+class ReiseverlaufCostEntry(SelectEntity, ReiseverlaufEntity):
+    """Lists "new" and the stored costs of the chosen trip, newest first, to change or delete one."""
+
+    @property
+    def options(self) -> list[str]:
+        """Return "new" and the cost labels."""
+        return self.coordinator.cost_form.entry_options()
+
+    @property
+    def current_option(self) -> str:
+        """Return the cost being edited, or "new"."""
+        return self.coordinator.cost_form.entry_option()
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any]:
+        """Return the stored values of the chosen cost, for the dashboard."""
+        cost = self.coordinator.cost_form.edited()
+        return {"eintrag": travel_cost_data(cost) if cost else None}
+
+    async def async_select_option(self, option: str) -> None:
+        """Fill the form with the chosen cost, or clear it for a new one."""
+        self.coordinator.cost_form.select_entry(option)
