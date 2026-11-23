@@ -217,6 +217,9 @@
           },
           "tourkosten": {
             "name": "Tour costs"
+          },
+          "exporte": {
+            "name": "Exports"
           }
         }
       },

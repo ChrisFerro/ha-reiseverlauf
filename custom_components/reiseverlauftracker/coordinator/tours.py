@@ -362,7 +362,6 @@ class Tours:
                 LOGGER.warning("Raw data of the tour %s are unreadable, the trips are read again", previous.folder)
         trips = {start_: trip for start_, trip in known.items() if start <= start_ <= end}
         missing: list[str] = []
-        tz = dt_util.get_default_time_zone()
         candidates = sorted(
             (info for info in coordinator.exports if not info.is_tour and start <= info.start <= end),
             key=lambda info: (not info.automatic, info.start),
@@ -373,7 +372,7 @@ class Tours:
             raw = await coordinator.hass.async_add_executor_job(read_raw, base, info)
             if raw is None:
                 if info.automatic:
-                    missing.append(info.label(tz))
+                    missing.append(coordinator.export_label(info))
                 continue
             trips[info.start] = RawTrip(info.folder, info.title, info.start, info.end, raw, info.countries or ())
         if missing:

@@ -144,3 +144,12 @@ def test_label_is_short_and_starts_with_local_time(tmp_path: Path) -> None:
 
     assert info.label(ZoneInfo("Europe/Berlin")) == "09.10.26 10:40 · Trip"
     assert long_title.label(ZoneInfo("Europe/Berlin")) == "09.10.26 10:40 · Frankfurt am Main…"
+
+
+def test_label_marks_manual_exports_in_the_language_of_the_instance(tmp_path: Path) -> None:
+    info = replace(make_export(tmp_path, "a", datetime(2026, 10, 9, 8, 40, tzinfo=UTC)), automatic=False)
+    tz = ZoneInfo("Europe/Berlin")
+
+    assert info.label(tz, "de") == "09.10.26 10:40 · Manuell · Trip"
+    assert info.label(tz, "en-GB") == "09.10.26 10:40 · Manual · Trip"
+    assert info.label(tz, "fr") == "09.10.26 10:40 · Manual · Trip"
