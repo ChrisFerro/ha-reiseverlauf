@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.3...v0.3.4) (2026-11-23)
+
+
+### Features
+
+* **tour:** show when a tour is being built ([#47](https://github.com/ChrisFerro/ha-reiseverlauf/issues/47)) ([880a45b](https://github.com/ChrisFerro/ha-reiseverlauf/commit/880a45b885cbc26632c8157372206095b0443d55))
+
 ## [0.3.3](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.2...v0.3.3) (2026-11-23)
 
 
