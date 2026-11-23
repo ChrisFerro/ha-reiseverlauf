@@ -95,6 +95,16 @@ def geocode() -> Generator[AsyncMock]:
         yield mock
 
 
+@pytest.fixture(autouse=True)
+def camp_site() -> Generator[AsyncMock]:
+    """Answer camp-site lookups at the arrival: none unless a test sets a `return_value`."""
+    with patch(
+        "custom_components.reiseverlauftracker.coordinator.places.async_reverse_camp_site",
+        return_value=None,
+    ) as mock:
+        yield mock
+
+
 @pytest.fixture
 def entry_data() -> dict[str, Any]:
     """Return the data a set-up entry holds."""

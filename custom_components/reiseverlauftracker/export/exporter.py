@@ -14,13 +14,14 @@ import unicodedata
 
 from PIL import Image
 
-from .chart import render_profile
+from .chart import BASE_WIDTH, render_profile
 from .composite import render_composite
 from .gpx import build_gpx
-from .map import TileFetcher, http_tile_fetcher, render_map
-from .model import ExportOptions, StepSeries, TrackPoint
+from .map import TileFetcher, draw_overlay, http_tile_fetcher, render_base_map
+from .model import ExportOptions, MapMarker, MapProjection, MarkerKind, StepSeries, TrackPoint
 from .stats import TripStats, compute_stats, logbook_rows, stats_rows, stats_text, stop_lines
-from .texts import default_title, texts_for
+from .symbols import merge_markers, render_legend
+from .texts import Texts, default_title, texts_for
 from .track import prepare_track
 
 MIN_SCALE = 0.5
@@ -53,6 +54,8 @@ FILE_SUFFIXES: dict[ExportFile, str] = {
     ExportFile.RAW: "_rohdaten.json",
     ExportFile.DAYS: "_tage.csv",
 }
+BASE_MAP_SUFFIX = "_karte_basis.png"
+"""Map without symbols; kept so that symbols can be redrawn without tiles (Feat-12 6.5)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +67,16 @@ class ExportResult:
     files: dict[ExportFile, Path]
     stats: TripStats
     stats_text: str
+    base_map: Path | None = None
+    projection: MapProjection | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class BaseMapRef:
+    """The stored base map of an export and where its coordinates lie."""
+
+    name: str
+    projection: MapProjection
 
 
 def slugify(text: str) -> str:
@@ -105,8 +118,7 @@ def export_trip(
     stats = compute_stats(track.points, track.speed, options)
     rows = stats_rows(stats, texts, tz)
     logbook = logbook_rows(options.logbook, texts, options.currency)
-    details = logbook_rows(options.logbook, texts, options.currency, travel_details=True)
-    text = stats_text(title, rows + details, stop_lines(options.stops, texts, tz))
+    text = _text(title, rows, options, texts)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     files: dict[ExportFile, Path] = {}
@@ -119,15 +131,24 @@ def export_trip(
     path(ExportFile.STATS).write_text(text, encoding="utf-8")
 
     map_image = None
+    base_path = projection = None
+    markers = map_markers(track.points, options)
     if options.with_map:
         width, height = options.map_size
-        map_image = render_map(
-            track.points,
+        line_width = round(options.map_line_width * scale)
+        base = render_base_map(
+            [track.points],
             (round(width * scale), round(height * scale)),
-            round(options.map_line_width * scale),
+            line_width,
             fetch_tile or http_tile_fetcher(options.user_agent),
+            markers,
+            options.ferries,
         )
-        if map_image is not None:
+        if base is not None:
+            base_path, projection = out_dir / f"{basename}{BASE_MAP_SUFFIX}", base.projection
+            base.image.save(base_path)
+            map_image = draw_overlay(base.image, projection, markers, options.ferries, line_width)
+            base.image.close()
             map_image.save(path(ExportFile.MAP))
 
     window = (track.chart_start, track.chart_end)
@@ -137,15 +158,59 @@ def export_trip(
         profile.close()
 
     untitled_profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale)
-    composite = render_composite([map_image, untitled_profile], title, rows[0][1], rows[1:], scale, logbook)
+    legend = _legend(map_image, markers, options, texts, scale)
+    composite = render_composite([map_image, legend, untitled_profile], title, rows[0][1], rows[1:], scale, logbook)
     if composite is not None:
         composite.save(path(ExportFile.COMPOSITE))
         composite.close()
-    for image in (map_image, untitled_profile):
+    for image in (map_image, legend, untitled_profile):
         if image is not None:
             image.close()
 
-    return ExportResult(title=title, basename=basename, files=files, stats=stats, stats_text=text)
+    return ExportResult(
+        title=title,
+        basename=basename,
+        files=files,
+        stats=stats,
+        stats_text=text,
+        base_map=base_path,
+        projection=projection,
+    )
+
+
+def map_markers(points: Sequence[TrackPoint], options: ExportOptions) -> list[MapMarker]:
+    """
+    Return the symbols of a trip map: the given ones, then start and end.
+
+    The end shows a pitch when the arrival is on a camp site (Feat-12 5.7); a stop
+    where fuel or gas was bought shows only the refill (5.4).
+    """
+    markers = merge_markers(options.markers, options.min_movement_m)
+    if points:
+        first, last = points[0], points[-1]
+        end = MarkerKind.PITCH if options.arrival_stay else MarkerKind.END
+        markers += [MapMarker(MarkerKind.START, first.lat, first.lon), MapMarker(end, last.lat, last.lon)]
+    return markers
+
+
+def _text(title: str, rows: list[tuple[str, str]], options: ExportOptions, texts: Texts) -> str:
+    details = logbook_rows(options.logbook, texts, options.currency, travel_details=True)
+    stay = [(texts.pitch, options.arrival_stay)] if options.arrival_stay else []
+    return stats_text(title, rows + stay + details, stop_lines(options.stops, texts, options.timezone))
+
+
+def _legend(
+    map_image: Image.Image | None,
+    markers: Sequence[MapMarker],
+    options: ExportOptions,
+    texts: Texts,
+    scale: float,
+) -> Image.Image | None:
+    """Return the legend under the map, only for symbols on it (Feat-12 5.5)."""
+    if map_image is None:
+        return None
+    kinds = {m.kind for m in markers} | ({MarkerKind.FERRY} if options.ferries else set())
+    return render_legend(kinds, {MarkerKind(k): v for k, v in texts.markers.items()}, round(BASE_WIDTH * scale), scale)
 
 
 def refresh_export(
@@ -155,13 +220,15 @@ def refresh_export(
     out_dir: Path,
     options: ExportOptions,
     files: dict[ExportFile, str],
+    base_map: BaseMapRef | None = None,
 ) -> str:
     """
-    Rewrite statistics and composite image of an existing export with new logbook figures.
+    Rewrite statistics, map symbols and composite image of an existing export, e.g. with new logbook figures.
 
-    The title comes from `options.title`. Map, profile, GPX and raw data stay; the
-    composite is put together from the map file that is there and a newly drawn
-    profile, so no tiles are downloaded. Files missing from `files` are not created.
+    The title comes from `options.title`. With a stored `base_map`, the map gets its
+    symbols drawn anew on it; otherwise the map file stays as it is. No tiles are
+    downloaded either way. Profile, GPX and raw data stay; files missing from
+    `files` are not created.
 
     Returns:
         The new statistics text.
@@ -179,23 +246,49 @@ def refresh_export(
     stats = compute_stats(track.points, track.speed, options)
     rows = stats_rows(stats, texts, tz)
     logbook = logbook_rows(options.logbook, texts, options.currency)
-    details = logbook_rows(options.logbook, texts, options.currency, travel_details=True)
-    text = stats_text(title, rows + details, stop_lines(options.stops, texts, tz))
+    text = _text(title, rows, options, texts)
     if (name := files.get(ExportFile.STATS)) is not None:
         (out_dir / name).write_text(text, encoding="utf-8")
 
+    markers = map_markers(track.points, options)
+    map_image = None
+    if (map_name := files.get(ExportFile.MAP)) is not None:
+        map_image = _redraw_map(out_dir, base_map, markers, options)
+        if map_image is not None:
+            map_image.save(out_dir / map_name)
+        else:
+            map_image = _open_image(out_dir / map_name)
+
     if (name := files.get(ExportFile.COMPOSITE)) is not None:
-        map_image = _open_image(out_dir / files[ExportFile.MAP]) if ExportFile.MAP in files else None
         window = (track.chart_start, track.chart_end)
         profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale)
-        composite = render_composite([map_image, profile], title, rows[0][1], rows[1:], scale, logbook)
+        legend = _legend(map_image, markers, options, texts, scale) if base_map is not None else None
+        composite = render_composite([map_image, legend, profile], title, rows[0][1], rows[1:], scale, logbook)
         if composite is not None:
             composite.save(out_dir / name)
             composite.close()
-        for image in (map_image, profile):
+        for image in (legend, profile):
             if image is not None:
                 image.close()
+    if map_image is not None:
+        map_image.close()
     return text
+
+
+def _redraw_map(
+    out_dir: Path, base_map: BaseMapRef | None, markers: Sequence[MapMarker], options: ExportOptions
+) -> Image.Image | None:
+    """Return the map with its symbols drawn on the stored base map, or None without a usable one."""
+    if base_map is None:
+        return None
+    base = _open_image(out_dir / base_map.name)
+    if base is None:
+        return None
+    # The line width the base map was drawn with, whatever the scale setting is now.
+    line_width = round(options.map_line_width * base_map.projection.width / options.map_size[0])
+    image = draw_overlay(base, base_map.projection, markers, options.ferries, line_width)
+    base.close()
+    return image
 
 
 def _open_image(path: Path) -> Image.Image | None:

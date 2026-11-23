@@ -2,7 +2,8 @@
 Renews the export of a finished trip after its logbook entries or travel costs changed.
 
 Changes are collected for `REFRESH_DELAY`, then each trip is renewed once:
-statistics, composite image and `export.json` (docs/features/feat-09-nachtraege.md 6.4).
+statistics, map symbols, composite image and `export.json` (docs/features/feat-09-nachtraege.md 6.4,
+docs/features/feat-12-kartensymbole.md 6.7).
 Only automatic exports are renewed, never a trip that is still active (its export follows at its
 end), and no "ended" event fires.
 """
@@ -12,11 +13,12 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from custom_components.reiseverlauftracker.const import LOGGER
-from custom_components.reiseverlauftracker.export import NoMovementError, NotEnoughPointsError
+from custom_components.reiseverlauftracker.export import MapMarker, NoMovementError, NotEnoughPointsError
 from homeassistant.core import CALLBACK_TYPE, callback
 from homeassistant.helpers.event import async_call_later
 
 from .export_runner import async_refresh
+from .map_symbols import trip_markers
 from .trip_detector import TripPhase
 
 if TYPE_CHECKING:
@@ -95,14 +97,18 @@ class ExportRefresher:
             stored = info.logbook.odometer_end_km if info.logbook else None
             figures = replace(figures, odometer_end_km=stored)
         data = None
+        markers: tuple[MapMarker, ...] = ()
         if log is not None:
             positions, speed, altitude = log.export_inputs()
             data = ([p for p in positions if p.time <= info.end], speed, altitude)
+            # The raw data knows where each stop was, also for exports from before the stops kept it.
+            stops = log.export_stops(info.end, coordinator.settings.min_stop_duration) or info.stops
+            markers = trip_markers(stops, coordinator.logbook.logbook.trip_entries(trip_start), data[0])
         else:
             LOGGER.info("Export %s has no raw data; only its metadata gets the new logbook figures", info.folder)
         try:
             async with coordinator.export_lock:
-                refreshed = await async_refresh(coordinator.hass, coordinator.settings, info, data, figures)
+                refreshed = await async_refresh(coordinator.hass, coordinator.settings, info, data, figures, markers)
         except (NotEnoughPointsError, NoMovementError, OSError) as err:
             LOGGER.warning("Export %s could not be renewed: %s", info.folder, err)
             return None

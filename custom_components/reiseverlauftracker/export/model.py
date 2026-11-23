@@ -71,6 +71,8 @@ class Stop:
     start: datetime
     end: datetime
     place: str | None = None
+    lat: float | None = None
+    lon: float | None = None
 
     @property
     def duration(self) -> timedelta:
@@ -154,6 +156,11 @@ class ExportOptions:
     stops: tuple[Stop, ...] = ()
     logbook: LogbookFigures | None = None
     currency: str = "EUR"
+    markers: tuple[MapMarker, ...] = ()
+    """Symbols besides start and end, e.g. stops and refills (docs/features/feat-12-kartensymbole.md)."""
+    ferries: tuple[FerryLeg, ...] = ()
+    arrival_stay: str | None = None
+    """Name of the camp site or pitch at the arrival; the end symbol then shows a pitch."""
 
 
 class MarkerKind(StrEnum):

@@ -199,7 +199,7 @@ class TripLog:
     def export_stops(self, end: datetime, min_duration: timedelta) -> tuple[Stop, ...]:
         """Return the closed stops before `end` that lasted `min_duration`; the open one is the arrival."""
         return tuple(
-            Stop(start=s.start, end=s.end, place=s.place)
+            Stop(start=s.start, end=s.end, place=s.place, lat=s.lat, lon=s.lon)
             for s in self.stops
             if s.end and s.end <= end and s.duration(end) >= min_duration
         )

@@ -1,6 +1,7 @@
 # Feat-12: Kartensymbole
 
-Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf der Umsetzung zur Freigabe (Abschnitt 6).
+Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf freigegeben (Abschnitt 6), Teilschritte 1 und 2
+umgesetzt (6.11).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Halte](feat-02-halte.md), [Export](feat-03-export.md), [Fahrtenbuch](feat-06-fahrtenbuch.md),
 [Nachträge](feat-09-nachtraege.md), [Tour](feat-10-tour.md).

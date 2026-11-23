@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from custom_components.reiseverlauftracker.const import DOMAIN
 from custom_components.reiseverlauftracker.utils.geocode import (
+    async_reverse_camp_site,
     async_reverse_country,
     async_reverse_geocode,
     async_reverse_stay,
@@ -37,6 +38,15 @@ async def async_stay_name(hass: HomeAssistant, settings: ReiseverlaufSettings, l
     if not settings.place_names:
         return None
     return await async_reverse_stay(async_get_clientsession(hass), lat, lon, hass.config.language, _agent(hass))
+
+
+async def async_camp_site_name(
+    hass: HomeAssistant, settings: ReiseverlaufSettings, lat: float, lon: float
+) -> str | None:
+    """Return the camp site or pitch at a position; None elsewhere, or when lookups are off or fail."""
+    if not settings.place_names:
+        return None
+    return await async_reverse_camp_site(async_get_clientsession(hass), lat, lon, hass.config.language, _agent(hass))
 
 
 async def async_country(hass: HomeAssistant, settings: ReiseverlaufSettings, lat: float, lon: float) -> str | None:

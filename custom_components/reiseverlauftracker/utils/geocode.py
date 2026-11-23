@@ -38,6 +38,13 @@ async def async_reverse_stay(
     return stay_name(await _async_reverse(session, lat, lon, STAY_ZOOM, language, user_agent))
 
 
+async def async_reverse_camp_site(
+    session: ClientSession, lat: float, lon: float, language: str, user_agent: str
+) -> str | None:
+    """Return the name of the camp site or motorhome pitch at a coordinate, or None if there is none."""
+    return camp_site_name(await _async_reverse(session, lat, lon, STAY_ZOOM, language, user_agent))
+
+
 async def async_reverse_country(session: ClientSession, lat: float, lon: float, user_agent: str) -> str | None:
     """Return the ISO 3166-1 alpha-2 code of the country at a coordinate, or None (e.g. at sea or on errors)."""
     return country_code(await _async_reverse(session, lat, lon, COUNTRY_ZOOM, "en", user_agent))
@@ -78,12 +85,19 @@ def place_name(data: Any) -> str | None:
     return name if isinstance(name, str) and name else None
 
 
+def camp_site_name(data: Any) -> str | None:
+    """Return the name of a camp site or motorhome pitch in a Nominatim response, or None for any other place."""
+    if not isinstance(data, dict):
+        return None
+    name = data.get("name")
+    return name if data.get("type") in STAY_TYPES and isinstance(name, str) and name else None
+
+
 def stay_name(data: Any) -> str | None:
     """Return the name of a camp site or motorhome pitch in a Nominatim response, else the place name."""
     if not isinstance(data, dict):
         return None
-    name = data.get("name")
-    if data.get("type") in STAY_TYPES and isinstance(name, str) and name:
+    if (name := camp_site_name(data)) is not None:
         return name
     address = data.get("address")
     if isinstance(address, dict):

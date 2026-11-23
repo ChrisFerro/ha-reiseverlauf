@@ -17,6 +17,7 @@ from custom_components.reiseverlauftracker.const import (
 from custom_components.reiseverlauftracker.export import (
     ExportFile,
     LogbookFigures,
+    MapMarker,
     NoMovementError,
     NotEnoughPointsError,
     StepSeries,
@@ -48,6 +49,7 @@ from .exports import ExportInfo, list_exports, read_raw, remove_files, set_count
 from .late_form import LateEntryForm
 from .logbook import LogbookEntry, Occasion
 from .logbook_keeper import EntryContext, LogbookKeeper
+from .map_symbols import trip_markers
 from .models import TripSnapshot
 from .places import async_place_name
 from .snapshot import ExportState, build_snapshot
@@ -226,6 +228,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                 title=title,
                 automatic=False,
                 folder=folder,
+                markers=trip_markers((), self.logbook.logbook.entries_between(start, end), data[0]),
             )
         await self._async_load_exports()
         self._publish()
@@ -486,10 +489,13 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         data = ([p for p in positions if p.time <= trip_event.end], speed, altitude)
         stops = self.log.export_stops(trip_event.end, self.settings.min_stop_duration)
         logbook = self.logbook.trip_figures(trip_event.start)
+        markers = trip_markers(stops, self.logbook.logbook.trip_entries(trip_event.start), data[0])
         self._exporting = True
         self.config_entry.async_create_task(
             self.hass,
-            self._async_export_ended(trip_event, data, self.log.as_dict(), stops, logbook, self.log.counter_start),
+            self._async_export_ended(
+                trip_event, data, self.log.as_dict(), stops, logbook, self.log.counter_start, markers
+            ),
             "reiseverlauftracker export",
         )
 
@@ -501,6 +507,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         stops: tuple[Stop, ...],
         logbook: LogbookFigures | None,
         counter_start: TrackCounters | None,
+        markers: tuple[MapMarker, ...] = (),
     ) -> None:
         async with self._export_lock:
             try:
@@ -515,6 +522,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
                     stops=stops,
                     logbook=logbook,
                     counter_start=counter_start,
+                    markers=markers,
                 )
             except NotEnoughPointsError, NoMovementError:
                 LOGGER.warning("Trip from %s has no usable movement to export", trip_event.start)

@@ -7,8 +7,10 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClien
 
 from custom_components.reiseverlauftracker.utils.geocode import (
     NOMINATIM_URL,
+    async_reverse_camp_site,
     async_reverse_country,
     async_reverse_geocode,
+    camp_site_name,
     country_code,
     place_name,
     stay_name,
@@ -88,3 +90,23 @@ def test_stay_name_prefers_camp_sites() -> None:
     assert stay_name(other) == "Kaltern"
     assert stay_name({"type": "house"}) is None
     assert stay_name(None) is None
+
+
+def test_camp_site_name_only_for_camp_sites() -> None:
+    assert camp_site_name({"type": "camp_site", "name": "Camping Seeblick"}) == "Camping Seeblick"
+    assert camp_site_name({"type": "caravan_site", "name": "Stellplatz am See"}) == "Stellplatz am See"
+    assert camp_site_name({"type": "house", "name": "Haus 3", "address": {"village": "Kaltern"}}) is None
+    assert camp_site_name({"type": "camp_site"}) is None
+    assert camp_site_name(None) is None
+
+
+async def test_reverse_camp_site_asks_for_the_feature_at_the_position(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    aioclient_mock.get(NOMINATIM_URL, json={"type": "caravan_site", "name": "Stellplatz am See"})
+
+    name = await async_reverse_camp_site(async_get_clientsession(hass), 46.4, 11.3, "de", "reiseverlauftracker/test")
+
+    assert name == "Stellplatz am See"
+    _, url, _, _ = aioclient_mock.mock_calls[0]
+    assert url.query["zoom"] == "18"

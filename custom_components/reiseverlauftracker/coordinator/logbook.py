@@ -813,6 +813,14 @@ class Logbook:
             c.category is CostCategory.TOLL for c in self.travel_costs_of_trip(trip_start)
         )
 
+    def trip_entries(self, trip_start: datetime) -> list[LogbookEntry]:
+        """Return the entries of the trip that started at `trip_start`, including its arrival."""
+        return [e for e in self.entries if e.trip_start == trip_start]
+
+    def entries_between(self, start: datetime, end: datetime) -> list[LogbookEntry]:
+        """Return the entries made from `start` to `end`, whichever trip they belong to."""
+        return [e for e in self.entries if start <= e.time <= end]
+
     def trip_summary(
         self, trip_start: datetime, *, end_counter_m: float | None = None, until: datetime | None = None
     ) -> TripSummary:
@@ -826,7 +834,7 @@ class Logbook:
         For an earlier trip, `end_counter_m` is the distance counter at its end and
         `until` the time up to which readings count (the start of the next trip).
         """
-        entries = [e for e in self.entries if e.trip_start == trip_start]
+        entries = self.trip_entries(trip_start)
         readings = [e for e in entries if e.odometer_km is not None and e.occasion is Occasion.TRIP_START]
         fuel = [e.fuel for e in entries if e.fuel is not None]
         gas = [e.gas for e in entries if e.gas is not None]
