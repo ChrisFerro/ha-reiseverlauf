@@ -41,6 +41,7 @@ from .logbook import (
     async_handle_save_form,
     async_handle_update,
 )
+from .tour import ATTR_NAME, ATTR_NIGHT, ATTR_PLACES, async_handle_change, async_handle_create
 from .travel_costs import (
     ATTR_AMOUNT,
     ATTR_CATEGORY,
@@ -74,6 +75,8 @@ SERVICE_COST_ADD = "reisekosten_eintragen"
 SERVICE_COST_UPDATE = "reisekosten_aendern"
 SERVICE_COST_REMOVE = "reisekosten_loeschen"
 SERVICE_NO_TOLL = "keine_maut"
+SERVICE_TOUR_CREATE = "tour_erstellen"
+SERVICE_TOUR_CHANGE = "tour_aendern"
 
 ENTRY_SCHEMA = probatio.Schema({probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string})
 
@@ -154,6 +157,26 @@ NO_TOLL_SCHEMA = ENTRY_SCHEMA.extend(
     {probatio.Required(ATTR_TRIP): cv.string, probatio.Optional(ATTR_ON, default=True): cv.boolean}
 )
 
+TOUR_CREATE_SCHEMA = ENTRY_SCHEMA.extend(
+    {
+        probatio.Required(ATTR_START): cv.datetime,
+        probatio.Required(ATTR_END): cv.datetime,
+        probatio.Optional(ATTR_TITLE): cv.string,
+        probatio.Optional(ATTR_SCALE): probatio.All(probatio.Coerce(float), probatio.Range(min=1, max=4)),
+    }
+)
+TOUR_CHANGE_SCHEMA = ENTRY_SCHEMA.extend(
+    {
+        probatio.Optional(ATTR_EXPORT): cv.string,
+        probatio.Optional(ATTR_TITLE): probatio.Any(None, cv.string),
+        probatio.Optional(ATTR_START): cv.datetime,
+        probatio.Optional(ATTR_END): cv.datetime,
+        probatio.Optional(ATTR_PLACES): [
+            probatio.Schema({probatio.Required(ATTR_NIGHT): cv.date, probatio.Required(ATTR_NAME): cv.string})
+        ],
+    }
+)
+
 
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register the service actions of the integration once, at component level."""
@@ -200,6 +223,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_no_toll(call: ServiceCall) -> None:
         await async_handle_no_toll(hass, call)
 
+    async def handle_tour_create(call: ServiceCall) -> ServiceResponse:
+        return await async_handle_create(hass, call)
+
+    async def handle_tour_change(call: ServiceCall) -> ServiceResponse:
+        return await async_handle_change(hass, call)
+
     actions: tuple[tuple[str, Any, probatio.Schema, SupportsResponse], ...] = (
         (SERVICE_EXPORT, handle_export, EXPORT_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_CLEANUP, handle_cleanup, CLEANUP_SCHEMA, SupportsResponse.OPTIONAL),
@@ -215,6 +244,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         (SERVICE_COST_UPDATE, handle_cost_update, COST_UPDATE_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_COST_REMOVE, handle_cost_remove, COST_ENTRY_SCHEMA, SupportsResponse.NONE),
         (SERVICE_NO_TOLL, handle_no_toll, NO_TOLL_SCHEMA, SupportsResponse.NONE),
+        (SERVICE_TOUR_CREATE, handle_tour_create, TOUR_CREATE_SCHEMA, SupportsResponse.OPTIONAL),
+        (SERVICE_TOUR_CHANGE, handle_tour_change, TOUR_CHANGE_SCHEMA, SupportsResponse.OPTIONAL),
     )
     for name, handler, schema, supports_response in actions:
         if not hass.services.has_service(DOMAIN, name):

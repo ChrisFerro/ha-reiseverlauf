@@ -584,3 +584,21 @@ def test_travel_costs_by_category_in_category_order() -> None:
     book.add_travel_cost(date(2026, 11, 2), CostCategory.PITCH, 18)
 
     assert book.travel_costs_by_category(T0) == {CostCategory.TOLL: pytest.approx(83.3), CostCategory.FERRY: 85}
+
+
+def test_gas_level_litres_per_percent_and_last_price() -> None:
+    book = Logbook()
+    book.add(at(0), Occasion.MANUAL, gas1_percent=60, gas2_percent=40)
+    book.add(at(1), Occasion.STOP, fuel=Refill(50, 90.0), fuel_percent=100)
+    book.add(at(2), Occasion.STOP, gas=Refill(25, 24.0), gas1_percent=100, gas2_percent=100)
+    book.add(at(3), Occasion.STOP, fuel=Refill(10))
+    # No reading before this gas stop counts any more than the full tanks: it filled nothing new.
+    book.add(at(4), Occasion.STOP, gas=Refill(5, 5.0), gas1_percent=100, gas2_percent=100)
+
+    assert book.gas_level_at(at(-1)) is None
+    assert book.gas_level_at(at(1.5)) == 100
+    assert book.gas_level_at(at(2)) == 200
+    assert book.gas_litres_per_percent() == pytest.approx(0.25)
+    assert book.last_price("fuel", at(5)) == pytest.approx(1.8)
+    assert book.last_price("gas", at(3)) == pytest.approx(0.96)
+    assert book.last_price("fuel", at(0.5)) is None

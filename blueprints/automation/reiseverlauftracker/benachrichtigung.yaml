@@ -3,8 +3,8 @@ blueprint:
   description: >-
     Schickt eine Push-Nachricht an die Companion-App, wenn eine Reise endet: mit Titel, Strecke, Fahrzeit und
     Abfahrt/Ankunft. Tippen auf die Nachricht öffnet eine Dashboard-Ansicht, z. B. mit dem Gesamtbild. Endet eine
-    fortgesetzte Reise, ersetzt die neue Nachricht die alte. Optional auch bei Reisebeginn und nach einem
-    manuellen Export.
+    fortgesetzte Reise, ersetzt die neue Nachricht die alte. Optional auch bei Reisebeginn, nach einem
+    manuellen Export und wenn eine Tour erstellt oder (z. B. nach nachgetragener Maut) aktualisiert wurde.
   domain: automation
   author: ChrisFerro
   homeassistant:
@@ -45,6 +45,19 @@ blueprint:
           default: false
           selector:
             boolean:
+        bei_tour_erstellt:
+          name: Tour erstellt
+          description: Melden, wenn eine Tour aus mehreren Reisen erstellt wurde.
+          default: true
+          selector:
+            boolean:
+        bei_tour_aktualisiert:
+          name: Tour aktualisiert
+          description: >-
+            Melden, wenn eine Tour neu erstellt wurde, z. B. nach nachgetragener Maut oder geändertem Titel.
+          default: false
+          selector:
+            boolean:
         dashboard:
           name: Ansicht beim Tippen
           description: >-
@@ -78,6 +91,16 @@ blueprint:
           default: Export fertig
           selector:
             text:
+        titel_tour:
+          name: Tour erstellt
+          default: Tour fertig
+          selector:
+            text:
+        titel_tour_aktualisiert:
+          name: Tour aktualisiert
+          default: Tour aktualisiert
+          selector:
+            text:
 
 mode: queued
 max_exceeded: silent
@@ -101,6 +124,20 @@ triggers:
       entry_id: !input fahrzeug
     id: exportiert
     enabled: !input bei_export
+  - trigger: event
+    event_type: reiseverlauftracker_tour
+    event_data:
+      entry_id: !input fahrzeug
+      anlass: erstellt
+    id: tour
+    enabled: !input bei_tour_erstellt
+  - trigger: event
+    event_type: reiseverlauftracker_tour
+    event_data:
+      entry_id: !input fahrzeug
+      anlass: aktualisiert
+    id: tour_aktualisiert
+    enabled: !input bei_tour_aktualisiert
 
 variables:
   geraete: !input geraete
@@ -109,16 +146,26 @@ variables:
   titel_aktualisiert: !input titel_aktualisiert
   titel_start: !input titel_start
   titel_export: !input titel_export
+  titel_tour: !input titel_tour
+  titel_tour_aktualisiert: !input titel_tour_aktualisiert
   daten: "{{ trigger.event.data }}"
   ueberschrift: >-
     {% if trigger.id == 'gestartet' %}{{ titel_start }}
     {% elif trigger.id == 'exportiert' %}{{ titel_export }}: {{ daten.titel }}
+    {% elif trigger.id == 'tour' %}{{ titel_tour }}: {{ daten.titel }}
+    {% elif trigger.id == 'tour_aktualisiert' %}{{ titel_tour_aktualisiert }}: {{ daten.titel }}
     {% elif daten.fortgesetzt %}{{ titel_aktualisiert }}: {{ daten.titel }}
     {% else %}{{ titel_ende }}: {{ daten.titel }}{% endif %}
   nachricht: >-
     {% if trigger.id == 'gestartet' %}
       {% if daten.startort is defined and daten.startort %}in {{ daten.startort }} {% endif -%}
       um {{ as_local(as_datetime(daten.start)).strftime('%H:%M') }} Uhr
+    {% elif trigger.id in ['tour', 'tour_aktualisiert'] %}
+      {% set start = as_local(as_datetime(daten.start)) %}
+      {% set ende = as_local(as_datetime(daten.ende)) %}
+      {% set naechte = '1 Nacht' if daten.naechte == 1 else daten.naechte ~ ' Nächte' %}
+      {{ start.strftime('%d.%m.') }}–{{ ende.strftime('%d.%m.%Y') }} · {{ '%.0f' | format(daten.strecke_km) }} km · {{ naechte }}
+      {%- if daten.kosten %} · Kosten {{ ('%.2f' | format(daten.kosten)) | replace('.', ',') }} €{% endif %}
     {% else %}
       {% set start = as_local(as_datetime(daten.abfahrt | default(daten.start))) %}
       {% set ende = as_local(as_datetime(daten.ankunft | default(daten.ende))) %}

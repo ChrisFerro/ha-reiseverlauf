@@ -173,3 +173,42 @@ async def test_automation_saved_with_old_image_input_still_loads(
     await hass.async_block_till_done()
 
     assert len(notify_calls) == 1
+
+
+TOUR: dict[str, Any] = {
+    "entry_id": ENTRY_ID,
+    "anlass": "erstellt",
+    "titel": "Camping Seeblick · 10.–17.10.2026",
+    "start": "2026-10-10T06:00:00+00:00",
+    "ende": "2026-10-17T16:00:00+00:00",
+    "strecke_km": 1712.4,
+    "naechte": 7,
+    "kosten": 1245.5,
+    "ordner": "tour-2026-10-10-2026-10-17",
+}
+
+
+async def test_tour_created_and_updated(hass: HomeAssistant, phone: str, notify_calls: list[ServiceCall]) -> None:
+    await setup_automation(hass, phone)
+
+    hass.bus.async_fire("reiseverlauftracker_tour", TOUR)
+    hass.bus.async_fire("reiseverlauftracker_tour", {**TOUR, "anlass": "aktualisiert"})
+    await hass.async_block_till_done()
+
+    assert len(notify_calls) == 1
+    data = notify_calls[0].data
+    assert data["title"] == "Tour fertig: Camping Seeblick · 10.–17.10.2026"
+    assert data["message"] == "10.10.–17.10.2026 · 1712 km · 7 Nächte · Kosten 1245,50 €"
+    assert data["data"]["tag"] == "reiseverlauf_tour-2026-10-10-2026-10-17"
+
+
+async def test_tour_updated_when_switched_on(hass: HomeAssistant, phone: str, notify_calls: list[ServiceCall]) -> None:
+    await setup_automation(hass, phone, bei_tour_erstellt=False, bei_tour_aktualisiert=True)
+
+    hass.bus.async_fire("reiseverlauftracker_tour", TOUR)
+    hass.bus.async_fire("reiseverlauftracker_tour", {**TOUR, "anlass": "aktualisiert", "naechte": 1, "kosten": 0})
+    await hass.async_block_till_done()
+
+    assert len(notify_calls) == 1
+    assert notify_calls[0].data["title"] == "Tour aktualisiert: Camping Seeblick · 10.–17.10.2026"
+    assert notify_calls[0].data["message"] == "10.10.–17.10.2026 · 1712 km · 1 Nacht"

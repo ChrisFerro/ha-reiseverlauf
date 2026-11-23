@@ -8,6 +8,9 @@ from aiohttp import ClientError, ClientSession
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
 REQUEST_TIMEOUT_S = 10
 PLACE_ZOOM = 14
+# Zoom 18 returns the feature at the position, e.g. a camp site (docs/features/feat-10-tour.md 5.7).
+STAY_ZOOM = 18
+STAY_TYPES = ("camp_site", "caravan_site")
 # Zoom 3 asks for the country only, which keeps the response small.
 COUNTRY_ZOOM = 3
 PLACE_KEYS = ("city", "town", "village", "municipality", "hamlet", "suburb", "county")
@@ -26,6 +29,13 @@ async def async_reverse_geocode(
     Any network or format problem yields None, because the title then falls back to the date.
     """
     return place_name(await _async_reverse(session, lat, lon, PLACE_ZOOM, language, user_agent))
+
+
+async def async_reverse_stay(
+    session: ClientSession, lat: float, lon: float, language: str, user_agent: str
+) -> str | None:
+    """Return the name of the camp site or motorhome pitch at a coordinate, else the place name, or None."""
+    return stay_name(await _async_reverse(session, lat, lon, STAY_ZOOM, language, user_agent))
 
 
 async def async_reverse_country(session: ClientSession, lat: float, lon: float, user_agent: str) -> str | None:
@@ -66,3 +76,18 @@ def place_name(data: Any) -> str | None:
                 return name
     name = data.get("name")
     return name if isinstance(name, str) and name else None
+
+
+def stay_name(data: Any) -> str | None:
+    """Return the name of a camp site or motorhome pitch in a Nominatim response, else the place name."""
+    if not isinstance(data, dict):
+        return None
+    name = data.get("name")
+    if data.get("type") in STAY_TYPES and isinstance(name, str) and name:
+        return name
+    address = data.get("address")
+    if isinstance(address, dict):
+        for key in PLACE_KEYS:
+            if isinstance(place := address.get(key), str) and place:
+                return place
+    return None

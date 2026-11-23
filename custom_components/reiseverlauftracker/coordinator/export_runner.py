@@ -80,14 +80,14 @@ async def async_export(
         start_place, end_place = await _async_places(hass, settings, positions)
         texts = texts_for(hass.config.language)
         title = trip_title(settings.title_format, texts, start, end, tz, start_place, end_place)
-    options = _options(hass, settings, title, agent, stops, logbook)
+    options = options_for(hass, settings, title, agent, stops, logbook)
     folder = folder or f"{start.astimezone(tz):%Y-%m-%d_%H%M}"
     return await hass.async_add_executor_job(
         _export_sync, media_base(hass, settings), folder, data, options, raw, start, end, automatic, counter_start
     )
 
 
-def _options(
+def options_for(
     hass: HomeAssistant,
     settings: ReiseverlaufSettings,
     title: str,
@@ -95,6 +95,7 @@ def _options(
     stops: tuple[Stop, ...],
     logbook: LogbookFigures | None,
 ) -> ExportOptions:
+    """Return the options of an export run, taken from the settings and the instance."""
     return ExportOptions(
         title=title,
         scale=settings.scale,
@@ -131,7 +132,7 @@ async def async_refresh(
         OSError: The output folder cannot be written.
 
     """
-    options = _options(hass, settings, info.title, user_agent(None), info.stops, logbook)
+    options = options_for(hass, settings, info.title, user_agent(None), info.stops, logbook)
     return await hass.async_add_executor_job(
         _refresh_sync, media_base(hass, settings), info, data, options, dt_util.utcnow()
     )

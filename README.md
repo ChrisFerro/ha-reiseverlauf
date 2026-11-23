@@ -29,6 +29,9 @@ mit dem Gesamtbild aufs Handy.
 - **Reisekosten:** Maut je Reise und Land, Vignette, Fähre, Tunnel, Stellplatz; die Länder der Reise werden
   vorgeschlagen, eine Erinnerung meldet Reisen durch Mautländer ohne Maut-Eintrag. Statistik und Gesamtbild einer
   Reise werden nach jedem Nachtrag erneuert.
+- **Touren:** Mehrere Reisen mit den Standzeiten dazwischen (Urlaub, Werkstattaufenthalt) im Nachhinein
+  zusammenfassen: Gesamtkarte, Tagesübersicht mit Standorten („10.–15.10. · Camping Seeblick · 5 Nächte“), alle
+  Kosten je Kategorie und Land, geschätzter Verbrauch, GPX und Gesamtbild für das Fotobuch.
 - **Titel mit Ortsnamen:** z. B. „Hamburg – Kiel, 12.10.2026“; wahlweise nur Datum oder nur Ort.
 - **Eigene Aufzeichnung:** Die Punkte jeder Reise werden gespeichert, unabhängig davon, wie lange der Recorder
   Daten behält.
@@ -128,26 +131,29 @@ z. B. `sensor.wohnmobil_gps_reisestatus`.
 | Maut offen                                                                                                          | Fertige Reisen der letzten 12 Monate durch ein Mautland ohne Maut-Eintrag; Attribut `reisen`                                    |
 | Heizung im Stand (abgelesen)                                                                                        | Diesel der Heizung je Standtag aus den abgelesenen Füllständen (grob); Attribute `standzeiten`, `standtage`, `abnahme_liter`    |
 | Export-Auswahl                                                                                                      | Alle Exporte (neueste zuerst) und „Alle Exporte“; für „Exporte aufräumen“ und Reisekosten; Attribute `downloads`, `reisekosten` |
+| Tour von, Tour bis, Tour Titel; Tour erstellen, Tour aktualisieren                                                  | Formular für Touren (siehe [Touren](#touren)); bei einer Tour in der Export-Auswahl Attribute `art`, `standorte`, `tourkosten`  |
 
 ## Aktionen
 
 Alle Aktionen brauchen das Feld **Fahrzeug** (den Eintrag der Integration).
 
-| Aktion                                                                       | Zweck                                                                                                                                          |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Zeitraum exportieren (`reiseverlauftracker.exportieren`)                     | Beliebigen Zeitraum aus dem Recorder auswerten; optional mit Titel, Skalierung und Rand; liefert das Ergebnis als Antwort                      |
-| Exporte aufräumen (`reiseverlauftracker.aufraeumen`)                         | Dateitypen (Gesamtbild, Karte, Profil, GPX, Statistik, Rohdaten) eines Exports oder aller Exporte löschen; ohne Angabe gilt die Export-Auswahl |
-| Reise starten (`reiseverlauftracker.reise_starten`)                          | Reise ohne D+ starten oder die letzte im Zusammenführungsfenster fortsetzen                                                                    |
-| Reise beenden (`reiseverlauftracker.reise_beenden`)                          | Laufende Reise sofort beenden und auswerten                                                                                                    |
-| Fahrtenbuch-Formular speichern (`reiseverlauftracker.fahrtenbuch_speichern`) | Formular speichern wie der Knopf; mit `anlass_zeit` nur, solange dieser Anlass offen ist (für Push-Knöpfe)                                     |
-| Fahrtenbuch-Eintrag anlegen (`reiseverlauftracker.fahrtenbuch_eintragen`)    | Eintrag ohne Formular, z. B. aus einer Automation; liefert den Eintrag als Antwort                                                             |
-| Fahrtenbuch-Eintrag ändern (`reiseverlauftracker.fahrtenbuch_aendern`)       | Felder eines Eintrags ändern; Liter 0 entfernt einen Tank- oder Gasstopp                                                                       |
-| Fahrtenbuch-Eintrag löschen (`reiseverlauftracker.fahrtenbuch_loeschen`)     | Eintrag löschen; die ID steht im Attribut `letzte_eintraege`                                                                                   |
-| Fahrtenbuch als CSV (`reiseverlauftracker.fahrtenbuch_csv`)                  | `fahrtenbuch.csv` im Ausgabeordner schreiben (geschieht auch nach jeder Änderung)                                                              |
-| Tankstopp nachtragen (`reiseverlauftracker.fahrtenbuch_nachtragen`)          | Tank- oder Gasstopp für eine frühere Zeit; ein Stopp bis 5 min um die Zeit wird zugeordnet                                                     |
-| Reisekosten eintragen (`reiseverlauftracker.reisekosten_eintragen`)          | Kosten für eine Reise (Ordner, Eintrag der Export-Auswahl oder Startzeit) oder nur mit Datum; liefert den Eintrag                              |
-| Reisekosten ändern / löschen (`reisekosten_aendern`, `reisekosten_loeschen`) | Eintrag ändern oder löschen; die ID steht im Attribut `reisekosten` der Export-Auswahl                                                         |
-| Keine Maut (`reiseverlauftracker.keine_maut`)                                | Reise als ohne Maut kennzeichnen (oder mit `an: false` das Kennzeichen entfernen)                                                              |
+| Aktion                                                                       | Zweck                                                                                                                                                          |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zeitraum exportieren (`reiseverlauftracker.exportieren`)                     | Beliebigen Zeitraum aus dem Recorder auswerten; optional mit Titel, Skalierung und Rand; liefert das Ergebnis als Antwort                                      |
+| Exporte aufräumen (`reiseverlauftracker.aufraeumen`)                         | Dateitypen (Gesamtbild, Karte, Profil, GPX, Statistik, Rohdaten, Tagesübersicht) eines Exports oder aller Exporte löschen; ohne Angabe gilt die Export-Auswahl |
+| Reise starten (`reiseverlauftracker.reise_starten`)                          | Reise ohne D+ starten oder die letzte im Zusammenführungsfenster fortsetzen                                                                                    |
+| Reise beenden (`reiseverlauftracker.reise_beenden`)                          | Laufende Reise sofort beenden und auswerten                                                                                                                    |
+| Fahrtenbuch-Formular speichern (`reiseverlauftracker.fahrtenbuch_speichern`) | Formular speichern wie der Knopf; mit `anlass_zeit` nur, solange dieser Anlass offen ist (für Push-Knöpfe)                                                     |
+| Fahrtenbuch-Eintrag anlegen (`reiseverlauftracker.fahrtenbuch_eintragen`)    | Eintrag ohne Formular, z. B. aus einer Automation; liefert den Eintrag als Antwort                                                                             |
+| Fahrtenbuch-Eintrag ändern (`reiseverlauftracker.fahrtenbuch_aendern`)       | Felder eines Eintrags ändern; Liter 0 entfernt einen Tank- oder Gasstopp                                                                                       |
+| Fahrtenbuch-Eintrag löschen (`reiseverlauftracker.fahrtenbuch_loeschen`)     | Eintrag löschen; die ID steht im Attribut `letzte_eintraege`                                                                                                   |
+| Fahrtenbuch als CSV (`reiseverlauftracker.fahrtenbuch_csv`)                  | `fahrtenbuch.csv` im Ausgabeordner schreiben (geschieht auch nach jeder Änderung)                                                                              |
+| Tankstopp nachtragen (`reiseverlauftracker.fahrtenbuch_nachtragen`)          | Tank- oder Gasstopp für eine frühere Zeit; ein Stopp bis 5 min um die Zeit wird zugeordnet                                                                     |
+| Reisekosten eintragen (`reiseverlauftracker.reisekosten_eintragen`)          | Kosten für eine Reise (Ordner, Eintrag der Export-Auswahl oder Startzeit) oder nur mit Datum; liefert den Eintrag                                              |
+| Reisekosten ändern / löschen (`reisekosten_aendern`, `reisekosten_loeschen`) | Eintrag ändern oder löschen; die ID steht im Attribut `reisekosten` der Export-Auswahl                                                                         |
+| Keine Maut (`reiseverlauftracker.keine_maut`)                                | Reise als ohne Maut kennzeichnen (oder mit `an: false` das Kennzeichen entfernen)                                                                              |
+| Tour erstellen (`reiseverlauftracker.tour_erstellen`)                        | Alle Reisen, die von `von` bis `bis` beginnen, zu einer Tour zusammenfassen; optional Titel und Skalierung; liefert das Ergebnis                               |
+| Tour ändern (`reiseverlauftracker.tour_aendern`)                             | Titel, Zeitraum oder Standortnamen (`standorte`: Liste aus `nacht` und `name`) einer Tour ändern und sie neu erstellen                                         |
 
 Beispiel für einen Dashboard-Knopf, der den in der Export-Auswahl gewählten Export komplett löscht:
 
@@ -178,6 +184,10 @@ manuelle Exporte `2026-10-12_1000-1130`). Darin liegen:
 | `<titel>_statistik.txt` | Statistik als Text                           |
 | `<titel>_rohdaten.json` | Aufgezeichnete Punkte                        |
 | `export.json`           | Verwaltungsdaten der Integration             |
+
+Eine Tour bekommt einen Ordner `tour-<Start>-<Ende>` (z. B. `tour-2026-10-10-2026-10-17`) mit Gesamtbild, Karte,
+GPX (je Reise ein Track), Statistik, `<titel>_tage.csv` (eine Zeile je Tag), Rohdaten und `export.json`; ein
+Profil gibt es dort nicht.
 
 Im Ausgabeordner selbst liegen außerdem `fahrtenbuch.csv` (siehe [Fahrtenbuch](#fahrtenbuch)) und `reisekosten.csv`
 (siehe [Reisekosten](#reisekosten)).
@@ -240,8 +250,10 @@ Reise beendet: Hamburg – Kiel, 12.10.2026
 
 Tippen öffnet die eingestellte Dashboard-Ansicht, z. B. eine mit der Entität „Letzte Reise Gesamtbild“. Wird die
 Reise fortgesetzt, ersetzt „Reise aktualisiert: …“ die alte Nachricht.
-Optional meldet der Blueprint auch den Reisebeginn (Standard an) und manuelle Exporte (Standard aus); die
-Überschriften sind änderbar.
+Optional meldet der Blueprint auch den Reisebeginn (Standard an), manuelle Exporte (Standard aus), eine fertige Tour
+(Standard an) und eine aktualisierte Tour (Standard aus), z. B.
+„Tour fertig: Camping Seeblick · 10.–17.10.2026“ mit „10.10.–17.10.2026 · 1712 km · 7 Nächte · Kosten 1245,50 €“.
+Die Überschriften sind änderbar.
 
 Die Nachricht enthält bewusst kein Bild: Das Gesamtbild ist für das Fotobuch so groß, dass iOS es als Anhang
 nicht anzeigt.
@@ -439,16 +451,59 @@ sections:
         entity: sensor.wohnmobil_gps_reisekosten_jahr
 ```
 
+## Touren
+
+Eine Tour fasst mehrere Reisen und die Standzeiten dazwischen zusammen, z. B. Hinreise, eine Woche Campingplatz und
+Rückreise, oder die Fahrt zur Werkstatt und zurück. Sie wird im Nachhinein angelegt und liest die gespeicherten
+Punkte der Reisen, nicht den Recorder; auch Touren über mehr als 10 Tage sind daher vollständig.
+
+1. In der **Export-Auswahl** die erste Reise wählen. „Tour von“ zeigt dann deren Start, „Tour bis“ die aktuelle
+   Zeit; beide lassen sich ändern.
+2. Optional einen **Tour Titel** eintragen. Ohne Titel gilt der Vorschlag aus dem Standort mit den meisten Nächten
+   und dem Zeitraum, z. B. „Camping Seeblick · 10.–17.10.2026“.
+3. **Tour erstellen** drücken. Die Export-Auswahl wechselt auf die neue Tour (Kennzeichen „Tour“).
+
+Inhalt:
+
+- **Kennzahlen:** Strecke, Fahrzeit, Tage und Nächte, Höhenmeter, Kilometerstand von/bis, Länder.
+- **Tagesübersicht:** Standort jeder Nacht ist der Platz um 3 Uhr; liegt er auf einem in OpenStreetMap eingetragenen
+  Campingplatz oder Stellplatz, steht dessen Name da, sonst der Ort. Aufeinanderfolgende Nächte am selben Platz
+  (bis 500 m Abstand) bilden eine Zeile mit km und Kosten dieser Tage; Ausflüge zurück zum Platz bleiben in der Zeile.
+  Die CSV-Datei hat eine Zeile je Tag.
+- **Kosten (bezahlt):** Tank- und Gasstopps mit Zeitpunkt in der Tour und alle Reisekosten, deren Datum in die Tour
+  fällt, auch solche ohne Reise (z. B. Stellplatz während des Stands); je Kategorie, je Land und gesamt.
+- **Verbrauch (geschätzt):** Strecke × Ø-Verbrauch, bewertet mit dem Ø-Literpreis der Tour (sonst dem letzten
+  bekannten Preis); Gas aus den Füllständen am Anfang und Ende und den Gasstopps dazwischen, soweit bekannt. Ohne
+  Ø-Verbrauch (weniger als zwei volle Tankfüllungen) entfällt die Angabe.
+
+Ändern: Bei einer Tour in der Export-Auswahl zeigt das Formular ihren Zeitraum und Titel; nach Änderungen
+**Tour aktualisieren** drücken (leerer Titel = Vorschlag). Standortnamen ändert die Aktion „Tour ändern“ mit der
+Nacht aus dem Attribut `standorte` der Export-Auswahl, z. B.:
+
+```yaml
+action: reiseverlauftracker.tour_aendern
+data:
+  config_entry_id: <ID des Eintrags>
+  standorte:
+    - nacht: "2026-10-10"
+      name: Camping Seeblick
+```
+
+Ändern sich Fahrtenbuch-Einträge oder Reisekosten im Zeitraum (z. B. Maut im Folgemonat), wird die Tour nach 30 s
+neu erstellt, ohne die Karte erneut zu laden. Die Tour behält eine Kopie der Punkte ihrer Reisen; die Rohdaten der
+Reisen dürfen danach aufgeräumt werden. „Exporte aufräumen“ löscht bei einer Tour nur deren eigene Dateien.
+
 ## Events
 
 Für eigene Automationen:
 
-| Event                             | Wann                                      | Daten                                                                                                                                                                                             |
-| --------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reiseverlauftracker_gestartet`   | Reise beginnt oder wird fortgesetzt       | `entry_id`, `start`, `resumed`, `startort`                                                                                                                                                        |
-| `reiseverlauftracker_beendet`     | Auswertung einer beendeten Reise fertig   | `entry_id`, `titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `halte`, `fortgesetzt`, `fahrtenbuch` |
-| `reiseverlauftracker_exportiert`  | Manueller Export fertig                   | wie `_beendet`, ohne `fortgesetzt`                                                                                                                                                                |
-| `reiseverlauftracker_fahrtenbuch` | Fahrtenbuch-Anlass: Reisebeginn oder Halt | `entry_id`, `anlass` (`reisestart`, `halt`), `zeit`, `ort`, `reise_start`, `halt_start`, `vorschlag` (`kilometerstand`, `kraftstoff`, `gas_1`, `gas_2`)                                           |
+| Event                             | Wann                                      | Daten                                                                                                                                                                                                                                                |
+| --------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reiseverlauftracker_gestartet`   | Reise beginnt oder wird fortgesetzt       | `entry_id`, `start`, `resumed`, `startort`                                                                                                                                                                                                           |
+| `reiseverlauftracker_beendet`     | Auswertung einer beendeten Reise fertig   | `entry_id`, `titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `halte`, `fortgesetzt`, `fahrtenbuch`                                                    |
+| `reiseverlauftracker_exportiert`  | Manueller Export fertig                   | wie `_beendet`, ohne `fortgesetzt`                                                                                                                                                                                                                   |
+| `reiseverlauftracker_fahrtenbuch` | Fahrtenbuch-Anlass: Reisebeginn oder Halt | `entry_id`, `anlass` (`reisestart`, `halt`), `zeit`, `ort`, `reise_start`, `halt_start`, `vorschlag` (`kilometerstand`, `kraftstoff`, `gas_1`, `gas_2`)                                                                                              |
+| `reiseverlauftracker_tour`        | Tour erstellt oder neu erstellt           | `entry_id`, `anlass` (`erstellt`, `aktualisiert`), `titel`, `start`, `ende`, `tage`, `naechte`, `strecke_km`, `fahrzeit_min`, `kosten`, `kostenaufstellung`, `verbrauch`, `reisen`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url` |
 
 `fahrtenbuch` enthält Kilometerstand von/bis, Liter, `kosten` (Diesel, Gas und Reisekosten), `reisekosten` je
 Kategorie und den Verbrauch.

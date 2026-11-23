@@ -40,6 +40,8 @@ class ExportFile(StrEnum):
     STATS = "stats"
     RAW = "raw"
     """Recorded points of the trip; written by the integration, not by `export_trip()`."""
+    DAYS = "days"
+    """One row per day of a tour (CSV); only tours have it."""
 
 
 FILE_SUFFIXES: dict[ExportFile, str] = {
@@ -49,6 +51,7 @@ FILE_SUFFIXES: dict[ExportFile, str] = {
     ExportFile.GPX: ".gpx",
     ExportFile.MAP: ".png",
     ExportFile.RAW: "_rohdaten.json",
+    ExportFile.DAYS: "_tage.csv",
 }
 
 

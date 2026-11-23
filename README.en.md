@@ -28,6 +28,8 @@ blueprint then sends a push notification with the composite image to your phone.
 - **Travel costs:** toll per trip and country, vignette, ferry, tunnel, pitch; the countries of the trip are
   suggested, and a reminder lists trips through toll countries without a toll entry. Statistics and composite image
   of a trip are renewed after each late entry.
+- **Tours:** combine several trips and the stays between them afterwards: overall map, days by place, all costs by
+  category and country, estimated consumption, GPX and composite image.
 - **Titles with place names:** such as "Hamburg – Kiel, 2026-10-12"; or date only, or places only.
 - **Own recording:** the points of each trip are stored, independent of how long the recorder keeps data.
 - **Protected storage:** all files are written to the Home Assistant media folder and need a login to open.
@@ -85,6 +87,10 @@ logbook time selection, late entry time and late entry button fill the form for 
 category, country, amount, note and date with save and no-toll buttons add travel costs to the trip chosen in the
 export selection, whose attribute `reisekosten` lists them.
 
+For tours, the tour from, tour until and tour title fields with the buttons create tour and update tour combine
+trips (see [Tours](#tours)); with a tour chosen, the export selection has the attributes `art`, `standorte` and
+`tourkosten`.
+
 ## Actions
 
 | Action                                       | Purpose                                                                                            |
@@ -103,6 +109,8 @@ export selection, whose attribute `reisekosten` lists them.
 | `reiseverlauftracker.reisekosten_aendern`    | Change a travel cost; its ID is in the attribute `reisekosten` of the export selection             |
 | `reiseverlauftracker.reisekosten_loeschen`   | Delete a travel cost                                                                               |
 | `reiseverlauftracker.keine_maut`             | Mark a trip as having no toll, or remove the mark with `an: false`                                 |
+| `reiseverlauftracker.tour_erstellen`         | Combine all trips starting from `von` to `bis` into a tour; optional title and scale               |
+| `reiseverlauftracker.tour_aendern`           | Change title, period or place names (`standorte`: list of `nacht` and `name`) and renew the tour   |
 
 ## Storage
 
@@ -119,6 +127,19 @@ every hour and right after a restart, so it always works in the dashboard; a cop
 at most a day. The links are not recorded in the history. In a markdown card, write the links as
 `<a href="{{ d.url }}" target="_blank">{{ d.name }}</a>`; without `target` the dashboard opens them as a page
 instead of downloading them. A full example is in the [German README](README.md#downloads).
+
+## Tours
+
+A tour combines several trips and the stays between them, for example the drive out, a week on a camp site and
+the drive home, or a trip to the workshop and back. It is created afterwards from the stored points of the trips,
+not from the recorder, so tours longer than 10 days are complete. Choose the first trip in the export selection,
+check tour from and tour until, optionally enter a title and press create tour. The tour folder
+`tour-<start>-<end>` holds the composite image (key figures, overall map, days by place, costs), map, GPX with one
+track per trip, statistics, a CSV with one row per day, raw data and `export.json`. The place of a night is where
+the vehicle stands at 3 am, named after the camp site or pitch in OpenStreetMap, else the town. Costs are the refills
+and all travel costs dated within the tour, by category and country; the estimated consumption uses the average
+consumption. When logbook entries or travel costs in the period change, the tour is renewed after 30 s without
+downloading the map again. The push blueprint can report created (default on) and renewed tours (default off).
 
 ## Push notification (blueprint)
 
@@ -183,6 +204,7 @@ Dashboard views for the form, the travel costs and the evaluation are shown in t
 
 ## Events
 
+`reiseverlauftracker_tour` (tour created or renewed, `anlass` `erstellt` or `aktualisiert`),
 `reiseverlauftracker_gestartet` (trip started or resumed), `reiseverlauftracker_beendet` (export of an ended trip
 is ready), `reiseverlauftracker_exportiert` (manual export is ready) and `reiseverlauftracker_fahrtenbuch` (logbook
 occasion: trip start or stop, with the suggestion). The payload keys are German, see the

@@ -113,6 +113,7 @@ class LogbookKeeper:
         on_change: Callable[[], None] = lambda: None,
         trip_titles: Callable[[], dict[datetime, str]] = dict,
         on_trip_changed: Callable[[datetime], None] = lambda _start: None,
+        on_changed_at: Callable[[datetime | date], None] = lambda _moment: None,
     ) -> None:
         """Create an empty keeper; `async_load()` restores the stored logbook."""
         self.hass = hass
@@ -128,6 +129,7 @@ class LogbookKeeper:
         self._on_change = on_change
         self._trip_titles = trip_titles
         self._on_trip_changed = on_trip_changed
+        self._on_changed_at = on_changed_at
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}.logbook")
 
     @property
@@ -400,6 +402,7 @@ class LogbookKeeper:
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
         self._trip_changed(entry.trip_start)
+        self._changed_at(entry.time)
         return entry
 
     async def async_add_late(
@@ -440,6 +443,7 @@ class LogbookKeeper:
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
         self._trip_changed(entry.trip_start)
+        self._changed_at(entry.time)
         return entry
 
     def _store_late(self, point: LatePoint, **values: Any) -> LogbookEntry:
@@ -492,6 +496,7 @@ class LogbookKeeper:
         self.discard()
         await self._async_refresh_csv()
         self._trip_changed(entry.trip_start)
+        self._changed_at(entry.time)
         return entry
 
     async def async_add(self, entry_kwargs: dict[str, Any], context: EntryContext) -> LogbookEntry:
@@ -515,6 +520,7 @@ class LogbookKeeper:
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
         self._trip_changed(entry.trip_start)
+        self._changed_at(entry.time)
         return entry
 
     async def async_update(self, entry_id: str, changes: dict[str, Any]) -> LogbookEntry:
@@ -531,6 +537,7 @@ class LogbookKeeper:
         before = self.logbook.get(entry_id)
         entry = self.logbook.update(entry_id, **changes)
         self._trip_changed(before.trip_start if before else None, entry.trip_start)
+        self._changed_at(before.time if before else None, entry.time)
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
         return entry
@@ -546,6 +553,7 @@ class LogbookKeeper:
         entry = self.logbook.get(entry_id)
         self.logbook.remove(entry_id)
         self._trip_changed(entry.trip_start if entry else None)
+        self._changed_at(entry.time if entry else None)
         self._refresh_draft_without_pending()
         await self._async_refresh_csv()
 
@@ -574,6 +582,7 @@ class LogbookKeeper:
         )
         await self._async_travel_costs_changed()
         self._trip_changed(cost.trip_start)
+        self._changed_at(cost.day)
         return cost
 
     async def async_update_travel_cost(self, cost_id: str, changes: dict[str, Any]) -> TravelCost:
@@ -592,6 +601,7 @@ class LogbookKeeper:
         cost = self.logbook.update_travel_cost(cost_id, **changes)
         await self._async_travel_costs_changed()
         self._trip_changed(before.trip_start if before else None, cost.trip_start)
+        self._changed_at(before.day if before else None, cost.day)
         return cost
 
     async def async_remove_travel_cost(self, cost_id: str) -> None:
@@ -606,6 +616,7 @@ class LogbookKeeper:
         self.logbook.remove_travel_cost(cost_id)
         await self._async_travel_costs_changed()
         self._trip_changed(cost.trip_start if cost else None)
+        self._changed_at(cost.day if cost else None)
 
     async def async_set_no_toll(self, trip_start: datetime, no_toll: bool) -> None:
         """Mark a trip as having no toll, or remove the mark."""
@@ -675,6 +686,12 @@ class LogbookKeeper:
         for start in dict.fromkeys(trip_starts):
             if start is not None:
                 self._on_trip_changed(start)
+
+    def _changed_at(self, *moments: datetime | date | None) -> None:
+        """Tell the time or day of changed entries or costs, so the tours around them can be renewed."""
+        for moment in dict.fromkeys(moments):
+            if moment is not None:
+                self._on_changed_at(moment)
 
     def _changed(self) -> None:
         self.save()

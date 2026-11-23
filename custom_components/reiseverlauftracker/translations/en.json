@@ -130,7 +130,8 @@
         "profile": "Profile",
         "gpx": "GPX",
         "stats": "Statistics",
-        "raw": "Raw data"
+        "raw": "Raw data",
+        "days": "Days (CSV)"
       }
     },
     "country": {
@@ -206,6 +207,17 @@
         "name": "Export selection",
         "state": {
           "all": "All exports"
+        },
+        "state_attributes": {
+          "art": {
+            "name": "Kind"
+          },
+          "standorte": {
+            "name": "Places"
+          },
+          "tourkosten": {
+            "name": "Tour costs"
+          }
         }
       },
       "logbook_time": {
@@ -515,16 +527,31 @@
       },
       "no_toll": {
         "name": "No toll"
+      },
+      "tour_create": {
+        "name": "Create tour"
+      },
+      "tour_update": {
+        "name": "Update tour"
       }
     },
     "datetime": {
       "logbook_late_time": {
         "name": "Logbook late entry time"
+      },
+      "tour_start": {
+        "name": "Tour from"
+      },
+      "tour_end": {
+        "name": "Tour until"
       }
     },
     "text": {
       "travel_cost_note": {
         "name": "Travel cost note"
+      },
+      "tour_title": {
+        "name": "Tour title"
       }
     },
     "date": {
@@ -873,6 +900,62 @@
           "description": "Off removes the mark again."
         }
       }
+    },
+    "tour_erstellen": {
+      "name": "Create tour",
+      "description": "Combines all trips that start in the period, with the stays in between, into a tour: overall map, days, costs, GPX and composite image. Reads the raw data of the trips, not the history.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "von": {
+          "name": "From",
+          "description": "Start of the tour; all trips starting from here belong to it."
+        },
+        "bis": {
+          "name": "Until",
+          "description": "End of the tour; costs up to this day count."
+        },
+        "titel": {
+          "name": "Title",
+          "description": "Title of the tour. Without one: the place with the most nights and the period."
+        },
+        "skala": {
+          "name": "Scale",
+          "description": "Size factor of the images. Without it, the option applies."
+        }
+      }
+    },
+    "tour_aendern": {
+      "name": "Change tour",
+      "description": "Changes title, period or place names of a tour and creates it anew.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "export": {
+          "name": "Tour",
+          "description": "Leave empty for the tour chosen in the export selection. Otherwise its export selection entry or folder name."
+        },
+        "titel": {
+          "name": "Title",
+          "description": "New title; empty for the suggestion from place and period."
+        },
+        "von": {
+          "name": "From",
+          "description": "New start of the tour."
+        },
+        "bis": {
+          "name": "Until",
+          "description": "New end of the tour."
+        },
+        "standorte": {
+          "name": "Places",
+          "description": "Names of places as a list of night (date of the evening) and name, e.g. from the attribute standorte of the export selection. Applies to all nights at the same place."
+        }
+      }
     }
   },
   "exceptions": {
@@ -947,6 +1030,24 @@
     },
     "travel_cost_without_trip": {
       "message": "Please choose a trip in the export selection."
+    },
+    "tour_no_trips": {
+      "message": "No trip starts in this period."
+    },
+    "tour_raw_missing": {
+      "message": "These trips have no raw data any more and cannot be added to the tour: {trips}"
+    },
+    "tour_not_found": {
+      "message": "There is no tour {export}."
+    },
+    "not_a_tour": {
+      "message": "“{export}” is not a tour."
+    },
+    "tour_not_chosen": {
+      "message": "Please choose a tour in the export selection."
+    },
+    "tour_without_start": {
+      "message": "Please give a start of the tour or choose a trip in the export selection."
     }
   }
 }

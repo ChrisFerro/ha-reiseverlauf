@@ -85,13 +85,36 @@ def render_map(
     fetch_tile: TileFetcher,
 ) -> Image.Image | None:
     """Draw the route with start and end markers; None if the map cannot be rendered at all."""
-    coords = [(p.lon, p.lat) for p in points]
+    return render_route_map([points], size, line_width, fetch_tile)
+
+
+def render_route_map(
+    segments: Sequence[Sequence[TrackPoint]],
+    size: tuple[int, int],
+    line_width: int,
+    fetch_tile: TileFetcher,
+    places: Sequence[tuple[float, float]] = (),
+) -> Image.Image | None:
+    """
+    Draw several routes, each as its own line, with markers at the very start and end.
+
+    `places` (latitude, longitude) get small markers, e.g. the night places of a tour.
+    Returns None if the map cannot be rendered at all.
+    """
+    lines = [[(p.lon, p.lat) for p in points] for points in segments if len(points) >= 2]
+    if not lines:
+        return None
     static_map = _TolerantStaticMap(size[0], size[1], fetch_tile, padding_x=60, padding_y=60)
-    static_map.add_line(Line(coords, "#ffffff", line_width + 4))
-    static_map.add_line(Line(coords, "#d62828", line_width))
+    for coords in lines:
+        static_map.add_line(Line(coords, "#ffffff", line_width + 4))
+    for coords in lines:
+        static_map.add_line(Line(coords, "#d62828", line_width))
     marker = round(line_width * 22 / 6)
-    static_map.add_marker(CircleMarker(coords[0], "#2a9d8f", marker))
-    static_map.add_marker(CircleMarker(coords[-1], "#1d3557", marker))
+    for lat, lon in places:
+        static_map.add_marker(CircleMarker((lon, lat), "#ffffff", round(marker * 0.8)))
+        static_map.add_marker(CircleMarker((lon, lat), "#e9a23b", round(marker * 0.55)))
+    static_map.add_marker(CircleMarker(lines[0][0], "#2a9d8f", marker))
+    static_map.add_marker(CircleMarker(lines[-1][-1], "#1d3557", marker))
     try:
         image = static_map.render()
     except (OSError, ValueError, RuntimeError) as err:

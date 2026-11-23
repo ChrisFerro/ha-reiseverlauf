@@ -5,19 +5,78 @@ Every export lives in its own folder with an `export.json` that lists its files.
 All functions here do blocking file I/O and must run in the executor.
 """
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, tzinfo
+from enum import StrEnum
 import json
 from pathlib import Path
 from typing import Any
 
 from custom_components.reiseverlauftracker.export import ExportFile, LogbookFigures, Stop
+from custom_components.reiseverlauftracker.export.tour import Night
 
 from .trip_log import TrackCounters
 
 METADATA_FILE = "export.json"
 METADATA_VERSION = 1
 LABEL_TITLE_LENGTH = 18
+TOUR_LABEL = "Tour"
+
+
+class ExportKind(StrEnum):
+    """What an export folder holds: one trip, or a tour of several trips (docs/features/feat-10-tour.md 6.1)."""
+
+    TRIP = "reise"
+    TOUR = "tour"
+
+
+@dataclass(frozen=True, slots=True)
+class TourMeta:
+    """What only a tour stores in `export.json`: its trips, night places, costs and settings."""
+
+    trips: tuple[str, ...] = ()
+    """Folders of the trips the tour was made of."""
+    nights: tuple[Night, ...] = ()
+    end_place: str | None = None
+    refill_countries: dict[str, str] = field(default_factory=dict)
+    """Countries of the refills by logbook entry ID, looked up once."""
+    title_given: bool = False
+    """Whether the title was set by hand; a suggested title follows the night places."""
+    scale: float | None = None
+    costs: dict[str, Any] = field(default_factory=dict)
+    estimate: dict[str, Any] | None = None
+
+    @property
+    def total_cost(self) -> float:
+        """Return all costs paid during the tour."""
+        return float(self.costs.get("kosten") or 0.0)
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the tour data as written to `export.json`."""
+        return {
+            "trips": list(self.trips),
+            "nights": [night.as_dict() for night in self.nights],
+            "end_place": self.end_place,
+            "refill_countries": self.refill_countries,
+            "title_given": self.title_given,
+            "scale": self.scale,
+            "costs": self.costs,
+            "estimate": self.estimate,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> TourMeta:
+        """Rebuild the tour data from `as_dict()` output."""
+        return cls(
+            trips=tuple(data.get("trips", ())),
+            nights=tuple(Night.from_dict(n) for n in data.get("nights", ())),
+            end_place=data.get("end_place"),
+            refill_countries=dict(data.get("refill_countries") or {}),
+            title_given=data.get("title_given", False),
+            scale=data.get("scale"),
+            costs=dict(data.get("costs") or {}),
+            estimate=data.get("estimate"),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,10 +101,20 @@ class ExportInfo:
     countries: tuple[str, ...] | None = None
     # When statistics and composite were last renewed after a logbook change; None if never.
     updated: datetime | None = None
+    kind: ExportKind = ExportKind.TRIP
+    tour: TourMeta | None = None
+
+    @property
+    def is_tour(self) -> bool:
+        """Return whether the export is a tour rather than a single trip."""
+        return self.kind is ExportKind.TOUR
 
     def label(self, tz: tzinfo) -> str:
-        """Return the short unique name shown in the export selection: start time and shortened title."""
+        """Return the short unique name shown in the export selection: start, a tour mark and shortened title."""
         title = self.title if len(self.title) <= LABEL_TITLE_LENGTH else f"{self.title[: LABEL_TITLE_LENGTH - 1]}…"
+        if self.is_tour:
+            local_start, local_end = self.start.astimezone(tz), self.end.astimezone(tz)
+            return f"{local_start:%d.%m.}–{local_end:%d.%m.%y} · {TOUR_LABEL} · {title}"
         return f"{self.start.astimezone(tz):%d.%m.%y %H:%M} · {title}"
 
     @property
@@ -72,6 +141,8 @@ class ExportInfo:
             "counter_start": self.counter_start.as_dict() if self.counter_start else None,
             "countries": list(self.countries) if self.countries is not None else None,
             "updated": self.updated.isoformat() if self.updated else None,
+            "art": self.kind.value,
+            "tour": self.tour.as_dict() if self.tour else None,
         }
 
     @classmethod
@@ -101,6 +172,8 @@ class ExportInfo:
             counter_start=TrackCounters.from_dict(data["counter_start"]) if data.get("counter_start") else None,
             countries=tuple(data["countries"]) if data.get("countries") is not None else None,
             updated=_optional_datetime(data.get("updated")),
+            kind=ExportKind(data.get("art") or ExportKind.TRIP),
+            tour=TourMeta.from_dict(data["tour"]) if data.get("tour") else None,
         )
 
 

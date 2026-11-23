@@ -1,6 +1,6 @@
 # Feat-10: Tour
 
-Stand: 21.11.2026, Fragen geklärt (Abschnitt 5); Entwurf der Umsetzung zur Freigabe (Abschnitt 6).
+Stand: 23.11.2026, umgesetzt (Abschnitt 6 mit den Festlegungen der Umsetzung in Abschnitt 7).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Reiseerkennung](feat-01-reiseerkennung.md), [Halte](feat-02-halte.md), [Export](feat-03-export.md),
 [Fahrtenbuch](feat-06-fahrtenbuch.md), [Nachträge](feat-09-nachtraege.md).
@@ -142,9 +142,10 @@ Entscheidungen werden hier mit Datum eingetragen, die Frage in Abschnitt 4 wird 
   ([Push-Benachrichtigung](feat-04-push-benachrichtigung.md)) bekommt Schalter für Touren, getrennt für „erstellt“
   und „aktualisiert“ (z. B. „Tour Südtirol: Maut nachgetragen, Kosten jetzt 1.245 €“).
 
-## 6. Entwurf der Umsetzung (zur Freigabe)
+## 6. Entwurf der Umsetzung (umgesetzt)
 
-Stand: 21.11.2026, an die Entscheidungen 5.1–5.9 angepasst. Setzt [Nachträge](feat-09-nachtraege.md) 6.1 (Stopps,
+Stand: 21.11.2026, an die Entscheidungen 5.1–5.9 angepasst; freigegeben und umgesetzt am 23.11.2026 (Abweichungen und
+Festlegungen in Abschnitt 7). Setzt [Nachträge](feat-09-nachtraege.md) 6.1 (Stopps,
 Zählerstände je Reise) und 6.3 (Reisekosten mit Datum) voraus.
 
 ### 6.1 Datenmodell
@@ -218,3 +219,34 @@ Jeder Schritt mit Tests, grünem `script/check` und einem Prüfpunkt in der Entw
 3. Dienste, Formular-Entitäten, Übersetzungen, Neuerstellen nach Änderungen. Prüfpunkt: Tour anlegen, Maut
    nachtragen, Tour aktualisiert sich.
 4. Event, Blueprint, README (deutsch/englisch). Prüfpunkt: Push in der Entwicklungsumgebung.
+
+## 7. Festlegungen der Umsetzung (23.11.2026)
+
+- **Code:** reines Python in `export/tour.py` (Standorte, Tagesübersicht, Kosten, Schätzung) und
+  `export/tour_export.py` (Statistik, CSV, Tabellenbild, Gesamtbild, GPX, Karte); die Integration in
+  `coordinator/tours.py` (Erstellen, Ändern, Neuerstellen, Event) und `coordinator/tour_form.py` (Formular).
+- **Gleicher Standort (5.7):** Abstand bis 500 m zur ersten Nacht der Zeile. Ein von Hand geänderter Name gilt für alle
+  Nächte der Zeile und trennt sie von Nächten mit anderem Namen. Bei geändertem Zeitraum übernehmen Nächte am selben
+  Platz (500 m) die bisherigen Namen.
+- **Zeilen der Tagesübersicht:** Ein Tag gehört zur Zeile seiner folgenden Nacht; die Zeile reicht bis zum Morgen nach
+  der letzten Nacht („10.–15.10. · 5 Nächte“), km und Kosten sind die dieser Tage. Der letzte Tag (ohne Nacht in der
+  Tour) bekommt eine eigene Zeile mit dem Ankunftsort (Ortsabfrage des letzten Punkts).
+- **Ortsabfrage (5.7):** Nominatim mit Zoom 18; Typ `camp_site`/`caravan_site` liefert dessen Namen, sonst den Ort.
+  Eine Abfrage je Zeile ohne Namen, höchstens eine pro Sekunde, nur mit eingeschalteten Ortsnamen.
+- **Länder je Land (6.3):** Tank- und Gasstopps über die Ortsabfrage ihrer Position (einmal je Eintrag, in
+  `export.json` gespeichert), Reisekosten mit ihrem Land; Kosten ohne Land unter „ohne Land“.
+- **Gas-Schätzung (5.5):** Summe beider Füllstände am Anfang minus am Ende plus die Gasstopps. Gasstopps werden über
+  „Liter je Prozentpunkt“ umgerechnet, ermittelt aus allen Gasstopps mit einer Ablesung davor (Liter ÷ aufgefüllte
+  Prozentpunkte). Ohne diese Angabe nur der Prozentwert, wenn es keinen Gasstopp gab.
+- **Reisen der Tour:** nur automatisch erkannte Reisen, die im Zeitraum beginnen; Reisen ohne Bewegung entfallen.
+  Der Ordner bleibt bei Änderungen gleich; Dateinamen folgen dem Titel. Die Karte wird nur neu gezeichnet, wenn sich
+  die Reisen der Tour ändern.
+- **Export-Auswahl:** Label `<Start>–<Ende> · Tour · <Titel>`; Attribute `art`, `standorte` (Zeilen mit `nacht`,
+  `bis`, `naechte`, `name`, `geaendert`) und `tourkosten`; `reisekosten` ist bei einer Tour leer. Mit einer Tour in der
+  Auswahl speichert das Reisekosten-Formular Kosten ohne Reise (wie bei „Alle Exporte“).
+- **Formular:** `datetime.…_tour_von`, `…_tour_bis`, `text.…_tour_titel`, `button.…_tour_erstellen`,
+  `…_tour_aktualisieren`. Mit einer Reise in der Auswahl: von = Reisebeginn, bis = jetzt, Titel leer (Vorschlag). Mit
+  einer Tour: deren Zeitraum und Titel; „Tour aktualisieren“ übernimmt sie. Nach dem Erstellen wählt die
+  Export-Auswahl die neue Tour.
+- **Dateityp:** neuer Typ `days` (`<titel>_tage.csv`) für „Exporte aufräumen“.
+- **Push (6.5):** wie bei Reisen ohne Bildanhang (das Gesamtbild ist für iOS zu groß); Tippen öffnet das Dashboard.

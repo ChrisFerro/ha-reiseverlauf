@@ -167,16 +167,31 @@
       },
       "no_toll": {
         "default": "mdi:boom-gate-outline"
+      },
+      "tour_create": {
+        "default": "mdi:map-plus"
+      },
+      "tour_update": {
+        "default": "mdi:map-check"
       }
     },
     "datetime": {
       "logbook_late_time": {
         "default": "mdi:calendar-clock"
+      },
+      "tour_start": {
+        "default": "mdi:calendar-start"
+      },
+      "tour_end": {
+        "default": "mdi:calendar-end"
       }
     },
     "text": {
       "travel_cost_note": {
         "default": "mdi:note-text-outline"
+      },
+      "tour_title": {
+        "default": "mdi:format-title"
       }
     },
     "date": {
@@ -227,6 +242,12 @@
     },
     "keine_maut": {
       "service": "mdi:boom-gate-outline"
+    },
+    "tour_erstellen": {
+      "service": "mdi:map-plus"
+    },
+    "tour_aendern": {
+      "service": "mdi:map-check"
     }
   }
 }
