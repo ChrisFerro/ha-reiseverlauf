@@ -1,7 +1,7 @@
 # Feat-12: Kartensymbole
 
-Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf der Umsetzung zur Freigabe (Abschnitt 6), zwei Punkte
-zur Entscheidung (6.10).
+Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf der Umsetzung zur Freigabe (Abschnitt 6), Punkt 6.10.2
+zur Entscheidung offen.
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Halte](feat-02-halte.md), [Export](feat-03-export.md), [Fahrtenbuch](feat-06-fahrtenbuch.md),
 [Nachträge](feat-09-nachtraege.md), [Tour](feat-10-tour.md).
@@ -133,6 +133,11 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
     oder Tour) neu: Karte und Gesamtbild aus den Rohdaten, je Aufruf ein Export. Fehlen die Rohdaten, meldet die
     Integration das verständlich und lässt den Export unverändert. Name der Aktion und des Knopfs bei der Umsetzung
     festlegen.
+- **5.10 Strecke auf der Fähre** (23.11.2026): Eine erkannte oder von Hand markierte Fähre zählt **nicht** zu
+  Strecke, Fahrzeit und den Zählerständen des Fahrtenbuchs (Ø-Verbrauch, Verbrauchsmodell). Die Statistik zeigt sie
+  getrennt („Fähre: 18 km, 45 min“), ebenso Gesamtbild, `export.json` und Event `_beendet` (neue Felder
+  `faehre_km`, `faehre_min`), bei einer Tour summiert. Gilt ab dieser Version; ändert sich die Markierung nachträglich,
+  werden Strecke und Zählerstände beim Erneuern neu berechnet. Hinweis in den Release-Notes.
 
 ## 6. Entwurf der Umsetzung (zur Freigabe)
 
@@ -160,6 +165,14 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 - Das Ergebnis steht am Halt (`ferry="auto"`), in den Rohdaten, im Attribut `halte` (neu `faehre: true`), in
   Statistik und Event `_beendet` („Fähre 10:15–11:40, Puttgarden → Rødby“).
 - Eine laufende Reise zeigt die Fähre im Attribut `halte`, sobald der Halt endet.
+- **Strecke ohne Fähre (5.10):** Wird ein Halt als Fähre erkannt, zieht `TripLog` die Strecke (und eine dabei
+  gezählte Fahrzeit) zwischen Beginn und Ende der Fähre von Strecke, Fahrzeit und Zählerständen ab; Höhenmeter auf
+  der Fähre zählen ebenfalls nicht. Die Fährstrecke steht getrennt im Log.
+- **Fahrtenbuch-Einträge an Bord:** Der Anlass „Halt“ entsteht schon nach der Mindestdauer, also während der
+  Überfahrt. Ein Eintrag, dessen Zeit in einer Fähre liegt, bekommt die Zählerstände vom Beginn der Fähre; Einträge
+  danach die Zählerstände ohne Fährstrecke. Wird eine Fähre später von Hand markiert oder entfernt, verschiebt die
+  Integration die Zählerstände der späteren Einträge derselben Reise und der folgenden um die Fährstrecke (wie eine
+  Korrektur; der abgelesene Kilometerstand bleibt unverändert).
 
 ### 6.3 Fähre von Hand (5.2)
 
@@ -238,11 +251,7 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 
 ### 6.10 Zur Entscheidung vor der Umsetzung
 
-1. **Strecke auf der Fähre:** Heute zählen die Kilometer auf der Fähre als gefahrene Strecke, als Fahrzeit und in den
-   Zählerständen für den Ø-Verbrauch (3). Vorschlag: Ab dieser Version zählt eine erkannte oder markierte Fähre
-   **nicht** zu Strecke, Fahrzeit und Zählerständen; die Statistik zeigt sie getrennt („Fähre: 18 km, 45 min“). Das
-   ändert Strecke und Ø-Verbrauch von Reisen mit Fähre (Release-Notes). Alternative: alles bleibt, die Fähre wird nur
-   eingezeichnet.
+1. ~~**Strecke auf der Fähre:** herausrechnen oder nur einzeichnen?~~ – entschieden, siehe 5.10.
 2. **Grundkarte speichern** (6.5): eine zusätzliche Bilddatei je Export (bei Skala 2 einige MB), dafür Erneuern ohne
    Kacheln. Alternative: keine Grundkarte; Symbole ändern sich dann nur über „Karte neu zeichnen“ (mit Kacheln).
 
@@ -251,11 +260,12 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 1. Datenmodell (6.1) und Symbole zeichnen (6.4) in der Exportbibliothek, mit Tests auf Testdaten (Bilder: Größe,
    Pixel an Symbolpositionen, Fährstrecke gestrichelt); Grundkarte und Projektion (6.5).
 2. Reise: Symbole aus Halten und Fahrtenbuch, Ziel auf Stellplatz, Legende im Gesamtbild (6.6), Erneuern (6.7).
-3. Fähre erkennen (6.2) und von Hand markieren (6.3), ggf. Strecke ohne Fähre (6.10.1), mit Tests.
+3. Fähre erkennen (6.2) und von Hand markieren (6.3), Strecke ohne Fähre (5.10), mit Tests.
 4. Tour: Symbole und Legende (6.6).
 5. „Karte neu zeichnen“ (6.8): Aktion, Knopf, Übersetzungen, Tests.
 6. README (de/en), Release-Notes, Feature-Dokumente; Prüfpunkt in `script/develop` mit simulierter Reise (Halt,
    Tankstopp, Gasstopp, Fähre) und Kartenbild ansehen.
 
 Neue Entitäten: 2 Knöpfe (`als_faehre_markieren`, `karte_neu_zeichnen`); neue Aktionen: `faehre_markieren`,
-`karte_neu_zeichnen`. Kein Breaking Change, außer bei 6.10.1 (Strecke ohne Fähre).
+`karte_neu_zeichnen`. Kein Breaking Change im Sinne der Entitäten; Strecke, Fahrzeit und Ø-Verbrauch von Reisen mit Fähre ändern sich
+(5.10, Release-Notes).
