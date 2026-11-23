@@ -60,6 +60,20 @@ async def _save_cost(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key=err.args[0]) from err
 
 
+async def _update_cost(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    try:
+        await coordinator.cost_form.async_update()
+    except CostFormError as err:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key=err.args[0]) from err
+
+
+async def _remove_cost(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    try:
+        await coordinator.cost_form.async_remove()
+    except CostFormError as err:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key=err.args[0]) from err
+
+
 async def _no_toll(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
     try:
         await coordinator.cost_form.async_toggle_no_toll()
@@ -113,6 +127,18 @@ ENTITY_DESCRIPTIONS = (
         key="logbook_remove", translation_key="logbook_remove", press_fn=_remove, object_id="fahrtenbuch_loeschen"
     ),
     LogbookButtonEntityDescription(key="travel_cost_save", translation_key="travel_cost_save", press_fn=_save_cost),
+    LogbookButtonEntityDescription(
+        key="travel_cost_update",
+        translation_key="travel_cost_update",
+        press_fn=_update_cost,
+        object_id="reisekosten_aendern",
+    ),
+    LogbookButtonEntityDescription(
+        key="travel_cost_remove",
+        translation_key="travel_cost_remove",
+        press_fn=_remove_cost,
+        object_id="reisekosten_loeschen",
+    ),
     LogbookButtonEntityDescription(key="no_toll", translation_key="no_toll", press_fn=_no_toll),
     LogbookButtonEntityDescription(key="tour_create", translation_key="tour_create", press_fn=_tour_create),
     LogbookButtonEntityDescription(key="tour_update", translation_key="tour_update", press_fn=_tour_update),
