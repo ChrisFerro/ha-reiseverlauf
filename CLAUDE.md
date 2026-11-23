@@ -39,6 +39,8 @@ Ausführliche Anforderungen und der Ist-Zustand stehen in der importierten Datei
    Fragen in `docs/features/feat-09-nachtraege.md`.
 10. Tour: mehrere Reisen und Standzeiten (z. B. Urlaub, Werkstattaufenthalt) mit Reiseverlauf und Kostenaufstellung
     zusammenfassen; Anforderungen und offene Fragen in `docs/features/feat-10-tour.md`.
+11. Einträge bearbeiten: Fahrtenbuch-Einträge (ggf. Reisekosten) im Dashboard ändern und löschen; Anforderungen
+    und offene Fragen in `docs/features/feat-11-eintraege-bearbeiten.md`.
 
 Jedes Feature hat ein eigenes Dokument in `docs/features/` (Verzeichnis in `docs/ANFORDERUNGEN.md` Abschnitt 11),
 fortlaufend nummeriert: Dateiname `feat-<NN>-<name>.md`, Überschrift `Feat-<NN>: <Name>` (nächste freie Nummer).
