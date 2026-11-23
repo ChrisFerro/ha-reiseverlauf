@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.5](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.4...v0.3.5) (2026-11-23)
+
+
+### Features
+
+* **logbook:** change and delete entries on the dashboard ([#49](https://github.com/ChrisFerro/ha-reiseverlauf/issues/49)) ([b0b4a97](https://github.com/ChrisFerro/ha-reiseverlauf/commit/b0b4a975e9b589eb8b5b1978ccc3469e41413960))
+
 ## [0.3.4](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.3...v0.3.4) (2026-11-23)
 
 
