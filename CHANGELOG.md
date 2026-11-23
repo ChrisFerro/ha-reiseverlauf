@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.5...v0.3.0) (2026-11-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* **logbook:** sensor.<device>_tank_und_gaskosten_monat and sensor.<device>_tank_und_gaskosten_jahr are removed and replaced by sensor.<device>_reisekosten_monat and sensor.<device>_reisekosten_jahr (English: …_fuel_and_gas_costs_month/_year become …_travel_costs_month/_year). Their state holds all costs; fuel and gas alone are the attributes "diesel" and "gas". Update dashboards and automations that use the old sensors. In export.json and the reiseverlauftracker_beendet event, fahrtenbuch.kosten now includes the travel costs, listed by category in fahrtenbuch.reisekosten.
+
+### Features
+
+* **logbook:** late entries and travel costs (Feat-09) ([#36](https://github.com/ChrisFerro/ha-reiseverlauf/issues/36)) ([1b33c51](https://github.com/ChrisFerro/ha-reiseverlauf/commit/1b33c5172e898760829fc384b018455966cbb057))
+
 ## [0.2.5](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.4...v0.2.5) (2026-11-20)
 
 
