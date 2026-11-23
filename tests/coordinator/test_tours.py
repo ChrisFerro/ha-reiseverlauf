@@ -258,6 +258,22 @@ async def test_manual_exports_join_without_overlap(
     assert response["strecke_km"] == pytest.approx(20, abs=0.5)
     assert response["naechte"] == 2
 
+    # The export selection marks manual exports and lists every export with its kind.
+    options = hass.states.get(CHOICE).attributes["options"]
+    second = next(i for i in two_trips.exports if i.folder == second.folder)
+    assert two_trips.export_label(second).startswith("12.10.26 10:00 · Manuell · ")
+    assert two_trips.export_label(second) in options
+    assert not two_trips.export_label(first).count("Manuell")
+    exports = {e["ordner"]: e for e in hass.states.get(CHOICE).attributes["exporte"]}
+    assert exports[first.folder]["automatisch"] is True
+    assert exports[first.folder]["art"] == "reise"
+    assert exports[second.folder]["automatisch"] is False
+    assert exports["2026-10-11_1000-1100"]["rohdaten"] is False
+    assert exports[second.folder]["rohdaten"] is True
+    assert exports[response["ordner"]]["art"] == "tour"
+    assert exports[response["ordner"]]["auswahl"] in options
+    assert exports[first.folder]["strecke_km"] == pytest.approx(10, abs=0.5)
+
 
 async def test_no_trip_in_the_period(hass: HomeAssistant, two_trips, config_entry: MockConfigEntry) -> None:
     with pytest.raises(ServiceValidationError) as err:

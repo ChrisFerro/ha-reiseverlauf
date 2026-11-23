@@ -235,10 +235,13 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         """Return the titles of the exported trips by their start time."""
         return {info.start: info.title for info in self.exports if info.automatic and not info.is_tour}
 
+    def export_label(self, info: ExportInfo) -> str:
+        """Return the name of `info` in the export selection, in the time zone and language of the instance."""
+        return info.label(dt_util.get_default_time_zone(), self.hass.config.language)
+
     def export_choice_options(self) -> list[str]:
         """Return the labels of all exports, newest first, and the "all" choice at the end."""
-        tz = dt_util.get_default_time_zone()
-        return [*(info.label(tz) for info in self.exports), EXPORT_CHOICE_ALL]
+        return [*(self.export_label(info) for info in self.exports), EXPORT_CHOICE_ALL]
 
     def current_export_choice(self) -> str | None:
         """
@@ -255,8 +258,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         """Return the exports a selection label, a folder name or "all" refers to."""
         if choice == EXPORT_CHOICE_ALL:
             return list(self.exports)
-        tz = dt_util.get_default_time_zone()
-        return [info for info in self.exports if choice in {info.folder, info.label(tz)}]
+        return [info for info in self.exports if choice in {info.folder, self.export_label(info)}]
 
     async def async_remove_files(self, exports: list[ExportInfo], kinds: set[ExportFile]) -> None:
         """Delete the given file kinds of the given exports and refresh the list."""

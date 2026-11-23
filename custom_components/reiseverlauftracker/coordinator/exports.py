@@ -21,6 +21,8 @@ METADATA_FILE = "export.json"
 METADATA_VERSION = 1
 LABEL_TITLE_LENGTH = 18
 TOUR_LABEL = "Tour"
+# Mark of a manual export in the export selection, by language of the instance (English for any other).
+MANUAL_LABELS = {"de": "Manuell", "en": "Manual"}
 
 
 class ExportKind(StrEnum):
@@ -109,13 +111,20 @@ class ExportInfo:
         """Return whether the export is a tour rather than a single trip."""
         return self.kind is ExportKind.TOUR
 
-    def label(self, tz: tzinfo) -> str:
-        """Return the short unique name shown in the export selection: start, a tour mark and shortened title."""
+    def label(self, tz: tzinfo, language: str = "de") -> str:
+        """
+        Return the short unique name shown in the export selection: start, a mark and the shortened title.
+
+        A tour is marked "Tour", a manual export "Manuell" (or "Manual"); a trip detected automatically has no mark.
+        """
         title = self.title if len(self.title) <= LABEL_TITLE_LENGTH else f"{self.title[: LABEL_TITLE_LENGTH - 1]}…"
         if self.is_tour:
             local_start, local_end = self.start.astimezone(tz), self.end.astimezone(tz)
             return f"{local_start:%d.%m.}–{local_end:%d.%m.%y} · {TOUR_LABEL} · {title}"
-        return f"{self.start.astimezone(tz):%d.%m.%y %H:%M} · {title}"
+        start = f"{self.start.astimezone(tz):%d.%m.%y %H:%M}"
+        if not self.automatic:
+            return f"{start} · {MANUAL_LABELS.get(language.split('-', maxsplit=1)[0], MANUAL_LABELS['en'])} · {title}"
+        return f"{start} · {title}"
 
     @property
     def duration(self) -> timedelta:

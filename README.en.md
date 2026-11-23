@@ -78,7 +78,9 @@ the minimum movement (default 100 m) is discarded.
 All entities belong to one device named after the entry: trip active, trip status (ready, driving, stopped,
 processing, can continue, error), start (with the start place), distance, driving time, stop time (with the list of stops) and average speed while moving of the running trip, title, distance, driving
 time, duration and end of the last trip (the title carries the file list with URLs and the statistics as
-attributes), an image entity with the composite image, and an export selection used by the cleanup action.
+attributes), an image entity with the composite image, and an export selection used by the cleanup action. In the
+export selection, manual exports carry the mark “Manual” (“Manuell” in German); its attribute `exporte` lists every
+export with `auswahl`, `ordner`, `art`, `automatisch`, `start`, `ende`, `strecke_km` and `rohdaten`.
 For the logbook there are the form (numbers for odometer, fuel, gas 1 and 2, litres and amounts refuelled, buttons to
 save and discard), a logbook entry sensor (pending or saved, with the latest entries), and sensors for odometer,
 last levels, average consumption, heating while parked (read), all costs of the month and year (fuel, gas and travel

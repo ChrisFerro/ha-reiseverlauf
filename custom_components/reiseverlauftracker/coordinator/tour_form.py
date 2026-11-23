@@ -129,8 +129,7 @@ class TourForm:
 
     def _choose(self, info: ExportInfo) -> None:
         """Choose `info` in the export selection, so the form shows the tour."""
-        tz = dt_util.get_default_time_zone()
-        self.coordinator.export_choice = info.label(tz)
+        self.coordinator.export_choice = self.coordinator.export_label(info)
         self._start = self._end = self._title = None
         self._key = info.folder
         self.coordinator.async_update_listeners()

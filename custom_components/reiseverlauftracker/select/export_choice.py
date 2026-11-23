@@ -8,6 +8,7 @@ from custom_components.reiseverlauftracker.coordinator.cost_form import trip_cos
 from custom_components.reiseverlauftracker.coordinator.download_links import ATTR_DOWNLOADS
 from custom_components.reiseverlauftracker.coordinator.tours import nights_data
 from custom_components.reiseverlauftracker.entity import ReiseverlaufEntity
+from custom_components.reiseverlauftracker.export import ExportFile
 from homeassistant.components.select import SelectEntity
 from homeassistant.helpers.restore_state import RestoreEntity
 
@@ -16,7 +17,7 @@ class ReiseverlaufExportChoice(SelectEntity, ReiseverlaufEntity, RestoreEntity):
     """Lists every export, newest first, plus "all exports"; the choice lives on the coordinator."""
 
     # Signed links change every hour and must not reach the history; the costs are in the logbook store anyway.
-    _unrecorded_attributes = frozenset({ATTR_DOWNLOADS, "reisekosten", "standorte", "tourkosten"})
+    _unrecorded_attributes = frozenset({ATTR_DOWNLOADS, "reisekosten", "standorte", "tourkosten", "exporte"})
 
     @property
     def options(self) -> list[str]:
@@ -33,7 +34,8 @@ class ReiseverlaufExportChoice(SelectEntity, ReiseverlaufEntity, RestoreEntity):
         """
         Return the signed download links and the travel costs of the chosen export; none for "all exports".
 
-        A tour has no travel costs of its own; it lists its kind, night places and costs instead.
+        A tour has no travel costs of its own; it lists its kind, night places and costs instead. `exporte`
+        lists every export with its kind, so a dashboard can tell manual exports from detected trips.
         """
         choice = self.current_option
         exports = self.coordinator.find_exports(choice) if choice and choice != EXPORT_CHOICE_ALL else []
@@ -45,6 +47,19 @@ class ReiseverlaufExportChoice(SelectEntity, ReiseverlaufEntity, RestoreEntity):
             "art": info.kind.value if info else None,
             "standorte": nights_data(info) if info and tour else None,
             "tourkosten": info.tour.costs if info and info.tour else None,
+            "exporte": [
+                {
+                    "auswahl": self.coordinator.export_label(export),
+                    "ordner": export.folder,
+                    "art": export.kind.value,
+                    "automatisch": export.automatic,
+                    "start": export.start.isoformat(),
+                    "ende": export.end.isoformat(),
+                    "strecke_km": round(export.distance_km, 1),
+                    "rohdaten": ExportFile.RAW in export.files,
+                }
+                for export in self.coordinator.exports
+            ],
         }
 
     async def async_added_to_hass(self) -> None:
