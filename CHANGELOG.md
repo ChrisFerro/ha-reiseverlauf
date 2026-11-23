@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.2...v0.3.3) (2026-11-23)
+
+
+### Features
+
+* **export:** mark manual exports and list all exports with their kind ([#45](https://github.com/ChrisFerro/ha-reiseverlauf/issues/45)) ([2235407](https://github.com/ChrisFerro/ha-reiseverlauf/commit/2235407de817d0d1d5ef49b61aa14933bc6ec593))
+
 ## [0.3.2](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.1...v0.3.2) (2026-11-23)
 
 
