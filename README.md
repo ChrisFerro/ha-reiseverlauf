@@ -455,7 +455,9 @@ sections:
 
 Eine Tour fasst mehrere Reisen und die Standzeiten dazwischen zusammen, z. B. Hinreise, eine Woche Campingplatz und
 Rückreise, oder die Fahrt zur Werkstatt und zurück. Sie wird im Nachhinein angelegt und liest die gespeicherten
-Punkte der Reisen, nicht den Recorder; auch Touren über mehr als 10 Tage sind daher vollständig.
+Punkte der Reisen, nicht den Recorder; auch Touren über mehr als 10 Tage sind daher vollständig. Manuelle Exporte
+mit Rohdaten zählen als Reisen mit (z. B. Reisen von vor der Installation); überschneidet sich einer mit einer
+automatisch erkannten Reise, gilt die automatische, damit keine Strecke doppelt zählt.
 
 1. In der **Export-Auswahl** die erste Reise wählen. „Tour von“ zeigt dann deren Start, „Tour bis“ die aktuelle
    Zeit; beide lassen sich ändern.
