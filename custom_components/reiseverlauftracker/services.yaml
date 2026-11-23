@@ -503,3 +503,23 @@ tour_aendern:
       example: '[{"nacht": "2026-10-10", "name": "Camping Seeblick"}]'
       selector:
         object:
+
+faehre_markieren:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    halt:
+      required: true
+      selector:
+        datetime:
+    reise:
+      example: "2026-11-02_0715"
+      selector:
+        text:
+    faehre:
+      default: true
+      selector:
+        boolean:

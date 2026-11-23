@@ -26,7 +26,7 @@ def _start_attributes(data: TripSnapshot, _settings: ReiseverlaufSettings) -> Ma
 
 
 def _pause_attributes(data: TripSnapshot, _settings: ReiseverlaufSettings) -> Mapping[str, Any]:
-    return {"halte": [stop_data(s.place, s.start, s.end) for s in data.stops]}
+    return {"halte": [stop_data(s.place, s.start, s.end, ferry=s.is_ferry) for s in data.stops]}
 
 
 def _minutes(value: timedelta | None) -> float | None:

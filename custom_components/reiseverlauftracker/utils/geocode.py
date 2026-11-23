@@ -14,6 +14,17 @@ STAY_TYPES = ("camp_site", "caravan_site")
 # Zoom 3 asks for the country only, which keeps the response small.
 COUNTRY_ZOOM = 3
 PLACE_KEYS = ("city", "town", "village", "municipality", "hamlet", "suburb", "county")
+# What Nominatim returns on water (docs/features/feat-12-kartensymbole.md 6.2), by category and type;
+# an empty type means any type of the category.
+WATER_FEATURES = {
+    ("natural", "water"),
+    ("natural", "bay"),
+    ("natural", "strait"),
+    ("waterway", ""),
+    ("place", "sea"),
+    ("place", "ocean"),
+    ("route", "ferry"),
+}
 
 
 async def async_reverse_geocode(
@@ -45,6 +56,11 @@ async def async_reverse_camp_site(
     return camp_site_name(await _async_reverse(session, lat, lon, STAY_ZOOM, language, user_agent))
 
 
+async def async_reverse_on_water(session: ClientSession, lat: float, lon: float, user_agent: str) -> bool | None:
+    """Return whether a coordinate lies on water, or None if Nominatim could not be asked."""
+    return on_water(await _async_reverse(session, lat, lon, STAY_ZOOM, "en", user_agent))
+
+
 async def async_reverse_country(session: ClientSession, lat: float, lon: float, user_agent: str) -> str | None:
     """Return the ISO 3166-1 alpha-2 code of the country at a coordinate, or None (e.g. at sea or on errors)."""
     return country_code(await _async_reverse(session, lat, lon, COUNTRY_ZOOM, "en", user_agent))
@@ -70,6 +86,20 @@ def country_code(data: Any) -> str | None:
         return None
     code = address.get("country_code")
     return code.upper() if isinstance(code, str) and len(code) == 2 and code.isalpha() else None
+
+
+def on_water(data: Any) -> bool | None:
+    """
+    Return whether a Nominatim reverse response points at water, or None for no response at all.
+
+    Open sea has no address: Nominatim then answers with an error instead of a place.
+    """
+    if not isinstance(data, dict):
+        return None
+    if "error" in data:
+        return True
+    category, kind = data.get("category") or data.get("class"), data.get("type")
+    return (category, kind) in WATER_FEATURES or (category, "") in WATER_FEATURES
 
 
 def place_name(data: Any) -> str | None:

@@ -34,6 +34,7 @@ from .logbook import (
     Suggestion,
     TravelCost,
 )
+from .trip_log import TrackCounters
 
 STORAGE_VERSION = 1
 SAVE_DELAY_S = 30
@@ -232,6 +233,20 @@ class LogbookKeeper:
         """Store the place name of a remembered stop; the time selection shows it right away."""
         self.logbook.set_stop_place(start, place)
         self._changed()
+
+    def set_stop_ferry(self, start: datetime, ferry: bool) -> None:
+        """Store whether a remembered stop was a ferry crossing; the time selection shows it right away."""
+        self.logbook.set_stop_ferry(start, ferry)
+        self._changed()
+
+    async def async_shift_counters(
+        self, trip_start: datetime, after_m: float, delta: TrackCounters, *, closed_trip: bool
+    ) -> None:
+        """Move the counters after a ferry that was marked or unmarked (Logbook.shift_counters)."""
+        self.logbook.shift_counters(after_m, delta.distance_m, delta.ascent_m, delta.descent_m, closed_trip=closed_trip)
+        self._trip_changed(trip_start)
+        self._refresh_draft_without_pending()
+        await self._async_refresh_csv()
 
     def prune_stops(self, now: datetime) -> None:
         """Forget stops older than the retention period."""

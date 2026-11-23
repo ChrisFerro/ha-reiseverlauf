@@ -159,10 +159,19 @@ def _refresh_sync(
     options: ExportOptions,
     now: datetime,
 ) -> ExportInfo:
-    stats_text = info.stats_text
+    refreshed = replace(info, logbook=options.logbook, stops=options.stops, updated=now)
     if data is not None:
-        stats_text = refresh_export(*data, base / info.folder, options, existing_files(base, info), info.base_map)
-    refreshed = replace(info, logbook=options.logbook, stats_text=stats_text, updated=now)
+        stats_text, stats = refresh_export(
+            *data, base / info.folder, options, existing_files(base, info), info.base_map
+        )
+        refreshed = replace(
+            refreshed,
+            stats_text=stats_text,
+            distance_km=stats.distance_km,
+            driving_time=stats.moving_time,
+            ferry_km=stats.ferry_km,
+            ferry_time=stats.ferry_time,
+        )
     write_metadata(base, refreshed)
     return refreshed
 
@@ -186,18 +195,21 @@ def event_data(settings: ReiseverlaufSettings, info: ExportInfo, base: Path) -> 
         "statistik": info.stats_text,
         "gesamtbild": str(base / info.folder / composite) if composite else None,
         "gesamtbild_url": media_url(settings, info.folder, composite) if composite else None,
-        "halte": [stop_data(s.place, s.start, s.end) for s in info.stops],
+        "faehre_km": round(info.ferry_km, 1),
+        "faehre_min": round(info.ferry_time.total_seconds() / 60),
+        "halte": [stop_data(s.place, s.start, s.end, ferry=s.ferry) for s in info.stops],
         "fahrtenbuch": info.logbook.as_dict() if info.logbook else None,
     }
 
 
-def stop_data(place: str | None, start: datetime, end: datetime | None) -> dict[str, Any]:
-    """Return one stop as it appears in events and attributes."""
+def stop_data(place: str | None, start: datetime, end: datetime | None, *, ferry: bool = False) -> dict[str, Any]:
+    """Return one stop as it appears in events and attributes; `faehre` marks a ferry crossing."""
     return {
         "ort": place,
         "von": start.isoformat(),
         "bis": end.isoformat() if end else None,
         "dauer_min": round(((end or dt_util.utcnow()) - start).total_seconds() / 60),
+        "faehre": ferry,
     }
 
 
@@ -269,6 +281,8 @@ def _export_sync(
             else None
         ),
         arrival_stay=options.arrival_stay,
+        ferry_km=result.stats.ferry_km,
+        ferry_time=result.stats.ferry_time,
     )
     write_metadata(base, info)
     return info

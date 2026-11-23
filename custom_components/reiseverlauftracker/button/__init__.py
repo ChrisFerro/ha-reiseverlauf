@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from custom_components.reiseverlauftracker.const import DOMAIN
 from custom_components.reiseverlauftracker.coordinator.cost_form import CostFormError
+from custom_components.reiseverlauftracker.coordinator.ferries import FerryError
 from custom_components.reiseverlauftracker.coordinator.tours import TourError
 from custom_components.reiseverlauftracker.entity import ReiseverlaufEntity
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
@@ -103,6 +104,14 @@ async def _tour_update(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
     await _tour(coordinator, update=True)
 
 
+async def _mark_ferry(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    """Switch the ferry mark of the stop chosen for a late entry (docs/features/feat-12-kartensymbole.md 6.3)."""
+    try:
+        await coordinator.late_form.async_toggle_ferry()
+    except FerryError as err:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key=err.reason) from err
+
+
 async def _discard(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
     coordinator.logbook.discard()
 
@@ -142,6 +151,9 @@ ENTITY_DESCRIPTIONS = (
     LogbookButtonEntityDescription(key="no_toll", translation_key="no_toll", press_fn=_no_toll),
     LogbookButtonEntityDescription(key="tour_create", translation_key="tour_create", press_fn=_tour_create),
     LogbookButtonEntityDescription(key="tour_update", translation_key="tour_update", press_fn=_tour_update),
+    LogbookButtonEntityDescription(
+        key="mark_ferry", translation_key="mark_ferry", press_fn=_mark_ferry, object_id="als_faehre_markieren"
+    ),
 )
 
 

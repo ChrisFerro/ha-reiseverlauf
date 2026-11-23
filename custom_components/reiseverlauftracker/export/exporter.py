@@ -16,9 +16,10 @@ from PIL import Image
 
 from .chart import BASE_WIDTH, render_profile
 from .composite import render_composite
+from .ferry import split_track
 from .gpx import build_gpx
 from .map import TileFetcher, draw_overlay, http_tile_fetcher, render_base_map
-from .model import ExportOptions, MapMarker, MapProjection, MarkerKind, StepSeries, TrackPoint
+from .model import ExportOptions, FerryLeg, MapMarker, MapProjection, MarkerKind, StepSeries, TrackPoint
 from .stats import TripStats, compute_stats, logbook_rows, stats_rows, stats_text, stop_lines
 from .symbols import merge_markers, render_legend
 from .texts import Texts, default_title, texts_for
@@ -115,7 +116,8 @@ def export_trip(
         if options.title and slugify(options.title)
         else f"track_{track.departure.astimezone(tz):%Y%m%d}_{track.arrival.astimezone(tz):%Y%m%d}"
     )
-    stats = compute_stats(track.points, track.speed, options)
+    split = split_track(track.points, options.stops)
+    stats = compute_stats(track.points, track.speed, options, split)
     rows = stats_rows(stats, texts, tz)
     logbook = logbook_rows(options.logbook, texts, options.currency)
     text = _text(title, rows, options, texts)
@@ -137,17 +139,17 @@ def export_trip(
         width, height = options.map_size
         line_width = round(options.map_line_width * scale)
         base = render_base_map(
-            [track.points],
+            split.land,
             (round(width * scale), round(height * scale)),
             line_width,
             fetch_tile or http_tile_fetcher(options.user_agent),
             markers,
-            options.ferries,
+            split.legs,
         )
         if base is not None:
             base_path, projection = out_dir / f"{basename}{BASE_MAP_SUFFIX}", base.projection
             base.image.save(base_path)
-            map_image = draw_overlay(base.image, projection, markers, options.ferries, line_width)
+            map_image = draw_overlay(base.image, projection, markers, split.legs, line_width)
             base.image.close()
             map_image.save(path(ExportFile.MAP))
 
@@ -158,7 +160,7 @@ def export_trip(
         profile.close()
 
     untitled_profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale)
-    legend = _legend(map_image, markers, options, texts, scale)
+    legend = _legend(map_image, markers, split.legs, texts, scale)
     composite = render_composite([map_image, legend, untitled_profile], title, rows[0][1], rows[1:], scale, logbook)
     if composite is not None:
         composite.save(path(ExportFile.COMPOSITE))
@@ -202,14 +204,14 @@ def _text(title: str, rows: list[tuple[str, str]], options: ExportOptions, texts
 def _legend(
     map_image: Image.Image | None,
     markers: Sequence[MapMarker],
-    options: ExportOptions,
+    ferries: Sequence[FerryLeg],
     texts: Texts,
     scale: float,
 ) -> Image.Image | None:
     """Return the legend under the map, only for symbols on it (Feat-12 5.5)."""
     if map_image is None:
         return None
-    kinds = {m.kind for m in markers} | ({MarkerKind.FERRY} if options.ferries else set())
+    kinds = {m.kind for m in markers} | ({MarkerKind.FERRY} if ferries else set())
     return render_legend(kinds, {MarkerKind(k): v for k, v in texts.markers.items()}, round(BASE_WIDTH * scale), scale)
 
 
@@ -221,7 +223,7 @@ def refresh_export(
     options: ExportOptions,
     files: dict[ExportFile, str],
     base_map: BaseMapRef | None = None,
-) -> str:
+) -> tuple[str, TripStats]:
     """
     Rewrite statistics, map symbols and composite image of an existing export, e.g. with new logbook figures.
 
@@ -231,7 +233,7 @@ def refresh_export(
     `files` are not created.
 
     Returns:
-        The new statistics text.
+        The new statistics text and figures; distance and driving time change when a ferry was marked.
 
     Raises:
         NotEnoughPointsError: Fewer than two usable positions.
@@ -243,7 +245,8 @@ def refresh_export(
     scale = min(max(options.scale, MIN_SCALE), MAX_SCALE)
     title = options.title or ""
     track = prepare_track(positions, speed, altitude, options)
-    stats = compute_stats(track.points, track.speed, options)
+    split = split_track(track.points, options.stops)
+    stats = compute_stats(track.points, track.speed, options, split)
     rows = stats_rows(stats, texts, tz)
     logbook = logbook_rows(options.logbook, texts, options.currency)
     text = _text(title, rows, options, texts)
@@ -253,7 +256,7 @@ def refresh_export(
     markers = map_markers(track.points, options)
     map_image = None
     if (map_name := files.get(ExportFile.MAP)) is not None:
-        map_image = _redraw_map(out_dir, base_map, markers, options)
+        map_image = _redraw_map(out_dir, base_map, markers, split.legs, options)
         if map_image is not None:
             map_image.save(out_dir / map_name)
         else:
@@ -262,7 +265,7 @@ def refresh_export(
     if (name := files.get(ExportFile.COMPOSITE)) is not None:
         window = (track.chart_start, track.chart_end)
         profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale)
-        legend = _legend(map_image, markers, options, texts, scale) if base_map is not None else None
+        legend = _legend(map_image, markers, split.legs, texts, scale) if base_map is not None else None
         composite = render_composite([map_image, legend, profile], title, rows[0][1], rows[1:], scale, logbook)
         if composite is not None:
             composite.save(out_dir / name)
@@ -272,11 +275,15 @@ def refresh_export(
                 image.close()
     if map_image is not None:
         map_image.close()
-    return text
+    return text, stats
 
 
 def _redraw_map(
-    out_dir: Path, base_map: BaseMapRef | None, markers: Sequence[MapMarker], options: ExportOptions
+    out_dir: Path,
+    base_map: BaseMapRef | None,
+    markers: Sequence[MapMarker],
+    ferries: Sequence[FerryLeg],
+    options: ExportOptions,
 ) -> Image.Image | None:
     """Return the map with its symbols drawn on the stored base map, or None without a usable one."""
     if base_map is None:
@@ -286,7 +293,7 @@ def _redraw_map(
         return None
     # The line width the base map was drawn with, whatever the scale setting is now.
     line_width = round(options.map_line_width * base_map.projection.width / options.map_size[0])
-    image = draw_overlay(base, base_map.projection, markers, options.ferries, line_width)
+    image = draw_overlay(base, base_map.projection, markers, ferries, line_width)
     base.close()
     return image
 

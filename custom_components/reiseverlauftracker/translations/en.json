@@ -590,6 +590,9 @@
       },
       "travel_cost_remove": {
         "name": "Delete travel cost"
+      },
+      "mark_ferry": {
+        "name": "Mark as ferry"
       }
     },
     "datetime": {
@@ -1013,6 +1016,28 @@
           "description": "Names of places as a list of night (date of the evening) and name, e.g. from the attribute standorte of the export selection. Applies to all nights at the same place."
         }
       }
+    },
+    "faehre_markieren": {
+      "name": "Mark ferry",
+      "description": "Marks a stop as ferry crossing or removes the mark. The crossing does not count as distance, driving time or logbook counters; the trip's export is renewed.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "halt": {
+          "name": "Stop",
+          "description": "Start of the stop or a time during it."
+        },
+        "reise": {
+          "name": "Trip",
+          "description": "Export folder, export selection entry or start time of the trip; without it, the trip the stop lies in."
+        },
+        "faehre": {
+          "name": "Ferry",
+          "description": "Off removes the mark again."
+        }
+      }
     }
   },
   "exceptions": {
@@ -1114,6 +1139,15 @@
     },
     "travel_cost_editing": {
       "message": "A stored travel cost is chosen. Save it with “Change travel cost” or choose “New” under “Travel cost entry”."
+    },
+    "unknown_stop": {
+      "message": "No finished stop found at that time."
+    },
+    "ferry_without_raw_data": {
+      "message": "This trip has no raw data left; the ferry cannot be marked."
+    },
+    "no_stop_chosen": {
+      "message": "First choose a stop in the time selection."
     }
   }
 }

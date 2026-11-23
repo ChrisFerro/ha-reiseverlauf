@@ -109,6 +109,9 @@ class ExportInfo:
     """Map without symbols; not one of `files`, so it is neither offered for download nor announced."""
     arrival_stay: str | None = None
     """Camp site or pitch at the arrival, if the trip ended on one (docs/features/feat-12-kartensymbole.md 5.7)."""
+    ferry_km: float = 0.0
+    """Distance on ferries, not part of `distance_km` (docs/features/feat-12-kartensymbole.md 5.10)."""
+    ferry_time: timedelta = timedelta()
 
     @property
     def is_tour(self) -> bool:
@@ -150,7 +153,14 @@ class ExportInfo:
             "departure": self.departure.isoformat() if self.departure else None,
             "arrival": self.arrival.isoformat() if self.arrival else None,
             "stops": [
-                {"start": s.start.isoformat(), "end": s.end.isoformat(), "place": s.place, "lat": s.lat, "lon": s.lon}
+                {
+                    "start": s.start.isoformat(),
+                    "end": s.end.isoformat(),
+                    "place": s.place,
+                    "lat": s.lat,
+                    "lon": s.lon,
+                    "ferry": s.ferry,
+                }
                 for s in self.stops
             ],
             "logbook": self.logbook.as_dict() if self.logbook else None,
@@ -165,6 +175,8 @@ class ExportInfo:
                 else None
             ),
             "arrival_stay": self.arrival_stay,
+            "ferry_km": self.ferry_km,
+            "ferry_time_s": self.ferry_time.total_seconds(),
         }
 
     @classmethod
@@ -189,6 +201,7 @@ class ExportInfo:
                     place=s.get("place"),
                     lat=s.get("lat"),
                     lon=s.get("lon"),
+                    ferry=s.get("ferry", False),
                 )
                 for s in data.get("stops", [])
             ),
@@ -200,6 +213,8 @@ class ExportInfo:
             tour=TourMeta.from_dict(data["tour"]) if data.get("tour") else None,
             base_map=_base_map(data.get("base_map")),
             arrival_stay=data.get("arrival_stay"),
+            ferry_km=data.get("ferry_km") or 0.0,
+            ferry_time=timedelta(seconds=data.get("ferry_time_s") or 0),
         )
 
 
@@ -245,6 +260,14 @@ def read_raw(base: Path, info: ExportInfo) -> dict[str, Any] | None:
     except OSError, ValueError:
         return None
     return data if isinstance(data, dict) else None
+
+
+def write_raw(base: Path, info: ExportInfo, raw: dict[str, Any]) -> None:
+    """Replace the raw data of an export, e.g. after a stop was marked as ferry crossing."""
+    path = base / info.folder / info.files[ExportFile.RAW]
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(raw), encoding="utf-8")
+    tmp.replace(path)
 
 
 def read_export(base: Path, folder: str) -> ExportInfo | None:

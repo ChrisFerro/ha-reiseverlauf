@@ -1,6 +1,6 @@
 # Feat-12: Kartensymbole
 
-Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf freigegeben (Abschnitt 6), Teilschritte 1 und 2
+Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf freigegeben (Abschnitt 6), Teilschritte 1 bis 3
 umgesetzt (6.11).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Halte](feat-02-halte.md), [Export](feat-03-export.md), [Fahrtenbuch](feat-06-fahrtenbuch.md),
@@ -168,6 +168,17 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 - Das Ergebnis steht am Halt (`ferry="auto"`), in den Rohdaten, im Attribut `halte` (neu `faehre: true`), in
   Statistik und Event `_beendet` („Fähre 10:15–11:40, Puttgarden → Rødby“).
 - Eine laufende Reise zeigt die Fähre im Attribut `halte`, sobald der Halt endet.
+- **Umgesetzt** (Teilschritt 3): Abfrage mit Zoom 18 (wie der Stellplatz); als Wasser gelten eine Antwort ohne Ort
+  (Nominatim meldet „Unable to geocode“) und die Arten `natural=water|bay|strait`, `waterway=*`, `place=sea|ocean`,
+  `route=ferry`. Bewegung heißt: mindestens zwei brauchbare Punkte während des Halts, und einer liegt mindestens die
+  Mindestbewegung vom ersten entfernt; abgefragt wird der Punkt auf halber Weglänge. Ohne Antwort (Ortsabfrage aus,
+  Fehler) bleibt der Halt ungeprüft. Grenze: Liegt die Mitte der Überfahrt nahe der Küste oder in Gemeindegebiet auf
+  dem Wasser, findet Nominatim dort u. U. eine Adresse; dann bleibt nur die Markierung von Hand.
+- **Zur Fähre gehört** jeder Schritt der Spur, der zeitlich in den Halt hineinreicht: das Auffahren (letzter Punkt
+  davor bis zum ersten an Bord), die Punkte an Bord und das Herunterfahren (letzter an Bord bis zum ersten danach),
+  ohne Punkte an Bord der eine Schritt von davor nach danach. Diese Schritte zählen nicht zu Strecke, Fahrzeit,
+  Höhenmetern und Geschwindigkeit (Höchst- und Ø-Wert), sondern als Fährstrecke; die Fährzeit ist die Dauer des Halts.
+  Bei 5 s Abstand zwischen den Punkten sind Auf- und Abfahrt wenige Meter.
 - **Strecke ohne Fähre (5.10):** Wird ein Halt als Fähre erkannt, zieht `TripLog` die Strecke (und eine dabei
   gezählte Fahrzeit) zwischen Beginn und Ende der Fähre von Strecke, Fahrzeit und Zählerständen ab; Höhenmeter auf
   der Fähre zählen ebenfalls nicht. Die Fährstrecke steht getrennt im Log.
@@ -179,14 +190,22 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 
 ### 6.3 Fähre von Hand (5.2)
 
-- **Neue Aktion** `reiseverlauftracker.faehre_markieren` (`config_entry_id`, `export`, `halt` = Startzeit des Halts,
-  `faehre` = an/aus). Ohne `export` gilt die Export-Auswahl. Ändert Halt in Rohdaten und `export.json` und erneuert den
+- **Neue Aktion** `reiseverlauftracker.faehre_markieren` (`config_entry_id`, `halt` = Beginn des Halts oder eine
+  Zeit während des Halts, `reise` = Ordner, Eintrag der Export-Auswahl oder Startzeit wie bei den Reisekosten,
+  `faehre` = an/aus, Standard an). Ohne `reise` gilt die Reise, in der der Halt liegt (umgesetzt statt „Export-Auswahl“,
+  weil auch die laufende Reise gemeint sein kann). Antwort: Halt, `faehre` und `strecke_km_aenderung`. Ändert Halt in Rohdaten und `export.json` und erneuert den
   Export (6.7); bei einer Tour mit dieser Reise wird nichts automatisch neu erstellt (wie bei Nachträgen).
 - **Im Dashboard:** Die Halte einer Reise stehen bereits in der Zeitpunkt-Auswahl des Nachtrags
   (`select.…_fahrtenbuch_zeitpunkt`). **Neu:** `button.…_als_faehre_markieren` schaltet die Markierung des dort
   gewählten Halts um; die Auswahl zeigt eine markierte Fähre im Label („· Fähre“). Halte, die nicht mehr in der
   Auswahl stehen (älter als die Aufbewahrung), gehen über die Aktion.
 - Ohne GPS an Bord verbindet die Fährstrecke die letzte Position vor und die erste nach dem Halt (5.3).
+- **Zählerstände** (umgesetzt): Die Integration zählt die Strecke der Reise neu und verschiebt alle Fahrtenbuch-
+  Einträge und gemerkten Halte, deren Zählerstand hinter dem Beginn der Fähre liegt, um die Differenz (nicht unter
+  den Stand am Beginn der Fähre); bei einer abgeschlossenen Reise auch den Gesamtzähler. Der Stand am Beginn kommt
+  vom gemerkten Halt, sonst aus den Rohdaten. Rohdaten und `export.json` bekommen die Markierung, der Export wird
+  sofort erneuert (ohne Kacheln, 6.5).
+- Knopf und Auswahl: Nach dem Umschalten bleibt der Halt gewählt, sein Label endet auf „· Fähre“ (statt „· kurz“).
 
 ### 6.4 Symbole zeichnen (5.3, 5.4)
 
@@ -260,9 +279,10 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 ### 6.11 Teilschritte
 
 1. Datenmodell (6.1) und Symbole zeichnen (6.4) in der Exportbibliothek, mit Tests auf Testdaten (Bilder: Größe,
-   Pixel an Symbolpositionen, Fährstrecke gestrichelt); Grundkarte und Projektion (6.5).
-2. Reise: Symbole aus Halten und Fahrtenbuch, Ziel auf Stellplatz, Legende im Gesamtbild (6.6), Erneuern (6.7).
-3. Fähre erkennen (6.2) und von Hand markieren (6.3), Strecke ohne Fähre (5.10), mit Tests.
+   Pixel an Symbolpositionen, Fährstrecke gestrichelt); Grundkarte und Projektion (6.5). – umgesetzt 23.11.2026
+2. Reise: Symbole aus Halten und Fahrtenbuch, Ziel auf Stellplatz, Legende im Gesamtbild (6.6), Erneuern (6.7). – umgesetzt
+   23.11.2026
+3. Fähre erkennen (6.2) und von Hand markieren (6.3), Strecke ohne Fähre (5.10), mit Tests. – umgesetzt 23.11.2026
 4. Tour: Symbole und Legende (6.6).
 5. „Karte neu zeichnen“ (6.8): Aktion, Knopf, Übersetzungen, Tests.
 6. README (de/en), Release-Notes, Feature-Dokumente; Prüfpunkt in `script/develop` mit simulierter Reise (Halt,

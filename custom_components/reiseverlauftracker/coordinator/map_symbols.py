@@ -26,7 +26,8 @@ def trip_markers(
     markers = [
         MapMarker(MarkerKind.STOP, *where)
         for stop in stops
-        if (where := _position(stop.lat, stop.lon, stop.start, ordered)) is not None
+        # A ferry crossing shows its ship halfway along instead (docs/features/feat-12-kartensymbole.md 5.3).
+        if not stop.ferry and (where := _position(stop.lat, stop.lon, stop.start, ordered)) is not None
     ]
     for entry in entries:
         kinds = [k for k, refill in ((MarkerKind.FUEL, entry.fuel), (MarkerKind.GAS, entry.gas)) if refill is not None]

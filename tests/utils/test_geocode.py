@@ -12,6 +12,7 @@ from custom_components.reiseverlauftracker.utils.geocode import (
     async_reverse_geocode,
     camp_site_name,
     country_code,
+    on_water,
     place_name,
     stay_name,
 )
@@ -110,3 +111,21 @@ async def test_reverse_camp_site_asks_for_the_feature_at_the_position(
     assert name == "Stellplatz am See"
     _, url, _, _ = aioclient_mock.mock_calls[0]
     assert url.query["zoom"] == "18"
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        ({"error": "Unable to geocode"}, True),
+        ({"category": "natural", "type": "strait", "name": "Fehmarnbelt"}, True),
+        ({"category": "waterway", "type": "river"}, True),
+        ({"category": "route", "type": "ferry"}, True),
+        ({"category": "place", "type": "sea"}, True),
+        ({"category": "highway", "type": "residential", "address": {"town": "Puttgarden"}}, False),
+        ({"category": "natural", "type": "beach"}, False),
+        (None, None),
+        ([], None),
+    ],
+)
+def test_on_water(data: Any, expected: bool | None) -> None:
+    assert on_water(data) is expected

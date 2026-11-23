@@ -139,7 +139,7 @@ def test_refresh_rewrites_statistics_and_composite_but_keeps_the_map(
     figures = LogbookFigures(fuel_litres=40, fuel_cost=70, travel_costs={"maut": 23.4})
 
     with patch("custom_components.reiseverlauftracker.export.exporter.render_base_map") as render_base_map:
-        text = refresh_export(positions, speed, altitude, tmp_path, replace(options, logbook=figures), files)
+        text, _ = refresh_export(positions, speed, altitude, tmp_path, replace(options, logbook=figures), files)
 
     render_base_map.assert_not_called()
     assert text == (tmp_path / files[ExportFile.STATS]).read_text(encoding="utf-8")

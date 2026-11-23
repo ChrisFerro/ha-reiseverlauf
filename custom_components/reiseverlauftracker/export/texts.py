@@ -37,6 +37,7 @@ class Texts:
     travel_costs: str
     cost_categories: dict[str, str]
     pitch: str
+    ferry: str
     markers: dict[str, str]
     """Legend labels of the map symbols by `MarkerKind` value."""
 
@@ -79,6 +80,7 @@ TEXTS: dict[str, Texts] = {
             "sonstiges": "Sonstiges",
         },
         pitch="Stellplatz",
+        ferry="Fähre",
         markers={
             "start": "Start",
             "ziel": "Ziel",
@@ -126,6 +128,7 @@ TEXTS: dict[str, Texts] = {
             "sonstiges": "other",
         },
         pitch="Pitch",
+        ferry="Ferry",
         markers={
             "start": "Start",
             "ziel": "Destination",

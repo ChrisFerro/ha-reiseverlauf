@@ -101,8 +101,12 @@ class ExportRefresher:
         if log is not None:
             positions, speed, altitude = log.export_inputs()
             data = ([p for p in positions if p.time <= info.end], speed, altitude)
-            # The raw data knows where each stop was, also for exports from before the stops kept it.
-            stops = log.export_stops(info.end, coordinator.settings.min_stop_duration) or info.stops
+            # The raw data know where each stop was, also for exports from before the stops kept it,
+            # and which stops were ferry crossings (docs/features/feat-12-kartensymbole.md 6.3).
+            logged = log.export_stops(info.end, coordinator.settings.min_stop_duration)
+            ferries = {s.start: s.ferry for s in logged}
+            info = replace(info, stops=tuple(replace(s, ferry=ferries.get(s.start, s.ferry)) for s in info.stops))
+            stops = logged or info.stops
             markers = trip_markers(stops, coordinator.logbook.logbook.trip_entries(trip_start), data[0])
         else:
             LOGGER.info("Export %s has no raw data; only its metadata gets the new logbook figures", info.folder)

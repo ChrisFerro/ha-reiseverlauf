@@ -105,6 +105,16 @@ def camp_site() -> Generator[AsyncMock]:
         yield mock
 
 
+@pytest.fixture(autouse=True)
+def on_water() -> Generator[AsyncMock]:
+    """Answer the ferry check of a stop: on land unless a test sets a `return_value`."""
+    with patch(
+        "custom_components.reiseverlauftracker.coordinator.places.async_reverse_on_water",
+        return_value=False,
+    ) as mock:
+        yield mock
+
+
 @pytest.fixture
 def entry_data() -> dict[str, Any]:
     """Return the data a set-up entry holds."""

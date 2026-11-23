@@ -73,6 +73,8 @@ class Stop:
     place: str | None = None
     lat: float | None = None
     lon: float | None = None
+    ferry: bool = False
+    """The vehicle was on a ferry; the crossing does not count as distance driven."""
 
     @property
     def duration(self) -> timedelta:
@@ -158,7 +160,6 @@ class ExportOptions:
     currency: str = "EUR"
     markers: tuple[MapMarker, ...] = ()
     """Symbols besides start and end, e.g. stops and refills (docs/features/feat-12-kartensymbole.md)."""
-    ferries: tuple[FerryLeg, ...] = ()
     arrival_stay: str | None = None
     """Name of the camp site or pitch at the arrival; the end symbol then shows a pitch."""
 

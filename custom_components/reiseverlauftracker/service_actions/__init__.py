@@ -22,6 +22,7 @@ from .export import (
     async_handle_cleanup,
     async_handle_export,
 )
+from .ferry import ATTR_FERRY, ATTR_STOP, async_handle_mark_ferry
 from .logbook import (
     ATTR_ENTRY,
     ATTR_FUEL,
@@ -77,6 +78,7 @@ SERVICE_COST_REMOVE = "reisekosten_loeschen"
 SERVICE_NO_TOLL = "keine_maut"
 SERVICE_TOUR_CREATE = "tour_erstellen"
 SERVICE_TOUR_CHANGE = "tour_aendern"
+SERVICE_MARK_FERRY = "faehre_markieren"
 
 ENTRY_SCHEMA = probatio.Schema({probatio.Required(ATTR_CONFIG_ENTRY_ID): cv.string})
 
@@ -176,6 +178,13 @@ TOUR_CHANGE_SCHEMA = ENTRY_SCHEMA.extend(
         ],
     }
 )
+MARK_FERRY_SCHEMA = ENTRY_SCHEMA.extend(
+    {
+        probatio.Optional(ATTR_TRIP): cv.string,
+        probatio.Required(ATTR_STOP): cv.datetime,
+        probatio.Optional(ATTR_FERRY, default=True): cv.boolean,
+    }
+)
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -229,6 +238,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_tour_change(call: ServiceCall) -> ServiceResponse:
         return await async_handle_change(hass, call)
 
+    async def handle_mark_ferry(call: ServiceCall) -> ServiceResponse:
+        return await async_handle_mark_ferry(hass, call)
+
     actions: tuple[tuple[str, Any, probatio.Schema, SupportsResponse], ...] = (
         (SERVICE_EXPORT, handle_export, EXPORT_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_CLEANUP, handle_cleanup, CLEANUP_SCHEMA, SupportsResponse.OPTIONAL),
@@ -246,6 +258,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         (SERVICE_NO_TOLL, handle_no_toll, NO_TOLL_SCHEMA, SupportsResponse.NONE),
         (SERVICE_TOUR_CREATE, handle_tour_create, TOUR_CREATE_SCHEMA, SupportsResponse.OPTIONAL),
         (SERVICE_TOUR_CHANGE, handle_tour_change, TOUR_CHANGE_SCHEMA, SupportsResponse.OPTIONAL),
+        (SERVICE_MARK_FERRY, handle_mark_ferry, MARK_FERRY_SCHEMA, SupportsResponse.OPTIONAL),
     )
     for name, handler, schema, supports_response in actions:
         if not hass.services.has_service(DOMAIN, name):

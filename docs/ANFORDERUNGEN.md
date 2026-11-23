@@ -81,6 +81,8 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
 - Tour-Formular: `datetime.…_tour_von`, `…_tour_bis`, `text.…_tour_titel`, `button.…_tour_erstellen`,
   `…_tour_aktualisieren`; bei einer Tour in der Export-Auswahl Attribute `art`, `standorte`, `tourkosten` (siehe
   [Tour](features/feat-10-tour.md) 7)
+- Fähre: `button.…_als_faehre_markieren` schaltet die Fähren-Markierung des in `select.…_fahrtenbuch_zeitpunkt`
+  gewählten Halts um; Attribut `halte` mit `faehre` (siehe [Kartensymbole](features/feat-12-kartensymbole.md) 6.3)
 - Fahrtenbuch-Auswertung: `sensor.…_kilometerstand`, `…_kraftstoff`, `…_gas_1`, `…_gas_2`, `…_durchschnittsverbrauch`,
   `…_reisekosten_monat`, `…_reisekosten_jahr` (alle Kosten, seit 0.3.0 statt `…_tank_und_gaskosten_*`), `…_maut_offen`
   (siehe [Nachträge](features/feat-09-nachtraege.md) 6.5),
@@ -101,13 +103,16 @@ Dienste (alle mit Pflichtfeld `config_entry_id`):
   und `reiseverlauftracker.keine_maut` (reise, an), siehe [Nachträge](features/feat-09-nachtraege.md) 6.3
 - `reiseverlauftracker.tour_erstellen` (von, bis, titel, skala) / `tour_aendern` (export, titel, von, bis,
   standorte), siehe [Tour](features/feat-10-tour.md) 6.2
+- `reiseverlauftracker.faehre_markieren` (halt, reise, faehre): Halt als Fährfahrt markieren oder die Markierung
+  entfernen, siehe [Kartensymbole](features/feat-12-kartensymbole.md) 6.3
 
 Events:
 
 - `reiseverlauftracker_gestartet`
 - `reiseverlauftracker_exportiert` nach manuellem Export (Daten wie `_beendet`, siehe [Export](features/feat-03-export.md) 5.5)
 - `reiseverlauftracker_beendet` mit Daten: Titel, Start, Ende, Strecke_km, Fahrzeit, Dateiliste (Name, URL),
-  Statistiktext, Pfad des Gesamtbilds, Halte, Fahrtenbuch (Kilometerstand, Liter, Kosten, Verbrauch)
+  Statistiktext, Pfad des Gesamtbilds, Halte (mit `faehre`), Fahrtenbuch (Kilometerstand, Liter, Kosten, Verbrauch),
+  Fährstrecke `faehre_km` und `faehre_min` (siehe [Kartensymbole](features/feat-12-kartensymbole.md) 5.10)
 - `reiseverlauftracker_fahrtenbuch` bei Reisestart und bei jedem Halt ab der Mindestdauer: Anlass, Zeit, Ort,
   Reise- und Halt-Start, Vorschlag (Kilometerstand, Kraftstoff, Gas 1, Gas 2), siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.3
 

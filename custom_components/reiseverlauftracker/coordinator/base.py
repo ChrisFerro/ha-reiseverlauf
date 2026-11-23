@@ -46,6 +46,7 @@ from .edit_form import EntryEditForm
 from .export_refresher import ExportRefresher
 from .export_runner import NOMINATIM_INTERVAL_S, async_export, event_data, media_base
 from .exports import ExportInfo, list_exports, read_raw, remove_files, set_countries
+from .ferries import Ferries
 from .late_form import LateEntryForm
 from .logbook import LogbookEntry, Occasion
 from .logbook_keeper import EntryContext, LogbookKeeper
@@ -121,6 +122,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.countries = CountryFinder(self)
         self.cost_form = TravelCostForm(self)
         self.refresher = ExportRefresher(self)
+        self.ferries = Ferries(self)
         self.tours = Tours(self)
         self.tour_form = TourForm(self)
 
@@ -388,8 +390,10 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         if not dplus_on:
             self.log.begin_stop(at)
             self._schedule_stop_check()
-        elif (stop := self.log.end_stop(at, self.settings.min_stop_duration)) is not None and stop.place is None:
-            self._lookup_stop_place(stop.start, stop.lat, stop.lon)
+        elif (stop := self.log.end_stop(at, self.settings.min_stop_duration)) is not None:
+            if stop.place is None:
+                self._lookup_stop_place(stop.start, stop.lat, stop.lon)
+            self.ferries.check(stop)
         if self.log.stops:
             self._remember_stop(self.log.stops[-1])
         self._save_log()
@@ -596,6 +600,14 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
     def _save_log(self) -> None:
         if self.log is not None:
             self._log_store.async_delay_save(self.log.as_dict, LOG_SAVE_DELAY_S)
+
+    def save_log(self) -> None:
+        """Store the running trip's log soon, e.g. after one of its stops was marked as ferry."""
+        self._save_log()
+
+    def publish(self) -> None:
+        """Tell the entities about a change, e.g. a stop marked as ferry."""
+        self._publish()
 
     async def _async_announce_start(self, start: datetime) -> None:
         log = self.log

@@ -590,6 +590,9 @@
       },
       "travel_cost_remove": {
         "name": "Reisekosten löschen"
+      },
+      "mark_ferry": {
+        "name": "Als Fähre markieren"
       }
     },
     "datetime": {
@@ -1013,6 +1016,28 @@
           "description": "Namen von Standorten als Liste aus Nacht (Datum des Abends) und Name, z. B. aus dem Attribut standorte der Export-Auswahl. Gilt für alle Nächte am selben Standort."
         }
       }
+    },
+    "faehre_markieren": {
+      "name": "Fähre markieren",
+      "description": "Markiert einen Halt als Fährfahrt oder entfernt die Markierung. Die Fährstrecke zählt nicht zu Strecke, Fahrzeit und Zählerständen; der Export der Reise wird erneuert.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "halt": {
+          "name": "Halt",
+          "description": "Beginn des Halts oder eine Zeit während des Halts."
+        },
+        "reise": {
+          "name": "Reise",
+          "description": "Ordner des Exports, Eintrag der Export-Auswahl oder Startzeit der Reise; ohne Angabe die Reise, in der der Halt liegt."
+        },
+        "faehre": {
+          "name": "Fähre",
+          "description": "Aus entfernt die Markierung wieder."
+        }
+      }
     }
   },
   "exceptions": {
@@ -1114,6 +1139,15 @@
     },
     "travel_cost_editing": {
       "message": "Im Reisekosten-Formular ist ein gespeicherter Eintrag gewählt. Mit „Reisekosten ändern“ speichern oder unter „Reisekosten Eintrag“ „Neu“ wählen."
+    },
+    "unknown_stop": {
+      "message": "Kein beendeter Halt zu dieser Zeit gefunden."
+    },
+    "ferry_without_raw_data": {
+      "message": "Für diese Reise gibt es keine Rohdaten mehr; die Fähre kann nicht markiert werden."
+    },
+    "no_stop_chosen": {
+      "message": "Zuerst in der Zeitpunkt-Auswahl einen Halt wählen."
     }
   }
 }
