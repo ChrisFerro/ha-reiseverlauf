@@ -8,7 +8,7 @@ the export that contains it (docs/features/feat-09-nachtraege.md 6.2).
 
 from dataclasses import replace
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from custom_components.reiseverlauftracker.const import EXPORT_CHOICE_ALL, LATE_CHOICE_CURRENT, LATE_CHOICE_OTHER
 from homeassistant.util import dt as dt_util
@@ -23,7 +23,7 @@ from .late_entry import (
     stop_label,
     stop_point,
 )
-from .logbook import LogbookEntry, RecordedStop, Refill
+from .logbook import LogbookEntry, Occasion, RecordedStop, Refill
 from .places import async_place_name
 from .trip_log import TripLog
 
@@ -108,17 +108,41 @@ class LateEntryForm:
             raise ValueError("odometer")
         return await keeper.async_add_late(point, odometer_km=odometer_km, fuel=fuel, gas=gas)
 
-    async def async_point_at(self, time: datetime) -> LatePoint:
-        """Return counters, position and place at a free time."""
+    async def async_point_at(self, time: datetime, *, exclude: str | None = None) -> LatePoint:
+        """Return counters, position and place at a free time; `exclude` is an entry being moved."""
         coordinator = self.coordinator
         spans = self._spans()
         span = containing_trip(spans, time)
         track = await self._async_track(span) if span is not None else None
-        point = resolve_time(time, coordinator.logbook.logbook, spans, track)
+        point = resolve_time(time, coordinator.logbook.logbook, spans, track, exclude=exclude)
         if point.lat is not None:
             place = await async_place_name(coordinator.hass, coordinator.settings, point.lat, point.lon)
             point = replace(point, place=place)
         return point
+
+    async def async_moved(self, entry: LogbookEntry, time: datetime) -> dict[str, Any]:
+        """
+        Return the entry fields that follow from moving `entry` to `time` (docs/features/feat-11-eintraege-bearbeiten.md 6.1).
+
+        Counters, trip and place are those of the new time; the odometer and the
+        levels stay, because they were read off. Without a position at the new
+        time, the entry keeps its position and place. A trip-start entry keeps
+        its trip.
+        """
+        time = dt_util.as_utc(time)
+        if time == entry.time:
+            return {}
+        point = await self.async_point_at(time, exclude=entry.id)
+        changes: dict[str, Any] = {
+            "distance_counter_m": point.counters.distance_m,
+            "ascent_counter_m": point.counters.ascent_m,
+            "descent_counter_m": point.counters.descent_m,
+        }
+        if entry.occasion is not Occasion.TRIP_START:
+            changes["trip_start"] = point.trip_start
+        if point.lat is not None:
+            changes.update(lat=point.lat, lon=point.lon, place=point.place)
+        return changes
 
     def _stops_by_label(self) -> dict[str, RecordedStop]:
         coordinator = self.coordinator

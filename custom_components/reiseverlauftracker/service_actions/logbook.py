@@ -143,7 +143,7 @@ def _refill(data: dict[str, Any], litres_key: str, amount_key: str) -> Refill | 
 
 async def async_handle_update(hass: HomeAssistant, call: ServiceCall) -> ServiceResponse:
     """
-    Change fields of a logbook entry.
+    Change fields of a logbook entry; a new time also brings the counters and place of that time.
 
     Returns:
         The changed entry.
@@ -152,11 +152,15 @@ async def async_handle_update(hass: HomeAssistant, call: ServiceCall) -> Service
         ServiceValidationError: No entry has the given id.
 
     """
-    keeper = _coordinator(hass, call).logbook
+    coordinator = _coordinator(hass, call)
+    keeper = coordinator.logbook
     entry_id = call.data[ATTR_ENTRY]
     if (current := keeper.logbook.get(entry_id)) is None:
         raise _unknown(entry_id)
-    entry = await keeper.async_update(entry_id, _changes(dict(call.data), current))
+    changes = _changes(dict(call.data), current)
+    if "time" in changes:
+        changes |= await coordinator.late_form.async_moved(current, changes["time"])
+    entry = await keeper.async_update(entry_id, changes)
     return {ATTR_ENTRY: entry_data(entry)}
 
 
