@@ -1,6 +1,7 @@
 # Feat-12: Kartensymbole
 
-Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf der Umsetzung folgt (Abschnitt 6).
+Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf der Umsetzung zur Freigabe (Abschnitt 6), zwei Punkte
+zur Entscheidung (6.10).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Halte](feat-02-halte.md), [Export](feat-03-export.md), [Fahrtenbuch](feat-06-fahrtenbuch.md),
 [Nachträge](feat-09-nachtraege.md), [Tour](feat-10-tour.md).
@@ -40,10 +41,14 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
   - Fahrtenbuch-Einträge (`LogbookEntry`): `lat`, `lon`, Ort, `fuel` (Liter, Betrag), `gas` (Liter, Betrag).
   - Tour-Standorte: Position um 3 Uhr, Name (Camping-/Stellplatz aus OpenStreetMap, `camp_site`/`caravan_site`).
   - Reisekosten (`TravelCost`, z. B. Maut, Fähre, Stellplatz) haben **keine Position**, nur Reise, Datum und Land.
-- **Gespeicherte Exporte:** Die Halte im Export (`coordinator/exports.py`) haben nur von, bis und Ort, **keine
-  Position**; die Position lässt sich aber aus den Rohdaten (Punkte) zur Startzeit des Halts bestimmen. Fahrtenbuch-
-  Einträge haben ihre Position im Fahrtenbuch. Fehlen die Rohdaten (aufgeräumt), kann die Karte nicht neu
-  gezeichnet werden.
+- **Gespeicherte Exporte:** Die Halte in `export.json` haben nur von, bis und Ort, **keine Position**. Die Rohdaten
+  einer automatischen Reise (`TripLog.as_dict`) enthalten die Halte aber mit `lat`/`lon`; manuelle Exporte haben in
+  den Rohdaten keine Halte. Fahrtenbuch-Einträge haben ihre Position im Fahrtenbuch. Fehlen die Rohdaten
+  (aufgeräumt), kann die Karte nicht neu gezeichnet werden.
+- **Erneuern ohne Kacheln:** `refresh_export` (nach Nachträgen) schreibt Statistik und Gesamtbild neu, verwendet aber
+  das vorhandene Kartenbild und lädt keine Kacheln.
+- **Strecke bei D+ aus:** `TripLog.add_position` zählt jede Bewegung, auch bei D+ aus. Eine Fährfahrt mit GPS geht
+  heute in Strecke, Fahrzeit (ab Stillstandsschwelle) und die Zählerstände des Fahrtenbuchs (Ø-Verbrauch) ein.
 - Die Kartenbilder werden mit dem Export gespeichert; das Gesamtbild setzt Karte und Profil bzw. Tabellen zusammen
   (`export/composite.py`).
 
@@ -129,6 +134,128 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
     Integration das verständlich und lässt den Export unverändert. Name der Aktion und des Knopfs bei der Umsetzung
     festlegen.
 
-## 6. Entwurf der Umsetzung
+## 6. Entwurf der Umsetzung (zur Freigabe)
 
-Folgt; vor der Umsetzung zur Freigabe vorlegen.
+### 6.1 Datenmodell
+
+- **Halt** (`TripStop`, `export.model.Stop`, `RecordedStop`): neues Feld `ferry` (`None` = nicht geprüft,
+  `"auto"` = erkannt, `"hand"` = von Hand markiert, `"kein"` = Markierung von Hand entfernt). `Stop` in `export.json`
+  bekommt zusätzlich `lat`/`lon`, damit spätere Karten ohne Rohdaten-Suche auskommen. Alte Dateien ohne die Felder
+  bleiben lesbar (Halt ohne Fähre, Position aus den Rohdaten).
+- **Kartensymbol** (`export.model.MapMarker`): Art (`start`, `ziel`, `stellplatz`, `halt`, `diesel`, `gas`,
+  `faehre`), Position und Zeit. Die Integration stellt die Liste je Export zusammen, die Exportbibliothek zeichnet
+  nur, was sie bekommt (bleibt ohne Home Assistant testbar).
+- **Fährstrecke** (`FerryLeg`): von, bis und die Punkte dazwischen; ohne Punkte die Positionen vor und nach der Fähre.
+- **Ziel auf Stellplatz** (5.7): `export.json` bekommt `arrival_stay` (Name oder `null`).
+
+### 6.2 Fähre erkennen (5.2)
+
+- Beim Ende eines Halts (D+ an) prüft die Integration, ob sich das Fahrzeug während des Halts weiter als die
+  Mindestbewegung bewegt hat (mindestens zwei brauchbare Punkte). Nur dann folgt die Prüfung „auf dem Wasser“.
+- **Auf dem Wasser:** Eine Ortsabfrage (Nominatim, wie bei den Halten, eigener User-Agent, 1 Anfrage/s) am Punkt auf
+  halber Strecke der Bewegung. Fähre, wenn Nominatim dort keine Adresse liefert (offene See) oder eine Wasserfläche
+  (`natural=water|bay|strait`, `waterway`, `place=sea`) bzw. eine Fährlinie (`route=ferry`). Eine Anfrage je Halt
+  mit Bewegung; ohne Ortsabfrage (ausgeschaltet, Fehler) keine automatische Erkennung, die Markierung von Hand
+  bleibt.
+- Das Ergebnis steht am Halt (`ferry="auto"`), in den Rohdaten, im Attribut `halte` (neu `faehre: true`), in
+  Statistik und Event `_beendet` („Fähre 10:15–11:40, Puttgarden → Rødby“).
+- Eine laufende Reise zeigt die Fähre im Attribut `halte`, sobald der Halt endet.
+
+### 6.3 Fähre von Hand (5.2)
+
+- **Neue Aktion** `reiseverlauftracker.faehre_markieren` (`config_entry_id`, `export`, `halt` = Startzeit des Halts,
+  `faehre` = an/aus). Ohne `export` gilt die Export-Auswahl. Ändert Halt in Rohdaten und `export.json` und erneuert den
+  Export (6.7); bei einer Tour mit dieser Reise wird nichts automatisch neu erstellt (wie bei Nachträgen).
+- **Im Dashboard:** Die Halte einer Reise stehen bereits in der Zeitpunkt-Auswahl des Nachtrags
+  (`select.…_fahrtenbuch_zeitpunkt`). **Neu:** `button.…_als_faehre_markieren` schaltet die Markierung des dort
+  gewählten Halts um; die Auswahl zeigt eine markierte Fähre im Label („· Fähre“). Halte, die nicht mehr in der
+  Auswahl stehen (älter als die Aufbewahrung), gehen über die Aktion.
+- Ohne GPS an Bord verbindet die Fährstrecke die letzte Position vor und die erste nach dem Halt (5.3).
+
+### 6.4 Symbole zeichnen (5.3, 5.4)
+
+- **Neues Modul** `export/symbols.py`: Piktogramme mit Pillow aus Formen, vierfach überabgetastet und verkleinert
+  (glatte Kanten). Jeder Kreis mit weißem Rand und Schatten; Durchmesser abhängig von der Linienbreite (wie heute).
+  Vorschlag Farben: Start Grün, Ziel Dunkelblau, Stellplatz Petrol, Halt Grau, Diesel Schwarz, Gas Orange, Fähre
+  Blau. Piktogramme: Fahne (Start), Zielflagge (Ziel), Wohnmobil (Stellplatz), Pause-Balken (Halt), Zapfsäule
+  (Diesel), Gasflasche (Gas), Schiff (Fähre).
+- **Karte** (`export/map.py`): Die Fahrstrecke zeichnet wie bisher `staticmap`. Danach zeichnet Pillow mit der
+  Projektion der gerenderten Karte (Zoom und Mitte von `staticmap`) die Fährstrecken gestrichelt in Blau mit weißem
+  Rand und die Symbole. Die Abschnitte der Fahrstrecke enden an der Fähre, damit keine rote Linie übers Wasser läuft.
+- **Reihenfolge:** Halte, dann Stellplatz, Diesel, Gas, Fähre, zuletzt Start und Ziel (oben).
+- **Zusammenfallen:** Diesel/Gas und Halt am selben Ort (Fahrtenbuch-Eintrag zum Halt oder Abstand unter der
+  Mindestbewegung): nur Diesel/Gas; beide zusammen nebeneinander. Symbole, die sich im Bild überdecken würden, rücken
+  um einen Durchmesser zur Seite (einfache Verdrängung, keine Optimierung).
+- **Kartenausschnitt:** Symbole und Fährstrecke liegen innerhalb der Strecke; der Ausschnitt bleibt wie bisher.
+
+### 6.5 Karte ohne Kacheln erneuern (5.9)
+
+- Beim Zeichnen mit Kacheln speichert der Export zusätzlich das **Kartenbild ohne Symbole** (Grundkarte) und die
+  Projektion (Zoom, Mitte, Größe) in `export.json`. Erneuern (Nachtrag, Eintrag geändert, Fähre markiert) zeichnet
+  Symbole und Fährstrecken auf die Grundkarte, **ohne Kacheln zu laden**.
+- Die Grundkarte ist ein eigener Dateityp (`karte_basis`, Name `<Titel>_karte_basis.png`), nicht in den Downloads und
+  nicht im Event; `aufraeumen` löscht sie mit der Karte.
+- Alte Exporte ohne Grundkarte: Erneuern lässt die Karte wie sie ist (Hinweis im Log); Symbole gibt es dort über
+  „Karte neu zeichnen“ (6.8).
+
+### 6.6 Welche Symbole wo (5.5–5.8)
+
+- **Reise:** Start, Ziel bzw. Stellplatz (5.7), Halte und Fähren aus den Halten der Reise, Diesel und Gas aus den
+  Fahrtenbuch-Einträgen der Reise (Zeitraum wie `trip_figures`: Reisebeginn bis Ende der Reise). Einträge ohne
+  Position bekommen die Position aus den Rohdaten zu ihrer Zeit, sonst kein Symbol.
+- **Ziel auf Stellplatz:** Nach dem Ende einer Reise eine Ortsabfrage für das Ziel (`async_stay_name`, wie die
+  Standorte der Tour, 1 s nach der Titelabfrage). Statistik: Zeile „Stellplatz: Camping Seeblick“.
+- **Manueller Export:** Start, Ziel bzw. Stellplatz, Diesel und Gas aus dem Fahrtenbuch im Zeitraum; keine Halte,
+  keine Fähre.
+- **Tour:** Start, Ziel, Übernachtungen (Stellplatz-Symbol statt oranger Punkte; aufeinanderfolgende Nächte am selben
+  Standort ein Symbol), Diesel und Gas aus dem Fahrtenbuch im Tour-Zeitraum, Fähren aus den Halten der Reisen (Rohdaten
+  der Tour). Keine Halte.
+- **Legende** (5.5): `render_composite` bekommt die vorkommenden Arten und zeichnet unter der Karte eine Zeile mit
+  Symbol und Name (`texts.py`, de/en: Start, Ziel, Stellplatz, Halt, Diesel, Gas, Fähre). Bei der Tour ebenso.
+
+### 6.7 Erneuern
+
+- Der vorhandene Ablauf (`ExportRefresher`, `async_refresh`) zeichnet die Symbole neu (6.5), wenn sich Fahrtenbuch-
+  Einträge mit Tanken, die Fähren-Markierung oder `arrival_stay` ändern. Die Tour zeichnet ihre Symbole bei
+  „Tour aktualisieren“ neu, ebenfalls auf der Grundkarte (`reuse_map` wie bisher).
+
+### 6.8 Karte neu zeichnen (5.9)
+
+- **Neue Aktion** `reiseverlauftracker.karte_neu_zeichnen` (`config_entry_id`, `export`; ohne `export` die
+  Export-Auswahl) und **neu** `button.…_karte_neu_zeichnen`. Zeichnet Karte (mit Kacheln), Grundkarte und Gesamtbild
+  eines Exports (Reise oder Tour) aus den Rohdaten neu; Statistik, GPX und Profil bleiben bzw. werden wie beim
+  Erneuern geschrieben. Je Aufruf genau ein Export; mit „Alle Exporte“ Fehler mit Hinweis.
+- Bei alten Reisen ohne Fähren-Prüfung (`ferry=None`) prüft „Karte neu zeichnen“ die Halte mit Bewegung einmal auf
+  Fähre (6.2) und fragt das Ziel einmal nach einem Stellplatz ab (5.7).
+- Fehlen die Rohdaten: Fehler „Keine Rohdaten mehr vorhanden, Karte kann nicht neu gezeichnet werden“; der Export
+  bleibt unverändert. Kein Event `_beendet`.
+
+### 6.9 Abgrenzung
+
+- Keine Kosten auf der Karte (5.1); keine Symbole im Kartenbild der laufenden Reise (es gibt keins).
+- Keine Wegpunkte im GPX für Halte und Tankstopps (wäre ein eigenes kleines Feature).
+- Keine Neuzeichnung aller Exporte auf einmal (5.9).
+
+### 6.10 Zur Entscheidung vor der Umsetzung
+
+1. **Strecke auf der Fähre:** Heute zählen die Kilometer auf der Fähre als gefahrene Strecke, als Fahrzeit und in den
+   Zählerständen für den Ø-Verbrauch (3). Vorschlag: Ab dieser Version zählt eine erkannte oder markierte Fähre
+   **nicht** zu Strecke, Fahrzeit und Zählerständen; die Statistik zeigt sie getrennt („Fähre: 18 km, 45 min“). Das
+   ändert Strecke und Ø-Verbrauch von Reisen mit Fähre (Release-Notes). Alternative: alles bleibt, die Fähre wird nur
+   eingezeichnet.
+2. **Grundkarte speichern** (6.5): eine zusätzliche Bilddatei je Export (bei Skala 2 einige MB), dafür Erneuern ohne
+   Kacheln. Alternative: keine Grundkarte; Symbole ändern sich dann nur über „Karte neu zeichnen“ (mit Kacheln).
+
+### 6.11 Teilschritte
+
+1. Datenmodell (6.1) und Symbole zeichnen (6.4) in der Exportbibliothek, mit Tests auf Testdaten (Bilder: Größe,
+   Pixel an Symbolpositionen, Fährstrecke gestrichelt); Grundkarte und Projektion (6.5).
+2. Reise: Symbole aus Halten und Fahrtenbuch, Ziel auf Stellplatz, Legende im Gesamtbild (6.6), Erneuern (6.7).
+3. Fähre erkennen (6.2) und von Hand markieren (6.3), ggf. Strecke ohne Fähre (6.10.1), mit Tests.
+4. Tour: Symbole und Legende (6.6).
+5. „Karte neu zeichnen“ (6.8): Aktion, Knopf, Übersetzungen, Tests.
+6. README (de/en), Release-Notes, Feature-Dokumente; Prüfpunkt in `script/develop` mit simulierter Reise (Halt,
+   Tankstopp, Gasstopp, Fähre) und Kartenbild ansehen.
+
+Neue Entitäten: 2 Knöpfe (`als_faehre_markieren`, `karte_neu_zeichnen`); neue Aktionen: `faehre_markieren`,
+`karte_neu_zeichnen`. Kein Breaking Change, außer bei 6.10.1 (Strecke ohne Fähre).
