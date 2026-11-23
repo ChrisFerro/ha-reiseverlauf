@@ -1,6 +1,6 @@
 # Reiseverlauf – Anforderungen und Übergabe
 
-Stand: 20.11.2026. Übersicht über die Home-Assistant-Integration `reiseverlauftracker`: Ziel, Umgebung,
+Stand: 23.11.2026. Übersicht über die Home-Assistant-Integration `reiseverlauftracker`: Ziel, Umgebung,
 Datenquellen, Entitäten und Einstellungen. Die einzelnen Features stehen in eigenen Dokumenten (siehe 11).
 
 ## 1. Ziel
@@ -75,6 +75,9 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
 - Reisekosten-Formular: `select.…_reisekosten_kategorie`, `…_reisekosten_land`, `number.…_reisekosten_betrag`,
   `text.…_reisekosten_notiz`, `date.…_reisekosten_datum`, `button.…_reisekosten_speichern`, `button.…_keine_maut`;
   Reise aus der Export-Auswahl (Attribut `reisekosten`), siehe [Nachträge](features/feat-09-nachtraege.md) 6.3
+- Tour-Formular: `datetime.…_tour_von`, `…_tour_bis`, `text.…_tour_titel`, `button.…_tour_erstellen`,
+  `…_tour_aktualisieren`; bei einer Tour in der Export-Auswahl Attribute `art`, `standorte`, `tourkosten` (siehe
+  [Tour](features/feat-10-tour.md) 7)
 - Fahrtenbuch-Auswertung: `sensor.…_kilometerstand`, `…_kraftstoff`, `…_gas_1`, `…_gas_2`, `…_durchschnittsverbrauch`,
   `…_reisekosten_monat`, `…_reisekosten_jahr` (alle Kosten, seit 0.3.0 statt `…_tank_und_gaskosten_*`), `…_maut_offen`
   (siehe [Nachträge](features/feat-09-nachtraege.md) 6.5),
@@ -93,6 +96,8 @@ Dienste (alle mit Pflichtfeld `config_entry_id`):
   Zeitpunkt (siehe [Nachträge](features/feat-09-nachtraege.md) 6.2)
 - `reiseverlauftracker.reisekosten_eintragen` (reise, datum, kategorie, betrag, land, notiz) / `_aendern` / `_loeschen`
   und `reiseverlauftracker.keine_maut` (reise, an), siehe [Nachträge](features/feat-09-nachtraege.md) 6.3
+- `reiseverlauftracker.tour_erstellen` (von, bis, titel, skala) / `tour_aendern` (export, titel, von, bis,
+  standorte), siehe [Tour](features/feat-10-tour.md) 6.2
 
 Events:
 
@@ -102,6 +107,9 @@ Events:
   Statistiktext, Pfad des Gesamtbilds, Halte, Fahrtenbuch (Kilometerstand, Liter, Kosten, Verbrauch)
 - `reiseverlauftracker_fahrtenbuch` bei Reisestart und bei jedem Halt ab der Mindestdauer: Anlass, Zeit, Ort,
   Reise- und Halt-Start, Vorschlag (Kilometerstand, Kraftstoff, Gas 1, Gas 2), siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.3
+
+- `reiseverlauftracker_tour` nach dem Erstellen und jeder Neuerstellung einer Tour: Anlass (`erstellt`,
+  `aktualisiert`), Titel, Zeitraum, Strecke, Kosten, Dateien, Gesamtbild (siehe [Tour](features/feat-10-tour.md) 6.5)
 
 Push-Nachricht: **nicht** in der Integration, sondern als Automation aus einem mitgelieferten Blueprint, siehe
 [features/feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md); die Fahrtenbuch-Erinnerung hat einen eigenen
@@ -155,7 +163,7 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 9. Nachträge: Tankstopp und Reisekosten (Maut je Reise und Land) später erfassen (siehe
    [features/feat-09-nachtraege.md](features/feat-09-nachtraege.md)).
 10. Tour: mehrere Reisen und Standzeiten (z. B. Urlaub, Werkstattaufenthalt) mit Reiseverlauf und Kostenaufstellung
-    zusammenfassen (siehe [features/feat-10-tour.md](features/feat-10-tour.md)).
+    zusammenfassen (siehe [features/feat-10-tour.md](features/feat-10-tour.md)). – umgesetzt 23.11.2026
 11. Einträge bearbeiten: Fahrtenbuch-Einträge im Dashboard ändern und löschen (siehe
     [features/feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)).
 
@@ -179,5 +187,5 @@ neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeb
 | Feat-07 | Geschützter Download     | [feat-07-downloads.md](features/feat-07-downloads.md)                         | 7      | umgesetzt                 |
 | Feat-08 | Verbrauchsmodell         | [feat-08-verbrauchsmodell.md](features/feat-08-verbrauchsmodell.md)           | 8      | Zwischenschritt umgesetzt |
 | Feat-09 | Nachträge (Tank, Kosten) | [feat-09-nachtraege.md](features/feat-09-nachtraege.md)                       | 9      | umgesetzt                 |
-| Feat-10 | Tour                     | [feat-10-tour.md](features/feat-10-tour.md)                                   | 10     | Entwurf zur Freigabe      |
+| Feat-10 | Tour                     | [feat-10-tour.md](features/feat-10-tour.md)                                   | 10     | umgesetzt                 |
 | Feat-11 | Einträge bearbeiten      | [feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)   | 11     | Entwurf zur Freigabe      |
