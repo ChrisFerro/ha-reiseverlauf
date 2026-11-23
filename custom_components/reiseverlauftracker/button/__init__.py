@@ -1,4 +1,4 @@
-"""Button platform for reiseverlauftracker: the logbook form (save, discard, late entry) and the travel costs form."""
+"""Button platform for reiseverlauftracker: the logbook, travel costs and tour forms."""
 
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Any
 
 from custom_components.reiseverlauftracker.const import DOMAIN
 from custom_components.reiseverlauftracker.coordinator.cost_form import CostFormError
+from custom_components.reiseverlauftracker.coordinator.tours import TourError
 from custom_components.reiseverlauftracker.entity import ReiseverlaufEntity
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 PARALLEL_UPDATES = 0
 
@@ -43,6 +44,28 @@ async def _no_toll(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key=err.args[0]) from err
 
 
+async def _tour(coordinator: ReiseverlaufDataUpdateCoordinator, *, update: bool) -> None:
+    form = coordinator.tour_form
+    try:
+        await (form.async_update() if update else form.async_create())
+    except TourError as err:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN, translation_key=err.key, translation_placeholders=err.placeholders
+        ) from err
+    except OSError as err:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN, translation_key="export_failed", translation_placeholders={"error": str(err)}
+        ) from err
+
+
+async def _tour_create(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    await _tour(coordinator, update=False)
+
+
+async def _tour_update(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    await _tour(coordinator, update=True)
+
+
 async def _discard(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
     coordinator.logbook.discard()
 
@@ -60,6 +83,8 @@ ENTITY_DESCRIPTIONS = (
     LogbookButtonEntityDescription(key="logbook_late", translation_key="logbook_late", press_fn=_save_late),
     LogbookButtonEntityDescription(key="travel_cost_save", translation_key="travel_cost_save", press_fn=_save_cost),
     LogbookButtonEntityDescription(key="no_toll", translation_key="no_toll", press_fn=_no_toll),
+    LogbookButtonEntityDescription(key="tour_create", translation_key="tour_create", press_fn=_tour_create),
+    LogbookButtonEntityDescription(key="tour_update", translation_key="tour_update", press_fn=_tour_update),
 )
 
 

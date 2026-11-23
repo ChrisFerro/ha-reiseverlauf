@@ -71,6 +71,7 @@ EVENT_TRIP_ENDED = f"{DOMAIN}_beendet"
 EVENT_TRIP_EXPORTED = f"{DOMAIN}_exportiert"
 EVENT_LOGBOOK = f"{DOMAIN}_fahrtenbuch"
 EVENT_TRIP_STARTED = f"{DOMAIN}_gestartet"
+EVENT_TOUR = f"{DOMAIN}_tour"
 
 EXPORT_CHOICE_ALL = "all"
 # Fixed options of the logbook time selection; the stops in between are labelled with their time and place.

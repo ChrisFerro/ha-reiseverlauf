@@ -41,11 +41,11 @@ class TravelCostForm:
         self._day_trip: str | None = None
 
     def trip(self) -> ExportInfo | None:
-        """Return the export chosen in the export selection, or None for "all exports"."""
+        """Return the trip chosen in the export selection, or None for "all exports" and for a tour."""
         choice = self.coordinator.current_export_choice()
         if choice is None or choice == EXPORT_CHOICE_ALL:
             return None
-        exports = self.coordinator.find_exports(choice)
+        exports = [info for info in self.coordinator.find_exports(choice) if not info.is_tour]
         return exports[0] if exports else None
 
     def _trip_key(self) -> str | None:

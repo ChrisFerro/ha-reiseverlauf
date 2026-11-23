@@ -59,6 +59,7 @@ aufraeumen:
         - gpx
         - stats
         - raw
+        - days
       selector:
         select:
           multiple: true
@@ -70,6 +71,7 @@ aufraeumen:
             - gpx
             - stats
             - raw
+            - days
 
 reise_starten:
   fields:
@@ -446,3 +448,58 @@ keine_maut:
       default: true
       selector:
         boolean:
+
+tour_erstellen:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    von:
+      required: true
+      example: "2026-10-10 08:00:00"
+      selector:
+        datetime:
+    bis:
+      required: true
+      example: "2026-10-17 18:00:00"
+      selector:
+        datetime:
+    titel:
+      example: Südtirol Herbst 2026
+      selector:
+        text:
+    skala:
+      selector:
+        number:
+          min: 1
+          max: 4
+          step: 0.5
+          mode: box
+
+tour_aendern:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    export:
+      example: "tour-2026-10-10-2026-10-17"
+      selector:
+        text:
+    titel:
+      example: Südtirol Herbst 2026
+      selector:
+        text:
+    von:
+      selector:
+        datetime:
+    bis:
+      selector:
+        datetime:
+    standorte:
+      example: '[{"nacht": "2026-10-10", "name": "Camping Seeblick"}]'
+      selector:
+        object:

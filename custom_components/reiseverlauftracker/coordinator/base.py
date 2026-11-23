@@ -50,6 +50,8 @@ from .logbook_keeper import EntryContext, LogbookKeeper
 from .models import TripSnapshot
 from .places import async_place_name
 from .snapshot import ExportState, build_snapshot
+from .tour_form import TourForm
+from .tours import Tours
 from .trip_detector import (
     DetectorSettings,
     TripClosed,
@@ -93,6 +95,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
             on_change=self._publish,
             trip_titles=self.trip_titles,
             on_trip_changed=lambda start: self.refresher.schedule(start),
+            on_changed_at=lambda moment: self.tours.schedule(moment),
         )
         self._detector_store: Store[dict[str, Any]] = Store(
             hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}.detector"
@@ -114,6 +117,8 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.countries = CountryFinder(self)
         self.cost_form = TravelCostForm(self)
         self.refresher = ExportRefresher(self)
+        self.tours = Tours(self)
+        self.tour_form = TourForm(self)
 
     async def async_start(self) -> None:
         """Restore detector, trip log and logbook, reconcile with the current D+ state and subscribe."""
@@ -172,6 +177,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self._unsub_states = self._unsub_deadline = self._unsub_refresh = self._unsub_stop_check = None
         self._unsub_links = None
         self.refresher.cancel()
+        self.tours.cancel()
         await self._detector_store.async_save(self.detector.as_dict())
         if self.log is not None:
             await self._log_store.async_save(self.log.as_dict())
@@ -227,7 +233,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
 
     def trip_titles(self) -> dict[datetime, str]:
         """Return the titles of the exported trips by their start time."""
-        return {info.start: info.title for info in self.exports if info.automatic}
+        return {info.start: info.title for info in self.exports if info.automatic and not info.is_tour}
 
     def export_choice_options(self) -> list[str]:
         """Return the labels of all exports, newest first, and the "all" choice at the end."""

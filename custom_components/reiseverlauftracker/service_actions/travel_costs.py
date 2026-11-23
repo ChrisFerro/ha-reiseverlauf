@@ -43,11 +43,12 @@ def trip_start_of(coordinator: ReiseverlaufDataUpdateCoordinator, value: str) ->
         ServiceValidationError: No such trip.
 
     """
-    if value != EXPORT_CHOICE_ALL and (exports := coordinator.find_exports(value)):
-        return exports[0].start
+    trips = [info for info in coordinator.find_exports(value) if not info.is_tour] if value != EXPORT_CHOICE_ALL else []
+    if trips:
+        return trips[0].start
     if (parsed := dt_util.parse_datetime(value)) is not None:
         start = dt_util.as_utc(parsed if parsed.tzinfo else parsed.replace(tzinfo=dt_util.get_default_time_zone()))
-        starts = {info.start for info in coordinator.exports}
+        starts = {info.start for info in coordinator.exports if not info.is_tour}
         if coordinator.log is not None:
             starts.add(coordinator.log.start)
         if start in starts:

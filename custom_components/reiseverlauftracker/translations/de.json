@@ -130,7 +130,8 @@
         "profile": "Profil",
         "gpx": "GPX",
         "stats": "Statistik",
-        "raw": "Rohdaten"
+        "raw": "Rohdaten",
+        "days": "Tagesübersicht (CSV)"
       }
     },
     "country": {
@@ -206,6 +207,17 @@
         "name": "Export-Auswahl",
         "state": {
           "all": "Alle Exporte"
+        },
+        "state_attributes": {
+          "art": {
+            "name": "Art"
+          },
+          "standorte": {
+            "name": "Standorte"
+          },
+          "tourkosten": {
+            "name": "Tourkosten"
+          }
         }
       },
       "logbook_time": {
@@ -515,16 +527,31 @@
       },
       "no_toll": {
         "name": "Keine Maut"
+      },
+      "tour_create": {
+        "name": "Tour erstellen"
+      },
+      "tour_update": {
+        "name": "Tour aktualisieren"
       }
     },
     "datetime": {
       "logbook_late_time": {
         "name": "Fahrtenbuch Nachtrag Zeit"
+      },
+      "tour_start": {
+        "name": "Tour von"
+      },
+      "tour_end": {
+        "name": "Tour bis"
       }
     },
     "text": {
       "travel_cost_note": {
         "name": "Reisekosten Notiz"
+      },
+      "tour_title": {
+        "name": "Tour Titel"
       }
     },
     "date": {
@@ -873,6 +900,62 @@
           "description": "Aus entfernt das Kennzeichen wieder."
         }
       }
+    },
+    "tour_erstellen": {
+      "name": "Tour erstellen",
+      "description": "Fasst alle Reisen, die im Zeitraum beginnen, mit den Standzeiten dazwischen zu einer Tour zusammen: Gesamtkarte, Tagesübersicht, Kostenaufstellung, GPX und Gesamtbild. Liest die Rohdaten der Reisen, nicht die History.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "von": {
+          "name": "Von",
+          "description": "Beginn der Tour; alle Reisen, die ab hier beginnen, gehören dazu."
+        },
+        "bis": {
+          "name": "Bis",
+          "description": "Ende der Tour; Kosten bis zu diesem Tag zählen mit."
+        },
+        "titel": {
+          "name": "Titel",
+          "description": "Titel der Tour. Ohne Angabe: Standort mit den meisten Nächten und Zeitraum."
+        },
+        "skala": {
+          "name": "Skalierung",
+          "description": "Größenfaktor der Bilder. Ohne Angabe gilt die Option."
+        }
+      }
+    },
+    "tour_aendern": {
+      "name": "Tour ändern",
+      "description": "Ändert Titel, Zeitraum oder Standortnamen einer Tour und erstellt sie neu.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "export": {
+          "name": "Tour",
+          "description": "Leer lassen für die Tour, die in der Export-Auswahl gewählt ist. Sonst ihr Eintrag der Export-Auswahl oder der Ordnername."
+        },
+        "titel": {
+          "name": "Titel",
+          "description": "Neuer Titel; leer für den Vorschlag aus Standort und Zeitraum."
+        },
+        "von": {
+          "name": "Von",
+          "description": "Neuer Beginn der Tour."
+        },
+        "bis": {
+          "name": "Bis",
+          "description": "Neues Ende der Tour."
+        },
+        "standorte": {
+          "name": "Standorte",
+          "description": "Namen von Standorten als Liste aus Nacht (Datum des Abends) und Name, z. B. aus dem Attribut standorte der Export-Auswahl. Gilt für alle Nächte am selben Standort."
+        }
+      }
     }
   },
   "exceptions": {
@@ -947,6 +1030,24 @@
     },
     "travel_cost_without_trip": {
       "message": "Bitte in der Export-Auswahl eine Reise wählen."
+    },
+    "tour_no_trips": {
+      "message": "In diesem Zeitraum beginnt keine Reise."
+    },
+    "tour_raw_missing": {
+      "message": "Diese Reisen haben keine Rohdaten mehr und lassen sich nicht in die Tour aufnehmen: {trips}"
+    },
+    "tour_not_found": {
+      "message": "Es gibt keine Tour {export}."
+    },
+    "not_a_tour": {
+      "message": "„{export}“ ist keine Tour."
+    },
+    "tour_not_chosen": {
+      "message": "Bitte in der Export-Auswahl eine Tour wählen."
+    },
+    "tour_without_start": {
+      "message": "Bitte einen Beginn der Tour angeben oder in der Export-Auswahl eine Reise wählen."
     }
   }
 }

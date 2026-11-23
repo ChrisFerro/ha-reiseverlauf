@@ -3,7 +3,11 @@
 from typing import TYPE_CHECKING
 
 from custom_components.reiseverlauftracker.const import DOMAIN
-from custom_components.reiseverlauftracker.utils.geocode import async_reverse_country, async_reverse_geocode
+from custom_components.reiseverlauftracker.utils.geocode import (
+    async_reverse_country,
+    async_reverse_geocode,
+    async_reverse_stay,
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_loaded_integration
 
@@ -26,6 +30,13 @@ async def async_place_name(
     if not settings.place_names or lat is None or lon is None:
         return None
     return await async_reverse_geocode(async_get_clientsession(hass), lat, lon, hass.config.language, _agent(hass))
+
+
+async def async_stay_name(hass: HomeAssistant, settings: ReiseverlaufSettings, lat: float, lon: float) -> str | None:
+    """Return the camp site or pitch at a night place, else the place name; None when lookups are off or fail."""
+    if not settings.place_names:
+        return None
+    return await async_reverse_stay(async_get_clientsession(hass), lat, lon, hass.config.language, _agent(hass))
 
 
 async def async_country(hass: HomeAssistant, settings: ReiseverlaufSettings, lat: float, lon: float) -> str | None:

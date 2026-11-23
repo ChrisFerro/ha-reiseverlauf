@@ -11,6 +11,7 @@ from custom_components.reiseverlauftracker.utils.geocode import (
     async_reverse_geocode,
     country_code,
     place_name,
+    stay_name,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -76,3 +77,14 @@ async def test_reverse_country_asks_for_the_country_zoom(
     assert code == "AT"
     _, url, _, _ = aioclient_mock.mock_calls[0]
     assert url.query["zoom"] == "3"
+
+
+def test_stay_name_prefers_camp_sites() -> None:
+    camp = {"type": "camp_site", "name": "Camping Seeblick", "address": {"village": "Kaltern"}}
+    pitch = {"type": "caravan_site", "name": "Stellplatz am See", "address": {"town": "Bozen"}}
+    other = {"type": "house", "name": "Haus 3", "address": {"village": "Kaltern"}}
+    assert stay_name(camp) == "Camping Seeblick"
+    assert stay_name(pitch) == "Stellplatz am See"
+    assert stay_name(other) == "Kaltern"
+    assert stay_name({"type": "house"}) is None
+    assert stay_name(None) is None

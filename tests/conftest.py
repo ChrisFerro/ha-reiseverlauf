@@ -46,9 +46,15 @@ def media_dir(hass: HomeAssistant, tmp_path: Path) -> Path:
 @pytest.fixture(autouse=True)
 def no_tiles() -> Generator[None]:
     """Render maps from blank tiles instead of downloading them."""
-    with patch(
-        "custom_components.reiseverlauftracker.export.exporter.http_tile_fetcher",
-        return_value=lambda _url: None,
+    with (
+        patch(
+            "custom_components.reiseverlauftracker.export.exporter.http_tile_fetcher",
+            return_value=lambda _url: None,
+        ),
+        patch(
+            "custom_components.reiseverlauftracker.export.tour_export.http_tile_fetcher",
+            return_value=lambda _url: None,
+        ),
     ):
         yield
 
@@ -56,6 +62,11 @@ def no_tiles() -> Generator[None]:
 def _fake_place(_session: Any, lat: float, _lon: float, _language: str, _user_agent: str) -> str:
     """Name the start point of the test tracks "Startort" and every other place "Zielort"."""
     return "Startort" if lat < 50.0001 else "Zielort"
+
+
+def _fake_stay(_session: Any, lat: float, _lon: float, _language: str, _user_agent: str) -> str:
+    """Name the night places of the test tracks like a camp site: "Camping Start" or "Camping Ziel"."""
+    return "Camping Start" if lat < 50.0001 else "Camping Ziel"
 
 
 def _fake_country(_session: Any, lat: float, _lon: float, _user_agent: str) -> str:
@@ -74,6 +85,10 @@ def geocode() -> Generator[AsyncMock]:
         patch(
             "custom_components.reiseverlauftracker.coordinator.places.async_reverse_country",
             side_effect=_fake_country,
+        ),
+        patch(
+            "custom_components.reiseverlauftracker.coordinator.places.async_reverse_stay",
+            side_effect=_fake_stay,
         ),
         patch("custom_components.reiseverlauftracker.coordinator.export_runner.NOMINATIM_INTERVAL_S", 0),
     ):

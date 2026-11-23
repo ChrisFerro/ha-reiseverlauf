@@ -643,6 +643,38 @@ class Logbook:
             gas2_percent=gas2.gas2_percent if gas2 else None,
         )
 
+    def gas_level_at(self, moment: datetime) -> float | None:
+        """Return the levels of both gas tanks added up, as last read at or before `moment`, or None."""
+        for entry in reversed(self.entries):
+            if entry.time <= moment and entry.gas1_percent is not None and entry.gas2_percent is not None:
+                return entry.gas1_percent + entry.gas2_percent
+        return None
+
+    def gas_litres_per_percent(self) -> float | None:
+        """
+        Return how many litres of gas one percentage point of both tanks holds, from the gas stops.
+
+        A gas stop fills both tanks from the levels read before it; stops without
+        a reading before them, or that filled nothing, do not count.
+        """
+        litres = percent = 0.0
+        level: float | None = None
+        for entry in self.entries:
+            if entry.gas is not None and level is not None and level < 2 * FULL_PERCENT:
+                litres += entry.gas.litres
+                percent += 2 * FULL_PERCENT - level
+            if entry.gas1_percent is not None and entry.gas2_percent is not None:
+                level = entry.gas1_percent + entry.gas2_percent
+        return litres / percent if percent > 0 else None
+
+    def last_price(self, kind: str, until: datetime) -> float | None:
+        """Return the price per litre of the last refill of `kind` ("fuel" or "gas") with an amount until `until`."""
+        for entry in reversed(self.entries):
+            refill: Refill | None = getattr(entry, kind)
+            if entry.time <= until and refill is not None and refill.amount and refill.litres > 0:
+                return refill.amount / refill.litres
+        return None
+
     def cost_between(self, start: datetime, end: datetime) -> float:
         """Return fuel and gas costs of the entries from `start` until before `end`."""
         return sum(e.cost for e in self.entries if start <= e.time < end)
