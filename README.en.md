@@ -90,7 +90,8 @@ category, country, amount, note and date with save and no-toll buttons add trave
 export selection, whose attribute `reisekosten` lists them.
 
 For tours, the tour from, tour until and tour title fields with the buttons create tour and update tour combine
-trips (see [Tours](#tours)); with a tour chosen, the export selection has the attributes `art`, `standorte` and
+trips (see [Tours](#tours)); the binary sensor tour in progress is on while a tour is created, changed or renewed;
+with a tour chosen, the export selection has the attributes `art`, `standorte` and
 `tourkosten`.
 
 ## Actions

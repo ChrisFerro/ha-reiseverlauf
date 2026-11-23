@@ -195,6 +195,9 @@
     "binary_sensor": {
       "trip_active": {
         "name": "Trip active"
+      },
+      "tour_busy": {
+        "name": "Tour in progress"
       }
     },
     "image": {

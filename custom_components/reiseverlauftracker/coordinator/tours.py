@@ -124,6 +124,12 @@ class Tours:
         self._pending: set[str] = set()
         self._unsub: CALLBACK_TYPE | None = None
         self._lock = asyncio.Lock()
+        self._building = 0
+
+    @property
+    def busy(self) -> bool:
+        """Return whether a tour is being created, changed or renewed, so a dashboard can show it."""
+        return self._building > 0
 
     def all(self) -> list[ExportInfo]:
         """Return the tours, newest first."""
@@ -254,8 +260,14 @@ class Tours:
         return changed
 
     async def _async_build(self, request: _Request) -> ExportInfo:
-        async with self._lock:
-            return await self._async_build_locked(request)
+        self._building += 1
+        self.coordinator.async_update_listeners()
+        try:
+            async with self._lock:
+                return await self._async_build_locked(request)
+        finally:
+            self._building -= 1
+            self.coordinator.async_update_listeners()
 
     async def _async_build_locked(self, request: _Request) -> ExportInfo:
         coordinator = self.coordinator

@@ -252,5 +252,8 @@ Jeder Schritt mit Tests, grünem `script/check` und einem Prüfpunkt in der Entw
   `…_tour_aktualisieren`. Mit einer Reise in der Auswahl: von = Reisebeginn, bis = jetzt, Titel leer (Vorschlag). Mit
   einer Tour: deren Zeitraum und Titel; „Tour aktualisieren“ übernimmt sie. Nach dem Erstellen wählt die
   Export-Auswahl die neue Tour.
+- **Rückmeldung (23.11.2026):** `binary_sensor.…_tour_in_arbeit` (Gerätetyp „läuft“) ist an, solange eine Tour
+  erstellt, geändert oder nach einer Kostenänderung neu erstellt wird, auch bei einem Fehler nur bis zu dessen
+  Meldung. Das Dashboard zeigt damit „Tour wird erstellt …“; der Knopf selbst gibt bis zum Ende keine Rückmeldung.
 - **Dateityp:** neuer Typ `days` (`<titel>_tage.csv`) für „Exporte aufräumen“.
 - **Push (6.5):** wie bei Reisen ohne Bildanhang (das Gesamtbild ist für iOS zu groß); Tippen öffnet das Dashboard.

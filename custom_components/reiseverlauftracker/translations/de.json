@@ -195,6 +195,9 @@
     "binary_sensor": {
       "trip_active": {
         "name": "Reise aktiv"
+      },
+      "tour_busy": {
+        "name": "Tour in Arbeit"
       }
     },
     "image": {
