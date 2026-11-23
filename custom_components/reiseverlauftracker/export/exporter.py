@@ -149,7 +149,7 @@ def export_trip(
         if base is not None:
             base_path, projection = out_dir / f"{basename}{BASE_MAP_SUFFIX}", base.projection
             base.image.save(base_path)
-            map_image = draw_overlay(base.image, projection, markers, split.legs, line_width)
+            map_image = draw_overlay(base.image, projection, split.land, markers, split.legs, line_width)
             base.image.close()
             map_image.save(path(ExportFile.MAP))
 
@@ -160,7 +160,7 @@ def export_trip(
         profile.close()
 
     untitled_profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale)
-    legend = _legend(map_image, markers, split.legs, texts, scale)
+    legend = legend_image(map_image, markers, split.legs, texts, scale)
     composite = render_composite([map_image, legend, untitled_profile], title, rows[0][1], rows[1:], scale, logbook)
     if composite is not None:
         composite.save(path(ExportFile.COMPOSITE))
@@ -201,7 +201,7 @@ def _text(title: str, rows: list[tuple[str, str]], options: ExportOptions, texts
     return stats_text(title, rows + stay + details, stop_lines(options.stops, texts, options.timezone))
 
 
-def _legend(
+def legend_image(
     map_image: Image.Image | None,
     markers: Sequence[MapMarker],
     ferries: Sequence[FerryLeg],
@@ -256,7 +256,7 @@ def refresh_export(
     markers = map_markers(track.points, options)
     map_image = None
     if (map_name := files.get(ExportFile.MAP)) is not None:
-        map_image = _redraw_map(out_dir, base_map, markers, split.legs, options)
+        map_image = _redraw_map(out_dir, base_map, split.land, markers, split.legs, options)
         if map_image is not None:
             map_image.save(out_dir / map_name)
         else:
@@ -265,7 +265,7 @@ def refresh_export(
     if (name := files.get(ExportFile.COMPOSITE)) is not None:
         window = (track.chart_start, track.chart_end)
         profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale)
-        legend = _legend(map_image, markers, split.legs, texts, scale) if base_map is not None else None
+        legend = legend_image(map_image, markers, split.legs, texts, scale) if base_map is not None else None
         composite = render_composite([map_image, legend, profile], title, rows[0][1], rows[1:], scale, logbook)
         if composite is not None:
             composite.save(out_dir / name)
@@ -281,6 +281,7 @@ def refresh_export(
 def _redraw_map(
     out_dir: Path,
     base_map: BaseMapRef | None,
+    segments: Sequence[Sequence[TrackPoint]],
     markers: Sequence[MapMarker],
     ferries: Sequence[FerryLeg],
     options: ExportOptions,
@@ -293,7 +294,7 @@ def _redraw_map(
         return None
     # The line width the base map was drawn with, whatever the scale setting is now.
     line_width = round(options.map_line_width * base_map.projection.width / options.map_size[0])
-    image = draw_overlay(base, base_map.projection, markers, ferries, line_width)
+    image = draw_overlay(base, base_map.projection, segments, markers, ferries, line_width)
     base.close()
     return image
 

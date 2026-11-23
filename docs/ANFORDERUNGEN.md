@@ -117,7 +117,7 @@ Events:
   Reise- und Halt-Start, Vorschlag (Kilometerstand, Kraftstoff, Gas 1, Gas 2), siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.3
 
 - `reiseverlauftracker_tour` nach dem Erstellen und jeder Neuerstellung einer Tour: Anlass (`erstellt`,
-  `aktualisiert`), Titel, Zeitraum, Strecke, Kosten, Dateien, Gesamtbild (siehe [Tour](features/feat-10-tour.md) 6.5)
+  `aktualisiert`), Titel, Zeitraum, Strecke, Fährstrecke, Kosten, Dateien, Gesamtbild (siehe [Tour](features/feat-10-tour.md) 6.5)
 
 Push-Nachricht: **nicht** in der Integration, sondern als Automation aus einem mitgelieferten Blueprint, siehe
 [features/feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md); die Fahrtenbuch-Erinnerung hat einen eigenen

@@ -163,7 +163,7 @@ def test_projection_survives_a_round_trip() -> None:
     assert MapProjection.from_dict(projection.as_dict()) == projection
 
 
-def test_base_map_has_the_route_where_the_projection_says(
+def test_base_map_has_only_tiles_and_the_overlay_draws_the_route_where_the_projection_says(
     offline_fetcher: Callable[[str], bytes],
 ) -> None:
     points = route(47.0, 11.0)
@@ -174,10 +174,9 @@ def test_base_map_has_the_route_where_the_projection_says(
     assert base.image.size == SIZE
     middle = points[10]
     x, y = base.projection.to_px(middle.lat, middle.lon)
-    assert close(base.image.getpixel((round(x), round(y))), ROUTE_COLOR)
-    # No symbols on the base map.
-    sx, sy = base.projection.to_px(points[0].lat, points[0].lon)
-    assert not close(base.image.getpixel((round(sx), round(sy) + 10)), COLORS[MarkerKind.START], 20)
+    assert not close(base.image.getpixel((round(x), round(y))), ROUTE_COLOR)
+    image = draw_overlay(base.image, base.projection, [points], [], [], LINE)
+    assert close(image.getpixel((round(x), round(y))), ROUTE_COLOR)
 
 
 def test_base_map_frames_symbols_and_ferries_outside_the_route(
@@ -205,7 +204,7 @@ def test_overlay_draws_symbols_and_dashed_ferry_without_changing_the_base(
     assert base is not None
     before = base.image.copy()
 
-    image = draw_overlay(base.image, base.projection, [stop], [ferry], LINE)
+    image = draw_overlay(base.image, base.projection, [land, other], [stop], [ferry], LINE)
 
     assert image.mode == "RGB"
     assert image.size == SIZE

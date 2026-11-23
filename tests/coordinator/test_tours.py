@@ -13,7 +13,9 @@ from custom_components.reiseverlauftracker.const import DOMAIN, EVENT_TOUR
 from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUpdateCoordinator
 from custom_components.reiseverlauftracker.coordinator.exports import ExportKind, read_export, write_metadata
 from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory, Occasion, Refill
-from custom_components.reiseverlauftracker.export import ExportFile
+from custom_components.reiseverlauftracker.coordinator.tours import RawTrip, _prepare_trips
+from custom_components.reiseverlauftracker.coordinator.trip_log import RunningStatsSettings, TripLog
+from custom_components.reiseverlauftracker.export import ExportFile, ExportOptions
 from homeassistant.const import EVENT_STATE_CHANGED, STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
@@ -189,7 +191,10 @@ async def test_change_title_and_place_name(
     assert tour.tour is not None
     assert {(n.name, n.name_changed) for n in tour.tour.nights} == {("Hof der Werkstatt", True)}
     folder = media_dir / "reiseverlauf" / created["ordner"]
-    assert sorted(p.name for p in folder.iterdir()) == sorted([*tour.files.values(), "export.json"])
+    # The base map is renamed with the title, and symbols are drawn on it without tiles.
+    assert tour.base_map is not None
+    assert tour.base_map.name == "werkstatt_ulm_karte_basis.png"
+    assert sorted(p.name for p in folder.iterdir()) == sorted([*tour.files.values(), tour.base_map.name, "export.json"])
     assert all(name.startswith("werkstatt_ulm") for name in tour.files.values())
 
     # An empty title returns to the suggestion, now with the place named by hand.
@@ -339,3 +344,38 @@ async def test_form_creates_and_updates_a_tour(
         await hass.services.async_call(
             "button", "press", {"entity_id": "button.camper_gps_tour_aktualisieren"}, blocking=True
         )
+
+
+def ferry_trip() -> RawTrip:
+    """Return a trip that drives 2 km, crosses 6 km with D+ off and drives 2 km more."""
+    start = datetime(2026, 7, 1, 8, 0, tzinfo=UTC)
+    log = TripLog(start, RunningStatsSettings())
+    minute = 0
+    for metres in (0, 1000, 2000):
+        log.add_position(start + timedelta(minutes=minute), 54.0 + metres / METRES_PER_DEGREE_LAT, 11.0, 10)
+        minute += 1
+    log.begin_stop(start + timedelta(minutes=minute))
+    for metres in (4000, 6000, 8000):
+        minute += 10
+        log.add_position(start + timedelta(minutes=minute), 54.0 + metres / METRES_PER_DEGREE_LAT, 11.0, 10)
+    minute += 10
+    log.end_stop(start + timedelta(minutes=minute), timedelta(minutes=5))
+    for metres in (9000, 10_000):
+        minute += 1
+        log.add_position(start + timedelta(minutes=minute), 54.0 + metres / METRES_PER_DEGREE_LAT, 11.0, 10)
+    return RawTrip("2026-07-01_0800", "Belt", start, start + timedelta(minutes=minute), log.as_dict())
+
+
+def test_ferry_marked_in_the_trip_export_counts_in_the_tour() -> None:
+    raw = ferry_trip()
+    stop_start = TripLog.from_dict(raw.log, RunningStatsSettings()).stops[0].start
+    args = (RunningStatsSettings(), ExportOptions(min_movement_m=100), timedelta(minutes=5))
+
+    [plain] = _prepare_trips([raw], args[0], args[1], {}, args[2])
+    [marked] = _prepare_trips([raw], args[0], args[1], {raw.folder: {stop_start: True}}, args[2])
+
+    assert plain.distance_km == pytest.approx(10, abs=0.05)
+    assert plain.ferry_km == 0
+    assert marked.ferry_km == pytest.approx(7, abs=0.05)
+    assert marked.distance_km == pytest.approx(3, abs=0.05)
+    assert len(marked.ferry_spans) == 1

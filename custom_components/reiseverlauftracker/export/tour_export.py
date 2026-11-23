@@ -17,14 +17,24 @@ from PIL import Image, ImageDraw
 
 from .chart import BASE_WIDTH
 from .composite import render_composite
-from .exporter import FILE_SUFFIXES, MAX_SCALE, MIN_SCALE, ExportFile, slugify
+from .exporter import (
+    BASE_MAP_SUFFIX,
+    FILE_SUFFIXES,
+    MAX_SCALE,
+    MIN_SCALE,
+    BaseMapRef,
+    ExportFile,
+    legend_image,
+    slugify,
+)
+from .ferry import split_at
 from .fonts import load_font
 from .gpx import build_gpx_tracks
-from .map import TileFetcher, http_tile_fetcher, render_route_map
-from .model import ExportOptions
+from .map import TileFetcher, draw_overlay, http_tile_fetcher, render_base_map
+from .model import ExportOptions, FerryLeg, MapMarker, MarkerKind, TrackPoint
 from .stats import stats_text
 from .texts import Texts, format_dates, format_duration, format_money, format_number, texts_for
-from .tour import NO_COUNTRY, Night, PlaceRow, TourSummary, TourTrip, main_place
+from .tour import NO_COUNTRY, Night, PlaceRow, TourSummary, TourTrip, main_place, night_groups
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +119,7 @@ class TourResult:
     basename: str
     files: dict[ExportFile, str]
     stats_text: str
+    base_map: BaseMapRef | None = None
 
 
 def tour_texts_for(language: str) -> TourTexts:
@@ -156,6 +167,10 @@ def figure_rows(
         (texts.moving_time, format_duration(summary.moving_time)),
         (tour_texts.days_nights, f"{days} / {summary.nights}"),
     ]
+    if summary.ferry_km > 0 or summary.ferry_time:
+        figures.append(
+            (texts.ferry, f"{format_number(texts, summary.ferry_km, 1)} km, {format_duration(summary.ferry_time)}")
+        )
     if summary.ascent_m is not None and summary.descent_m is not None:
         figures.append(
             (
@@ -310,6 +325,38 @@ def render_tables(sections: Sequence[Table], scale: float = 1.0) -> Image.Image 
     return image.crop((0, 0, width, min(y, height)))
 
 
+def tour_markers(
+    trips: Sequence[TourTrip], nights: Sequence[Night], refills: Sequence[MapMarker] = ()
+) -> list[MapMarker]:
+    """
+    Return the symbols of a tour map (docs/features/feat-12-kartensymbole.md 6.6).
+
+    One pitch per run of nights at the same place, the refills, then start and
+    end; no stops.
+    """
+    routes = [trip.points for trip in trips if trip.points]
+    if not routes:
+        return []
+    first, last = routes[0][0], routes[-1][-1]
+    return [
+        *(MapMarker(MarkerKind.PITCH, group[0].lat, group[0].lon) for group in night_groups(nights)),
+        *refills,
+        MapMarker(MarkerKind.START, first.lat, first.lon),
+        MapMarker(MarkerKind.END, last.lat, last.lon),
+    ]
+
+
+def tour_routes(trips: Sequence[TourTrip]) -> tuple[list[list[TrackPoint]], tuple[FerryLeg, ...]]:
+    """Return the driven parts of all trips and their ferry crossings."""
+    land: list[list[TrackPoint]] = []
+    legs: list[FerryLeg] = []
+    for trip in trips:
+        split = split_at(trip.points, trip.ferry_spans)
+        land += split.land
+        legs += split.legs
+    return land, tuple(legs)
+
+
 def export_tour(
     summary: TourSummary,
     trips: Sequence[TourTrip],
@@ -321,14 +368,18 @@ def export_tour(
     previous: dict[ExportFile, str] | None = None,
     raw: dict[str, Any] | None = None,
     reuse_map: bool = False,
+    base_map: BaseMapRef | None = None,
     fetch_tile: TileFetcher | None = None,
 ) -> TourResult:
     """
     Write statistics, day CSV, GPX, map, composite and raw data of a tour into `out_dir`.
 
-    With `reuse_map`, the map of `previous` is taken over (renamed to the new title)
-    instead of downloading tiles again. Without `raw`, the previous raw data stays.
-    Files of `previous` that are not written again are removed.
+    `options.markers` are the refills on the map; start, end and night places are
+    added here. With `reuse_map`, the symbols are drawn on the stored `base_map`
+    instead of downloading tiles again; a tour from before base maps keeps its
+    previous map as it is. Without `raw`, the previous raw data stays. Files of
+    `previous` that are not written again are removed, the base map is renamed
+    with the title.
     """
     previous = previous or {}
     texts, tour_texts = texts_for(options.language), tour_texts_for(options.language)
@@ -352,28 +403,51 @@ def export_tour(
     tracks = [(trip.title, trip.points) for trip in trips]
     path(ExportFile.GPX).write_text(build_gpx_tracks(tracks, title), encoding="utf-8")
 
+    markers = tour_markers(trips, nights, options.markers)
+    land, legs = tour_routes(trips)
+    line_width = round(options.map_line_width * scale)
+    base_name = f"{basename}{BASE_MAP_SUFFIX}"
+    new_base: BaseMapRef | None = None
     map_image = None
+    with_symbols = False
+    if reuse_map and base_map is not None and (base := _open_image(out_dir / base_map.name)) is not None:
+        # The line width the base map was drawn with, whatever the scale is now.
+        width = round(options.map_line_width * base_map.projection.width / options.map_size[0])
+        map_image = draw_overlay(base, base_map.projection, land, markers, legs, width)
+        base.close()
+        if base_map.name != base_name:
+            (out_dir / base_map.name).replace(out_dir / base_name)
+        new_base, with_symbols = BaseMapRef(base_name, base_map.projection), True
     old_map = out_dir / previous[ExportFile.MAP] if ExportFile.MAP in previous else None
-    if reuse_map and old_map is not None and old_map.is_file():
+    if map_image is None and reuse_map and old_map is not None and old_map.is_file():
         map_image = _open_image(old_map)
     if map_image is None and options.with_map:
-        width, height = options.map_size
-        map_image = render_route_map(
-            [trip.points for trip in trips],
-            (round(width * scale), round(height * scale)),
-            round(options.map_line_width * scale),
+        map_width, map_height = options.map_size
+        rendered = render_base_map(
+            land,
+            (round(map_width * scale), round(map_height * scale)),
+            line_width,
             fetch_tile or http_tile_fetcher(options.user_agent),
-            places=[(n.lat, n.lon) for n in nights],
+            markers,
+            legs,
         )
+        if rendered is not None:
+            rendered.image.save(out_dir / base_name)
+            map_image = draw_overlay(rendered.image, rendered.projection, land, markers, legs, line_width)
+            rendered.image.close()
+            new_base, with_symbols = BaseMapRef(base_name, rendered.projection), True
     if map_image is not None:
         map_image.save(path(ExportFile.MAP))
+    if base_map is not None and (new_base is None or new_base.name != base_map.name):
+        (out_dir / base_map.name).unlink(missing_ok=True)
 
     table_image = render_tables(sections, scale)
-    composite = render_composite([map_image, table_image], title, figures[0][1], figures[1:], scale, extra)
+    legend = legend_image(map_image, markers, legs, texts, scale) if with_symbols else None
+    composite = render_composite([map_image, legend, table_image], title, figures[0][1], figures[1:], scale, extra)
     if composite is not None:
         composite.save(path(ExportFile.COMPOSITE))
         composite.close()
-    for image in (map_image, table_image):
+    for image in (map_image, legend, table_image):
         if image is not None:
             image.close()
 
@@ -388,7 +462,7 @@ def export_tour(
     for kind, name in previous.items():
         if files.get(kind) != name:
             (out_dir / name).unlink(missing_ok=True)
-    return TourResult(title=title, basename=basename, files=files, stats_text=text)
+    return TourResult(title=title, basename=basename, files=files, stats_text=text, base_map=new_base)
 
 
 def _open_image(path: Path) -> Image.Image | None:

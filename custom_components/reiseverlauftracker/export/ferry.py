@@ -44,7 +44,11 @@ def on_ferry(time: datetime, spans: Sequence[tuple[datetime, datetime]]) -> bool
 
 def split_track(points: Sequence[TrackPoint], stops: Sequence[Stop]) -> SplitTrack:
     """Split `points` (sorted by time) at the ferry stops among `stops`."""
-    spans = ferry_spans(stops)
+    return split_at(points, ferry_spans(stops))
+
+
+def split_at(points: Sequence[TrackPoint], spans: Sequence[tuple[datetime, datetime]]) -> SplitTrack:
+    """Split `points` (sorted by time) at the crossings from start to end in `spans`."""
     if not spans or not points:
         return SplitTrack(land=[list(points)], ferries=[])
     land: list[list[TrackPoint]] = [[points[0]]]

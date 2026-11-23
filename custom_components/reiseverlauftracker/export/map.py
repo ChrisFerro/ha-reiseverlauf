@@ -147,7 +147,7 @@ def render_route_map(
     base = render_base_map(segments, size, line_width, fetch_tile, markers, ferries)
     if base is None:
         return None
-    image = draw_overlay(base.image, base.projection, markers, ferries, line_width)
+    image = draw_overlay(base.image, base.projection, segments, markers, ferries, line_width)
     base.image.close()
     return image
 
@@ -161,8 +161,10 @@ def render_base_map(
     ferries: Sequence[FerryLeg] = (),
 ) -> BaseMap | None:
     """
-    Draw tiles and routes without symbols; the map frames routes, symbols and ferry crossings.
+    Draw the tiles that frame routes, symbols and ferry crossings, without drawing any of them.
 
+    Routes, crossings and symbols follow with `draw_overlay`, so a crossing marked
+    later changes the route without new tiles (docs/features/feat-12-kartensymbole.md 6.5).
     Returns None if there is no route or the map cannot be rendered at all.
     """
     lines = [[(p.lon, p.lat) for p in points] for points in segments if len(points) >= 2]
@@ -171,13 +173,9 @@ def render_base_map(
     padding = max(MAP_PADDING, symbol_diameter(line_width))
     static_map = _TolerantStaticMap(size[0], size[1], fetch_tile, padding_x=padding, padding_y=padding)
     extra = [(m.lon, m.lat) for m in markers] + [(lon, lat) for leg in ferries for lat, lon in leg.points]
-    if extra:
-        # Invisible, and added first so that the routes are drawn over it: it only widens the frame.
-        static_map.add_line(Line([*extra, extra[-1]], "#00000000", 1, simplify=False))
-    for coords in lines:
-        static_map.add_line(Line(coords, OUTLINE_COLOR, line_width + 4))
-    for coords in lines:
-        static_map.add_line(Line(coords, ROUTE_COLOR, line_width))
+    frame = [coord for coords in lines for coord in coords] + extra
+    # Invisible: it only sets the frame.
+    static_map.add_line(Line(frame, "#00000000", 1, simplify=False))
     try:
         image = static_map.render()
     except (OSError, ValueError, RuntimeError) as err:
@@ -199,19 +197,23 @@ def render_base_map(
 def draw_overlay(
     base: Image.Image,
     projection: MapProjection,
+    segments: Sequence[Sequence[TrackPoint]],
     markers: Sequence[MapMarker],
     ferries: Sequence[FerryLeg],
     line_width: int,
 ) -> Image.Image:
     """
-    Return a copy of `base` with the ferry crossings dashed and the symbols on top (5.3, 5.4).
+    Return a copy of `base` with the routes, the ferry crossings dashed and the symbols on top (5.3, 5.4).
 
-    Needs no tiles, so a stored base map can get new symbols at any time (6.5).
+    Needs no tiles, so a stored base map can get new routes and symbols at any time (6.5).
     """
     image = base.convert("RGBA")
     if base.size != (projection.width, projection.height):
         _LOGGER.warning("Base map size %s does not match its projection; symbols may be misplaced", base.size)
     diameter = symbol_diameter(line_width)
+    routes = [[projection.to_px(p.lat, p.lon) for p in points] for points in segments if len(points) >= 2]
+    if routes:
+        _draw_routes(image, routes, line_width)
     legs = [[projection.to_px(lat, lon) for lat, lon in leg.points] for leg in ferries if len(leg.points) >= 2]
     if legs:
         _draw_ferries(image, legs, line_width)
@@ -220,6 +222,19 @@ def draw_overlay(
     for kind, centre in layout(placed, diameter):
         draw_symbol(image, kind, centre, diameter)
     return image.convert("RGB")
+
+
+def _draw_routes(image: Image.Image, routes: Sequence[Sequence[tuple[float, float]]], line_width: int) -> None:
+    """Draw the routes in red with a white outline, anti-aliased by drawing at twice the size."""
+    layer = Image.new("RGBA", (image.width * 2, image.height * 2), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    for color, width in ((OUTLINE_COLOR, line_width + 4), (ROUTE_COLOR, line_width)):
+        for route in routes:
+            points = [(x * 2, y * 2) for x, y in route]
+            draw.line(points, fill=color, width=width * 2, joint="curve")
+            for x, y in (points[0], points[-1]):
+                draw.ellipse((x - width, y - width, x + width, y + width), fill=color)
+    image.alpha_composite(layer.resize(image.size, Image.Resampling.LANCZOS))
 
 
 def _draw_ferries(image: Image.Image, legs: Sequence[Sequence[tuple[float, float]]], line_width: int) -> None:

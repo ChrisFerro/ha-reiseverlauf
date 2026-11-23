@@ -1,6 +1,6 @@
 # Feat-12: Kartensymbole
 
-Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf freigegeben (Abschnitt 6), Teilschritte 1 bis 3
+Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf freigegeben (Abschnitt 6), Teilschritte 1 bis 4
 umgesetzt (6.11).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Halte](feat-02-halte.md), [Export](feat-03-export.md), [Fahrtenbuch](feat-06-fahrtenbuch.md),
@@ -232,6 +232,9 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
   nicht im Event; `aufraeumen` löscht sie mit der Karte.
 - Alte Exporte ohne Grundkarte: Erneuern lässt die Karte wie sie ist (Hinweis im Log); Symbole gibt es dort über
   „Karte neu zeichnen“ (6.8).
+- **Umgesetzt** (Teilschritt 4): Die Grundkarte enthält **nur die Kacheln**; Fahrstrecke, Fährstrecken und Symbole
+  zeichnet Pillow darüber. So passt auch die rote Linie, wenn eine Fähre später markiert oder entfernt wird. Die
+  Legende steht nur im Gesamtbild, wenn die Symbole aktuell sind (Karte mit Grundkarte gezeichnet).
 
 ### 6.6 Welche Symbole wo (5.5–5.8)
 
@@ -253,6 +256,13 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 - Der vorhandene Ablauf (`ExportRefresher`, `async_refresh`) zeichnet die Symbole neu (6.5), wenn sich Fahrtenbuch-
   Einträge mit Tanken, die Fähren-Markierung oder `arrival_stay` ändern. Die Tour zeichnet ihre Symbole bei
   „Tour aktualisieren“ neu, ebenfalls auf der Grundkarte (`reuse_map` wie bisher).
+- **Tour umgesetzt** (Teilschritt 4): Eine Übernachtungs-Folge am selben Ort ergibt ein Stellplatz-Symbol; Diesel und
+  Gas kommen aus den Fahrtenbuch-Einträgen im Tour-Zeitraum (Position wie bei der Reise). Fähren: Die Tour nimmt die
+  Markierung aus dem `export.json` der Reise, nicht aus ihrer eigenen Kopie der Rohdaten, damit eine später markierte
+  Fähre beim nächsten „Tour aktualisieren“ zählt. Statistik, Gesamtbild, `export.json` und Event `reiseverlauftracker_tour`
+  zeigen die Fährstrecke summiert (`faehre_km`, `faehre_min`); die Tagesübersicht zählt die Fähre nicht als km.
+  Die Grundkarte wird beim Umbenennen der Tour mit umbenannt; eine Tour von vor der Grundkarte behält ihre Karte
+  (ohne Legende) bis „Karte neu zeichnen“.
 
 ### 6.8 Karte neu zeichnen (5.9)
 
@@ -283,7 +293,7 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 2. Reise: Symbole aus Halten und Fahrtenbuch, Ziel auf Stellplatz, Legende im Gesamtbild (6.6), Erneuern (6.7). – umgesetzt
    23.11.2026
 3. Fähre erkennen (6.2) und von Hand markieren (6.3), Strecke ohne Fähre (5.10), mit Tests. – umgesetzt 23.11.2026
-4. Tour: Symbole und Legende (6.6).
+4. Tour: Symbole und Legende (6.6). – umgesetzt 23.11.2026
 5. „Karte neu zeichnen“ (6.8): Aktion, Knopf, Übersetzungen, Tests.
 6. README (de/en), Release-Notes, Feature-Dokumente; Prüfpunkt in `script/develop` mit simulierter Reise (Halt,
    Tankstopp, Gasstopp, Fähre) und Kartenbild ansehen.
