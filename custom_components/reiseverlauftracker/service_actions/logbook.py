@@ -98,6 +98,8 @@ async def async_handle_save_form(hass: HomeAssistant, call: ServiceCall) -> Serv
 
     """
     coordinator = _coordinator(hass, call)
+    if coordinator.logbook.editing is not None:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="logbook_editing")
     if ATTR_OCCASION_TIME in call.data:
         pending = coordinator.logbook.pending
         occasion_time = dt_util.as_utc(call.data[ATTR_OCCASION_TIME])

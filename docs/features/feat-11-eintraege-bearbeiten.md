@@ -125,7 +125,9 @@ ging nur mit `reiseverlauftracker.fahrtenbuch_aendern` und der Eintrags-ID aus e
 
 Die Anzeige leerer Felder (6.7) kommt in Teilschritt 2 dazu.
 
-Neue Entitäten: 3 Auswahlen und 4 Knöpfe (44 → 51). Kein Breaking Change; `fahrtenbuch_aendern` bestimmt bei neuer
+Neue Entitäten: 3 Auswahlen und 4 Knöpfe (50 → 57); Teilschritt 2 bringt 2 Auswahlen und 2 Knöpfe (50 → 54).
+Die Knöpfe heißen auf Deutsch „ändern“/„löschen“; ihre Entity-IDs sind fest `…_fahrtenbuch_aendern`/`…_loeschen`
+(Home Assistant würde aus „ä“ sonst „a“ machen). Kein Breaking Change; `fahrtenbuch_aendern` bestimmt bei neuer
 Zeit zusätzlich die Zählerstände neu (Release-Notes).
 
 ### 6.7 Leere Felder (5.6)

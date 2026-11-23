@@ -70,6 +70,11 @@ class LateEntryForm:
         else:
             self.coordinator.async_update_listeners()
 
+    def show_time(self, time: datetime) -> None:
+        """Put the time of a stored entry into the time field, without choosing an earlier time."""
+        self.choice = LATE_CHOICE_CURRENT
+        self.time = dt_util.as_utc(time)
+
     async def async_save(self) -> LogbookEntry:
         """
         Save the form for the chosen time and return to the current occasion.

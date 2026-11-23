@@ -307,6 +307,31 @@
             "name": "Countries of the trip"
           }
         }
+      },
+      "logbook_edit": {
+        "name": "Edit logbook",
+        "state": {
+          "new": "New"
+        },
+        "state_attributes": {
+          "eintrag": {
+            "name": "Entry"
+          }
+        }
+      },
+      "logbook_clear": {
+        "name": "Logbook clear field",
+        "state": {
+          "none": "–",
+          "odometer_km": "Odometer",
+          "fuel_percent": "Fuel",
+          "gas1_percent": "Gas 1",
+          "gas2_percent": "Gas 2",
+          "fuel_litres": "Diesel refilled",
+          "fuel_amount": "Diesel amount",
+          "gas_litres": "Gas refilled",
+          "gas_amount": "Gas amount"
+        }
       }
     },
     "sensor": {
@@ -401,6 +426,9 @@
           },
           "letzte_eintraege": {
             "name": "Latest entries"
+          },
+          "nicht_abgelesen": {
+            "name": "Not read off"
           }
         }
       },
@@ -539,6 +567,12 @@
       },
       "tour_update": {
         "name": "Update tour"
+      },
+      "logbook_update": {
+        "name": "Change logbook entry"
+      },
+      "logbook_remove": {
+        "name": "Delete logbook entry"
       }
     },
     "datetime": {
@@ -1054,6 +1088,12 @@
     },
     "tour_without_start": {
       "message": "Please give a start of the tour or choose a trip in the export selection."
+    },
+    "logbook_editing": {
+      "message": "A stored logbook entry is chosen for editing. Save it with “Change logbook entry” or choose “New” under “Edit logbook”."
+    },
+    "no_entry_chosen": {
+      "message": "No entry is chosen under “Edit logbook”."
     }
   }
 }

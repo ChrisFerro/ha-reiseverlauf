@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from custom_components.reiseverlauftracker.const import OPEN_TOLL_PERIOD
 from custom_components.reiseverlauftracker.coordinator.download_links import ATTR_DOWNLOADS
+from custom_components.reiseverlauftracker.coordinator.edit_form import field_names
 from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory, Logbook
 from custom_components.reiseverlauftracker.coordinator.logbook_keeper import entry_data
 from custom_components.reiseverlauftracker.entity import ReiseverlaufEntity
@@ -53,6 +54,7 @@ class ReiseverlaufLogbookEntrySensor(SensorEntity, ReiseverlaufEntity):
             "anlass": pending.occasion.value if pending else None,
             "ort": pending.place if pending else None,
             "halt_start": pending.stop_start.isoformat() if pending and pending.stop_start else None,
+            "nicht_abgelesen": field_names(keeper.draft.not_read_off(), self.coordinator.hass.config.language),
             "letzte_eintraege": [entry_data(e) for e in reversed(keeper.logbook.entries[-LATEST_ENTRIES:])],
             # The CSV files are written after every change, so they exist once there is an entry or a cost.
             ATTR_DOWNLOADS: self.coordinator.download_links.for_logbook(

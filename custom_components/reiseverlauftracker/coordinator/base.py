@@ -41,6 +41,7 @@ from . import export_runner
 from .cost_form import TravelCostForm
 from .country_finder import CountryFinder
 from .download_links import RENEW_INTERVAL, DownloadLinks
+from .edit_form import EntryEditForm
 from .export_refresher import ExportRefresher
 from .export_runner import NOMINATIM_INTERVAL_S, async_export, event_data, media_base
 from .exports import ExportInfo, list_exports, read_raw, remove_files, set_countries
@@ -114,6 +115,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         self.exports: tuple[ExportInfo, ...] = ()
         self.export_choice: str | None = None
         self.late_form = LateEntryForm(self)
+        self.edit_form = EntryEditForm(self)
         self.countries = CountryFinder(self)
         self.cost_form = TravelCostForm(self)
         self.refresher = ExportRefresher(self)

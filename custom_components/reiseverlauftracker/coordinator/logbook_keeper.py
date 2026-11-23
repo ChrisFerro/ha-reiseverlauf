@@ -125,6 +125,8 @@ class LogbookKeeper:
         self.draft = Draft()
         # A late entry for an earlier time fills the form; the form of the current occasion waits meanwhile.
         self.late: LatePoint | None = None
+        # A stored entry being edited fills the form the same way (docs/features/feat-11-eintraege-bearbeiten.md 6.2).
+        self.editing: str | None = None
         self._current_draft: Draft | None = None
         self._on_change = on_change
         self._trip_titles = trip_titles
@@ -337,6 +339,9 @@ class LogbookKeeper:
         if self.late is not None:
             self.select_late(None)
             return
+        if self.editing is not None:
+            self.select_edit(None)
+            return
         self.pending = None
         self.draft = Draft.from_suggestion(self.logbook.suggestion())
         self._changed()
@@ -354,25 +359,47 @@ class LogbookKeeper:
                 self._current_draft = None
                 self._changed()
             return
-        if self.late is None:
+        if not self._form_borrowed:
             self._current_draft = self.draft
+        self.editing = None
         self.late = point
         self.draft = self.late_draft(point)
         self._changed()
 
+    def select_edit(self, entry: LogbookEntry | None) -> None:
+        """
+        Fill the form with a stored entry to change it, or return to the current occasion with None.
+
+        A chosen earlier time is dropped; the form of the current occasion waits, as for a late entry.
+        """
+        if entry is None:
+            if self.editing is not None:
+                self.editing = None
+                self.draft = self._current_draft or Draft.from_suggestion(self.logbook.suggestion())
+                self._current_draft = None
+                self._changed()
+            return
+        if not self._form_borrowed:
+            self._current_draft = self.draft
+        self.late = None
+        self.editing = entry.id
+        self.draft = Draft.from_entry(entry)
+        self._changed()
+
+    def clear_field(self, form_field: FormField) -> None:
+        """Empty one field of the form, so a reading is saved as not read off."""
+        self.draft = self.draft.cleared(form_field)
+        self._changed()
+
+    @property
+    def _form_borrowed(self) -> bool:
+        """Whether the form shows a late entry or a stored entry, and the current occasion waits."""
+        return self.late is not None or self.editing is not None
+
     def late_draft(self, point: LatePoint) -> Draft:
         """Return the form for `point`: its existing entry, or the suggestion for its time."""
         if (entry := entry_for(self.logbook, point)) is not None:
-            return Draft(
-                odometer_km=entry.odometer_km,
-                fuel_percent=entry.fuel_percent,
-                gas1_percent=entry.gas1_percent,
-                gas2_percent=entry.gas2_percent,
-                fuel_litres=entry.fuel.litres if entry.fuel else 0.0,
-                fuel_amount=(entry.fuel.amount or 0.0) if entry.fuel else 0.0,
-                gas_litres=entry.gas.litres if entry.gas else 0.0,
-                gas_amount=(entry.gas.amount or 0.0) if entry.gas else 0.0,
-            )
+            return Draft.from_entry(entry)
         return Draft.from_suggestion(self.logbook.suggestion(point.counters.distance_m, until=point.time))
 
     async def async_save_late(self) -> LogbookEntry:
@@ -552,6 +579,8 @@ class LogbookKeeper:
         """
         entry = self.logbook.get(entry_id)
         self.logbook.remove(entry_id)
+        if self.editing == entry_id:
+            self.select_edit(None)
         self._trip_changed(entry.trip_start if entry else None)
         self._changed_at(entry.time if entry else None)
         self._refresh_draft_without_pending()
@@ -675,8 +704,8 @@ class LogbookKeeper:
         self._changed()
 
     def _set_current_draft(self, draft: Draft) -> None:
-        """Set the form of the current occasion; while a late entry is chosen, it waits until that is done."""
-        if self.late is not None:
+        """Set the form of the current occasion; while a late or stored entry is chosen, it waits."""
+        if self._form_borrowed:
             self._current_draft = draft
         else:
             self.draft = draft

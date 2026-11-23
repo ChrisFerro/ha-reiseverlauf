@@ -280,6 +280,10 @@ class FormField(StrEnum):
     GAS_AMOUNT = "gas_amount"
 
 
+# Fields that are read off; empty means "not read off", not 0.
+READINGS = (FormField.ODOMETER, FormField.FUEL, FormField.GAS1, FormField.GAS2)
+
+
 @dataclass(frozen=True, slots=True)
 class Draft:
     """
@@ -308,9 +312,31 @@ class Draft:
             gas2_percent=suggestion.gas2_percent,
         )
 
+    @classmethod
+    def from_entry(cls, entry: LogbookEntry) -> Draft:
+        """Return a form filled with the values of a stored entry; levels not read off stay empty."""
+        return cls(
+            odometer_km=entry.odometer_km,
+            fuel_percent=entry.fuel_percent,
+            gas1_percent=entry.gas1_percent,
+            gas2_percent=entry.gas2_percent,
+            fuel_litres=entry.fuel.litres if entry.fuel else 0.0,
+            fuel_amount=(entry.fuel.amount or 0.0) if entry.fuel else 0.0,
+            gas_litres=entry.gas.litres if entry.gas else 0.0,
+            gas_amount=(entry.gas.amount or 0.0) if entry.gas else 0.0,
+        )
+
     def value(self, form_field: FormField) -> float | None:
         """Return the value of one field."""
         return getattr(self, form_field.value)
+
+    def cleared(self, form_field: FormField) -> Draft:
+        """Return the form with one field empty: a reading becomes "not read off", litres and amounts 0."""
+        return replace(self, **{form_field.value: None if form_field in READINGS else 0.0})
+
+    def not_read_off(self) -> list[FormField]:
+        """Return the readings that are empty, as opposed to 0."""
+        return [f for f in READINGS if self.value(f) is None]
 
     def with_value(self, form_field: FormField, value: float) -> Draft:
         """Return the form with one field changed, filling the tank on a new refill."""
