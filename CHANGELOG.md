@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.0...v0.3.1) (2026-11-23)
+
+
+### Features
+
+* **tour:** combine several trips into a tour (Feat-10) ([#39](https://github.com/ChrisFerro/ha-reiseverlauf/issues/39)) ([0b3d4e6](https://github.com/ChrisFerro/ha-reiseverlauf/commit/0b3d4e66a30a6848a891c630ca4b451557b161c1))
+
 ## [0.3.0](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.2.5...v0.3.0) (2026-11-23)
 
 
