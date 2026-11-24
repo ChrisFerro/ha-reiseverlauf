@@ -1,6 +1,6 @@
 # Feat-12: Kartensymbole
 
-Stand: 24.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf freigegeben (Abschnitt 6), Teilschritte 1 bis 5
+Stand: 24.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf freigegeben (Abschnitt 6), Teilschritte 1 bis 6
 umgesetzt (6.11).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Halte](feat-02-halte.md), [Export](feat-03-export.md), [Fahrtenbuch](feat-06-fahrtenbuch.md),
@@ -309,7 +309,7 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 4. Tour: Symbole und Legende (6.6). – umgesetzt 23.11.2026
 5. „Karte neu zeichnen“ (6.8): Aktion, Knopf, Übersetzungen, Tests. – umgesetzt 24.11.2026
 6. README (de/en), Release-Notes, Feature-Dokumente; Prüfpunkt in `script/develop` mit simulierter Reise (Halt,
-   Tankstopp, Gasstopp, Fähre) und Kartenbild ansehen.
+   Tankstopp, Gasstopp, Fähre) und Kartenbild ansehen. – umgesetzt 24.11.2026
 
 Neue Entitäten: 2 Knöpfe (`als_faehre_markieren`, `karte_neu_zeichnen`); neue Aktionen: `faehre_markieren`,
 `karte_neu_zeichnen`. Kein Breaking Change im Sinne der Entitäten; Strecke, Fahrzeit und Ø-Verbrauch von Reisen mit Fähre ändern sich

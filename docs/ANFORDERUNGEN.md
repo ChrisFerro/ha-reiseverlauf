@@ -1,6 +1,6 @@
 # Reiseverlauf – Anforderungen und Übergabe
 
-Stand: 23.11.2026. Übersicht über die Home-Assistant-Integration `reiseverlauftracker`: Ziel, Umgebung,
+Stand: 24.11.2026. Übersicht über die Home-Assistant-Integration `reiseverlauftracker`: Ziel, Umgebung,
 Datenquellen, Entitäten und Einstellungen. Die einzelnen Features stehen in eigenen Dokumenten (siehe 11).
 
 ## 1. Ziel
@@ -180,7 +180,7 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
 11. Einträge bearbeiten: Fahrtenbuch-Einträge im Dashboard ändern und löschen (siehe
     [features/feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)). – umgesetzt 23.11.2026
 12. Kartensymbole: Halte, Tank- und Gasstopps, Stellplätze mit Symbolen auf den Karten (siehe
-    [features/feat-12-kartensymbole.md](features/feat-12-kartensymbole.md)).
+    [features/feat-12-kartensymbole.md](features/feat-12-kartensymbole.md)). – umgesetzt 24.11.2026
 
 ## 11. Feature-Dokumente
 
@@ -204,4 +204,4 @@ neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeb
 | Feat-09 | Nachträge (Tank, Kosten) | [feat-09-nachtraege.md](features/feat-09-nachtraege.md)                       | 9      | umgesetzt                 |
 | Feat-10 | Tour                     | [feat-10-tour.md](features/feat-10-tour.md)                                   | 10     | umgesetzt                 |
 | Feat-11 | Einträge bearbeiten      | [feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)   | 11     | umgesetzt                 |
-| Feat-12 | Kartensymbole            | [feat-12-kartensymbole.md](features/feat-12-kartensymbole.md)                 | 12     | in Umsetzung              |
+| Feat-12 | Kartensymbole            | [feat-12-kartensymbole.md](features/feat-12-kartensymbole.md)                 | 12     | umgesetzt                 |

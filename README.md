@@ -16,11 +16,14 @@ mit dem Gesamtbild aufs Handy.
 
 - **Automatische Reiseerkennung:** Start, wenn D+ angeht; Ende, wenn D+ länger als eine einstellbare Verzögerung
   (Standard 60 min) aus ist. Tankpausen gehören zur selben Reise.
-- **Fähre und Autozug:** Bewegt sich das Fahrzeug bei ausgeschaltetem D+, läuft die Reise weiter.
+- **Fähre und Autozug:** Bewegt sich das Fahrzeug bei ausgeschaltetem D+, läuft die Reise weiter. Eine Fährfahrt
+  wird erkannt (oder von Hand markiert), gestrichelt eingezeichnet und nicht als gefahrene Strecke gezählt.
 - **Zusammenführung:** Geht es innerhalb eines Fensters (Standard 6 h) nach dem Ende weiter, z. B. nach langer
   Wartezeit am Hafen, wird dieselbe Reise fortgesetzt und neu ausgewertet.
 - **Auswertung:** Strecke, Fahrzeit, Höchst- und Durchschnittsgeschwindigkeit, Höhe und Höhenmeter; Karte auf
   OpenStreetMap-Kacheln, Profile, GPX mit Höhe und Geschwindigkeit, Gesamtbild.
+- **Kartensymbole:** Start, Ziel bzw. Stellplatz, Halte, Diesel- und Gasstopps und Fähren als Symbole auf der Karte,
+  mit Legende im Gesamtbild (siehe [Kartensymbole und Fähren](#kartensymbole-und-fähren)).
 - **Fahrtenbuch:** Kilometerstand (fortgeschrieben aus der gemessenen Strecke), Füllstände von Kraftstofftank
   und zwei Gastanks, Tank- und Gasstopps mit Menge und Betrag. Erinnerung per Push bei Reisebeginn und jedem
   Halt; Durchschnittsverbrauch, Kosten im Monat und Jahr, CSV-Datei und Werte im Reise-Export.
@@ -135,6 +138,8 @@ z. B. `sensor.wohnmobil_gps_reisestatus`.
 | Heizung im Stand (abgelesen)                                                                                        | Diesel der Heizung je Standtag aus den abgelesenen Füllständen (grob); Attribute `standzeiten`, `standtage`, `abnahme_liter`                                                             |
 | Export-Auswahl                                                                                                      | Alle Exporte (neueste zuerst, manuelle mit „Manuell“) und „Alle Exporte“; für „Exporte aufräumen“ und Reisekosten; Attribute `downloads`, `reisekosten`, `exporte`                       |
 | Tour von, Tour bis, Tour Titel; Tour erstellen, Tour aktualisieren; Tour in Arbeit                                  | Formular für Touren (siehe [Touren](#touren)); „Tour in Arbeit“ ist an, solange eine Tour erstellt wird; bei einer Tour in der Export-Auswahl Attribute `art`, `standorte`, `tourkosten` |
+| Als Fähre markieren                                                                                                 | Schaltet die Fähren-Markierung des in „Fahrtenbuch Zeitpunkt“ gewählten Halts um (siehe [Kartensymbole und Fähren](#kartensymbole-und-fähren))                                           |
+| Karte neu zeichnen                                                                                                  | Zeichnet die Karte des in der Export-Auswahl gewählten Exports mit Kacheln neu                                                                                                           |
 
 ## Aktionen
 
@@ -157,6 +162,8 @@ Alle Aktionen brauchen das Feld **Fahrzeug** (den Eintrag der Integration).
 | Keine Maut (`reiseverlauftracker.keine_maut`)                                | Reise als ohne Maut kennzeichnen (oder mit `an: false` das Kennzeichen entfernen)                                                                              |
 | Tour erstellen (`reiseverlauftracker.tour_erstellen`)                        | Alle Reisen, die von `von` bis `bis` beginnen, zu einer Tour zusammenfassen; optional Titel und Skalierung; liefert das Ergebnis                               |
 | Tour ändern (`reiseverlauftracker.tour_aendern`)                             | Titel, Zeitraum oder Standortnamen (`standorte`: Liste aus `nacht` und `name`) einer Tour ändern und sie neu erstellen                                         |
+| Fähre markieren (`reiseverlauftracker.faehre_markieren`)                     | Halt (`halt`: Beginn oder Zeit während des Halts, optional `reise`) als Fährfahrt markieren oder mit `faehre: false` die Markierung entfernen                  |
+| Karte neu zeichnen (`reiseverlauftracker.karte_neu_zeichnen`)                | Karte, Grundkarte und Gesamtbild eines Exports (Reise oder Tour) mit Kacheln neu zeichnen; ohne `export` gilt die Export-Auswahl, „Alle“ ist nicht möglich     |
 
 Beispiel für einen Dashboard-Knopf, der den in der Export-Auswahl gewählten Export komplett löscht:
 
@@ -178,18 +185,19 @@ tap_action:
 Jede Reise bekommt einen eigenen Ordner im Ausgabeordner, benannt nach der Startzeit (z. B. `2026-10-12_1000`;
 manuelle Exporte `2026-10-12_1000-1130`). Darin liegen:
 
-| Datei                   | Inhalt                                       |
-| ----------------------- | -------------------------------------------- |
-| `<titel>_gesamt.png`    | Gesamtbild mit Kopfzeile, Karte und Profilen |
-| `<titel>.png`           | Karte                                        |
-| `<titel>_profil.png`    | Höhen- und Geschwindigkeitsprofil            |
-| `<titel>.gpx`           | Track mit Höhe und Geschwindigkeit           |
-| `<titel>_statistik.txt` | Statistik als Text                           |
-| `<titel>_rohdaten.json` | Aufgezeichnete Punkte                        |
-| `export.json`           | Verwaltungsdaten der Integration             |
+| Datei                     | Inhalt                                       |
+| ------------------------- | -------------------------------------------- |
+| `<titel>_gesamt.png`      | Gesamtbild mit Kopfzeile, Karte und Profilen |
+| `<titel>.png`             | Karte                                        |
+| `<titel>_karte_basis.png` | Grundkarte (nur Kacheln) zum Neuzeichnen     |
+| `<titel>_profil.png`      | Höhen- und Geschwindigkeitsprofil            |
+| `<titel>.gpx`             | Track mit Höhe und Geschwindigkeit           |
+| `<titel>_statistik.txt`   | Statistik als Text                           |
+| `<titel>_rohdaten.json`   | Aufgezeichnete Punkte                        |
+| `export.json`             | Verwaltungsdaten der Integration             |
 
 Eine Tour bekommt einen Ordner `tour-<Start>-<Ende>` (z. B. `tour-2026-10-10-2026-10-17`) mit Gesamtbild, Karte,
-GPX (je Reise ein Track), Statistik, `<titel>_tage.csv` (eine Zeile je Tag), Rohdaten und `export.json`; ein
+Grundkarte, GPX (je Reise ein Track), Statistik, `<titel>_tage.csv` (eine Zeile je Tag), Rohdaten und `export.json`; ein
 Profil gibt es dort nicht.
 
 Im Ausgabeordner selbst liegen außerdem `fahrtenbuch.csv` (siehe [Fahrtenbuch](#fahrtenbuch)) und `reisekosten.csv`
@@ -423,6 +431,7 @@ sections:
         entities:
           - button.wohnmobil_gps_fahrtenbuch_speichern
           - button.wohnmobil_gps_fahrtenbuch_nachtragen
+          - button.wohnmobil_gps_als_faehre_markieren
           - button.wohnmobil_gps_fahrtenbuch_verwerfen
         visibility:
           - condition: state
@@ -595,26 +604,65 @@ data:
 neu erstellt, ohne die Karte erneut zu laden. Die Tour behält eine Kopie der Punkte ihrer Reisen; die Rohdaten der
 Reisen dürfen danach aufgeräumt werden. „Exporte aufräumen“ löscht bei einer Tour nur deren eigene Dateien.
 
+## Kartensymbole und Fähren
+
+Die Karten zeigen Symbole in farbigen Kreisen; das Gesamtbild hat darunter eine Legende mit den Symbolen, die
+vorkommen. Kosten stehen nicht auf der Karte.
+
+| Symbol     | Reise                                                                | Tour                                 |
+| ---------- | -------------------------------------------------------------------- | ------------------------------------ |
+| Start      | Erster Punkt                                                         | Start der ersten Reise               |
+| Ziel       | Letzter Punkt, wenn dort kein Stellplatz ist                         | Ende der letzten Reise               |
+| Stellplatz | Ziel auf einem Camping- oder Stellplatz (Name auch in der Statistik) | Je Folge von Nächten am selben Platz |
+| Halt       | Halte ab der Mindestdauer                                            | –                                    |
+| Diesel/Gas | Tank- und Gasstopps aus dem Fahrtenbuch (auch nachgetragene)         | Tank- und Gasstopps im Tour-Zeitraum |
+| Fähre      | Überfahrt gestrichelt in Blau, Schiff in der Mitte                   | Fähren aller Reisen                  |
+
+Ein Tankstopp an einem Halt ersetzt dessen Halt-Symbol; Diesel und Gas am selben Halt stehen nebeneinander. Der
+manuelle Export zeigt Start, Ziel bzw. Stellplatz und die Tank- und Gasstopps, aber keine Halte und keine Fähre.
+
+**Fähre:** Bewegt sich das Fahrzeug während eines Halts (D+ aus) und liegt die Mitte dieser Bewegung laut
+OpenStreetMap auf dem Wasser, gilt der Halt als Fährfahrt. Erkennt die Integration eine Fähre nicht (z. B. kein GPS
+an Bord) oder irrt sie sich, lässt sich das korrigieren:
+
+1. In **Fahrtenbuch Zeitpunkt** den Halt wählen.
+2. **Als Fähre markieren** drücken. Das Label des Halts endet dann auf „· Fähre“; ein zweiter Druck entfernt die
+   Markierung wieder.
+
+Ältere Halte (nicht mehr in der Auswahl) markiert die Aktion „Fähre markieren“. Die Überfahrt zählt nicht zu Strecke,
+Fahrzeit und Kilometerstand; Statistik und Gesamtbild zeigen sie getrennt („Fähre: 18 km, 0 h 45 min“). Auch das
+Höhen- und Geschwindigkeitsprofil zeichnet sie blau gestrichelt. Wird eine Fähre nachträglich markiert, verschieben
+sich die Zählerstände der späteren Fahrtenbuch-Einträge um die Fährstrecke, und der Export wird ohne neue Kacheln
+erneuert.
+
+**Karte neu zeichnen:** Exporte von vor dieser Version haben noch keine Symbole. Den Export in der Export-Auswahl
+wählen und **Karte neu zeichnen** drücken (oder die Aktion `karte_neu_zeichnen`). Die Integration lädt die Kacheln
+neu, prüft bei einer Reise die Halte einmal auf Fähren und das Ziel auf einen Stellplatz und erneuert Karte,
+Grundkarte, Profil, Statistik und Gesamtbild. Je Aufruf geht das für einen Export; ohne Rohdaten ist es nicht
+möglich. Fehlt beim Laden eine Kachel, bleibt die alte Karte, und eine Meldung bittet, es später erneut zu versuchen.
+
 ## Events
 
 Für eigene Automationen:
 
-| Event                             | Wann                                      | Daten                                                                                                                                                                                                                                                |
-| --------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reiseverlauftracker_gestartet`   | Reise beginnt oder wird fortgesetzt       | `entry_id`, `start`, `resumed`, `startort`                                                                                                                                                                                                           |
-| `reiseverlauftracker_beendet`     | Auswertung einer beendeten Reise fertig   | `entry_id`, `titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `halte`, `fortgesetzt`, `fahrtenbuch`                                                    |
-| `reiseverlauftracker_exportiert`  | Manueller Export fertig                   | wie `_beendet`, ohne `fortgesetzt`                                                                                                                                                                                                                   |
-| `reiseverlauftracker_fahrtenbuch` | Fahrtenbuch-Anlass: Reisebeginn oder Halt | `entry_id`, `anlass` (`reisestart`, `halt`), `zeit`, `ort`, `reise_start`, `halt_start`, `vorschlag` (`kilometerstand`, `kraftstoff`, `gas_1`, `gas_2`)                                                                                              |
-| `reiseverlauftracker_tour`        | Tour erstellt oder neu erstellt           | `entry_id`, `anlass` (`erstellt`, `aktualisiert`), `titel`, `start`, `ende`, `tage`, `naechte`, `strecke_km`, `fahrzeit_min`, `kosten`, `kostenaufstellung`, `verbrauch`, `reisen`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url` |
+| Event                             | Wann                                      | Daten                                                                                                                                                                                                                                                                           |
+| --------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reiseverlauftracker_gestartet`   | Reise beginnt oder wird fortgesetzt       | `entry_id`, `start`, `resumed`, `startort`                                                                                                                                                                                                                                      |
+| `reiseverlauftracker_beendet`     | Auswertung einer beendeten Reise fertig   | `entry_id`, `titel`, `start`, `ende`, `abfahrt`, `ankunft`, `strecke_km`, `fahrzeit_min`, `faehre_km`, `faehre_min`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url`, `halte`, `fortgesetzt`, `fahrtenbuch`                                                    |
+| `reiseverlauftracker_exportiert`  | Manueller Export fertig                   | wie `_beendet`, ohne `fortgesetzt`                                                                                                                                                                                                                                              |
+| `reiseverlauftracker_fahrtenbuch` | Fahrtenbuch-Anlass: Reisebeginn oder Halt | `entry_id`, `anlass` (`reisestart`, `halt`), `zeit`, `ort`, `reise_start`, `halt_start`, `vorschlag` (`kilometerstand`, `kraftstoff`, `gas_1`, `gas_2`)                                                                                                                         |
+| `reiseverlauftracker_tour`        | Tour erstellt oder neu erstellt           | `entry_id`, `anlass` (`erstellt`, `aktualisiert`), `titel`, `start`, `ende`, `tage`, `naechte`, `strecke_km`, `fahrzeit_min`, `faehre_km`, `faehre_min`, `kosten`, `kostenaufstellung`, `verbrauch`, `reisen`, `ordner`, `dateien`, `statistik`, `gesamtbild`, `gesamtbild_url` |
 
 `fahrtenbuch` enthält Kilometerstand von/bis, Liter, `kosten` (Diesel, Gas und Reisekosten), `reisekosten` je
-Kategorie und den Verbrauch.
+Kategorie und den Verbrauch. Jeder Halt in `halte` hat `faehre` (ja/nein); `strecke_km` und `fahrzeit_min` zählen
+ohne Fähre, die Überfahrt steht in `faehre_km` und `faehre_min`.
 
 ## Datenschutz
 
-- Für die Karte lädt die Integration Kacheln von OpenStreetMap, einmal pro Reise.
+- Für die Karte lädt die Integration Kacheln von OpenStreetMap, einmal pro Reise und bei „Karte neu zeichnen“.
 - Für Ortsnamen und Länder schickt sie Positionen an Nominatim (OpenStreetMap): Start, Ende und Stopps einer Reise
-  sowie für die Länder der Reise etwa alle 20 km einen Punkt der Strecke. Höchstens eine Anfrage je Sekunde. Die
+  sowie für die Länder der Reise etwa alle 20 km einen Punkt der Strecke; für die Fähren-Erkennung je Halt mit
+  Bewegung einen Punkt und für den Stellplatz das Ziel. Höchstens eine Anfrage je Sekunde. Die
   Ortsabfrage lässt sich in den Optionen abschalten; dann werden weder Orte noch Länder abgefragt.
 - Die Diagnose der Integration enthält keine Positionen.
 
