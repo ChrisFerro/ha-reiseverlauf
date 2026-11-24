@@ -48,6 +48,8 @@ def north(metres: float) -> tuple[float, float]:
         ("Dolomiten-Tour 2026", "dolomiten_tour_2026"),
         ("Über den Großglockner", "ueber_den_grossglockner"),
         ("Côte d'Azur", "cote_d_azur"),
+        ("Fehmarn – Rødby", "fehmarn_roedby"),
+        ("Ærø und Åbenrå", "aeroe_und_aabenraa"),
         ("../../etc", "etc"),
         ("???", ""),
     ],

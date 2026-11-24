@@ -27,8 +27,23 @@ from .track import prepare_track
 
 MIN_SCALE = 0.5
 MAX_SCALE = 4.0
+# German umlauts and the Nordic letters that Unicode does not decompose (ø, æ) or would shorten (å to a).
 TRANSLITERATION = str.maketrans(
-    {"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue"}  # codespell:ignore ue
+    {
+        "ä": "ae",
+        "ö": "oe",
+        "ü": "ue",  # codespell:ignore ue
+        "ß": "ss",
+        "Ä": "Ae",
+        "Ö": "Oe",
+        "Ü": "Ue",  # codespell:ignore ue
+        "ø": "oe",
+        "Ø": "Oe",
+        "æ": "ae",
+        "Æ": "Ae",
+        "å": "aa",
+        "Å": "Aa",
+    }
 )
 
 
