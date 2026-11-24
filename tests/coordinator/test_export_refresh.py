@@ -3,8 +3,10 @@
 from datetime import date, timedelta
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 from freezegun.api import FrozenDateTimeFactory
+from PIL import Image
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events, async_fire_time_changed
 
@@ -12,7 +14,8 @@ from custom_components.reiseverlauftracker.const import EVENT_TRIP_ENDED
 from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUpdateCoordinator
 from custom_components.reiseverlauftracker.coordinator.exports import ExportInfo
 from custom_components.reiseverlauftracker.coordinator.logbook import CostCategory, Occasion, Refill
-from custom_components.reiseverlauftracker.export import ExportFile
+from custom_components.reiseverlauftracker.export import ExportFile, MarkerKind
+from custom_components.reiseverlauftracker.export.symbols import COLORS
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -173,3 +176,33 @@ async def test_running_trip_and_costs_without_trip_are_not_renewed(
     await advance(hass, freezer, timedelta(seconds=31))
 
     assert all(i.updated is None for i in finished.exports)
+
+
+async def test_late_refill_is_drawn_on_the_base_map_without_tiles(
+    hass: HomeAssistant,
+    finished: ReiseverlaufDataUpdateCoordinator,
+    freezer: FrozenDateTimeFactory,
+    media_dir: Path,
+) -> None:
+    info = finished.last_export
+    assert info is not None
+    assert info.base_map is not None
+    folder = media_dir / "reiseverlauf" / info.folder
+    base_bytes = (folder / info.base_map.name).read_bytes()
+    map_bytes = (folder / info.files[ExportFile.MAP]).read_bytes()
+
+    with patch("custom_components.reiseverlauftracker.export.exporter.render_base_map") as render_base_map:
+        await finished.late_form.async_add(info.start + timedelta(minutes=5, seconds=30), fuel=Refill(40, 70))
+        await advance(hass, freezer, timedelta(seconds=31))
+
+    render_base_map.assert_not_called()
+    assert finished.last_export is not None
+    assert finished.last_export.base_map == info.base_map
+    assert (folder / info.base_map.name).read_bytes() == base_bytes
+    assert (folder / info.files[ExportFile.MAP]).read_bytes() != map_bytes
+    # Five and a half minutes into the 10-minute drive: about 5 km north.
+    x, y = info.base_map.projection.to_px(50.0 + 5000 / METRES_PER_DEGREE_LAT, 8.0)
+    color = tuple(int(COLORS[MarkerKind.FUEL][i : i + 2], 16) for i in (1, 3, 5))
+    with Image.open(folder / info.files[ExportFile.MAP]) as image:
+        pixels = image.convert("RGB").crop((round(x) - 30, round(y) - 30, round(x) + 30, round(y) + 30))
+        assert any(all(abs(a - b) <= 30 for a, b in zip(p, color, strict=True)) for p in pixels.get_flattened_data())

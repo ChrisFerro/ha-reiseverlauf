@@ -36,6 +36,10 @@ class Texts:
     consumption: str
     travel_costs: str
     cost_categories: dict[str, str]
+    pitch: str
+    ferry: str
+    markers: dict[str, str]
+    """Legend labels of the map symbols by `MarkerKind` value."""
 
 
 TEXTS: dict[str, Texts] = {
@@ -75,6 +79,17 @@ TEXTS: dict[str, Texts] = {
             "stellplatz": "Stellplatz",
             "sonstiges": "Sonstiges",
         },
+        pitch="Stellplatz",
+        ferry="Fähre",
+        markers={
+            "start": "Start",
+            "ziel": "Ziel",
+            "stellplatz": "Stellplatz",
+            "halt": "Halt",
+            "diesel": "Diesel",
+            "gas": "Gas",
+            "faehre": "Fähre",
+        },
     ),
     "en": Texts(
         decimal_separator=".",
@@ -111,6 +126,17 @@ TEXTS: dict[str, Texts] = {
             "tunnel": "tunnel",
             "stellplatz": "pitch",
             "sonstiges": "other",
+        },
+        pitch="Pitch",
+        ferry="Ferry",
+        markers={
+            "start": "Start",
+            "ziel": "Destination",
+            "stellplatz": "Pitch",
+            "halt": "Stop",
+            "diesel": "Diesel",
+            "gas": "Gas",
+            "faehre": "Ferry",
         },
     ),
 }

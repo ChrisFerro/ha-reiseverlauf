@@ -1,6 +1,7 @@
 """Tests for the profile chart, the composite image and the bundled font."""
 
 from datetime import UTC, datetime, timedelta
+from itertools import pairwise
 
 from PIL import Image
 import pytest
@@ -9,6 +10,7 @@ from custom_components.reiseverlauftracker.export import ExportOptions, StepSeri
 from custom_components.reiseverlauftracker.export.chart import nice_step, render_profile, time_ticks
 from custom_components.reiseverlauftracker.export.composite import render_composite
 from custom_components.reiseverlauftracker.export.fonts import load_font
+from custom_components.reiseverlauftracker.export.map import FERRY_COLOR
 from custom_components.reiseverlauftracker.export.texts import texts_for
 from custom_components.reiseverlauftracker.export.track import prepare_track
 
@@ -71,6 +73,32 @@ def test_profile_with_speed_only_and_without_data(
     assert image is not None
     assert image.size == (2400, 900)
     assert render_profile(track.points, None, window, DE, UTC) is None
+
+
+def _ferry_pixels(image: Image.Image, top: int, bottom: int) -> list[int]:
+    """Return the x positions in the rows `top` to `bottom` drawn in the ferry colour."""
+    ferry = Image.new("RGB", (1, 1), FERRY_COLOR).getpixel((0, 0))
+    return sorted({x for y in range(top, bottom) for x in range(image.width) if image.getpixel((x, y)) == ferry})
+
+
+def test_profile_draws_the_crossing_dashed_in_both_panels(
+    positions: list[TrackPoint], speed: StepSeries, altitude: StepSeries
+) -> None:
+    track = prepare_track(positions, speed, altitude, ExportOptions())
+    window = (track.chart_start, track.chart_end)
+    crossing = (minutes(30), minutes(40))
+
+    plain = render_profile(track.points, track.chart_speed, window, DE, UTC, 0.5)
+    image = render_profile(track.points, track.chart_speed, window, DE, UTC, 0.5, ferries=[crossing])
+
+    assert plain is not None
+    assert image is not None
+    assert not _ferry_pixels(plain, 0, plain.height)
+    for top in (0, 450):
+        xs = _ferry_pixels(image, top, top + 450)
+        assert xs, f"no ferry in the panel at {top}"
+        # Dashed: the ferry colour has gaps along its run.
+        assert any(b - a > 1 for a, b in pairwise(xs))
 
 
 def test_composite_stacks_parts_under_header() -> None:

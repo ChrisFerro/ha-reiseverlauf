@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from freezegun.api import FrozenDateTimeFactory
+from PIL import Image
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events, async_fire_time_changed
 
@@ -15,6 +16,8 @@ from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUp
 from custom_components.reiseverlauftracker.coordinator.logbook import FormField, Occasion
 from custom_components.reiseverlauftracker.coordinator.models import TripStatus
 from custom_components.reiseverlauftracker.coordinator.trip_log import TrackCounters
+from custom_components.reiseverlauftracker.export import ExportFile, MarkerKind
+from custom_components.reiseverlauftracker.export.symbols import COLORS
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -86,7 +89,10 @@ async def test_ended_trip_is_exported_and_announced(
     assert info.title.startswith("Startort – Zielort, ")
     assert info.distance_km == pytest.approx(5.0, rel=0.01)
     folder = media_dir / "reiseverlauf" / info.folder
-    assert sorted(p.name for p in folder.iterdir()) == sorted([*info.files.values(), "export.json"])
+    # The base map lies beside the files, but is not one of them (no download, not in the event).
+    assert info.base_map is not None
+    assert info.base_map.name not in info.files.values()
+    assert sorted(p.name for p in folder.iterdir()) == sorted([*info.files.values(), info.base_map.name, "export.json"])
     assert {kind.value for kind in info.files} == {"composite", "map", "profile", "gpx", "stats", "raw"}
 
     assert len(events) == 1
@@ -364,3 +370,53 @@ async def test_countries_of_an_older_export_are_looked_up_once_when_needed(
         coordinator.countries.ensure(replace(coordinator.exports[0], countries=None))
         await hass.async_block_till_done(wait_background_tasks=True)
     lookup.assert_not_called()
+
+
+def symbol_share(image: Image.Image, x: float, y: float, color: str, tolerance: int = 40) -> float:
+    """Return the share of pixels close to `color` around a point of the map."""
+    rgb = tuple(int(color[i : i + 2], 16) for i in (1, 3, 5))
+    pixels = (
+        image.convert("RGB").crop((round(x) - 10, round(y) - 10, round(x) + 10, round(y) + 10)).get_flattened_data()
+    )
+    near = [p for p in pixels if all(abs(a - b) <= tolerance for a, b in zip(p, rgb, strict=True))]
+    return len(near) / len(pixels)
+
+
+async def test_map_shows_refill_instead_of_stop_and_the_pitch_at_the_arrival(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+    media_dir: Path,
+    camp_site: AsyncMock,
+) -> None:
+    hass.config.language = "de"
+    camp_site.return_value = "Camping Seeblick"
+    coordinator = await setup(hass, config_entry)
+    keeper = coordinator.logbook
+    await drive(hass, freezer, 0, 5000)
+    await advance(hass, freezer, timedelta(minutes=6))
+    keeper.set_field(FormField.FUEL_LITRES, 40)
+    keeper.set_field(FormField.FUEL_AMOUNT, 70)
+    await coordinator.async_save_logbook_form()
+    await advance(hass, freezer, timedelta(minutes=4))
+    await drive(hass, freezer, 5000, 5000)
+
+    await advance(hass, freezer, timedelta(minutes=60))
+
+    info = coordinator.data.last_export
+    assert info is not None
+    assert info.arrival_stay == "Camping Seeblick"
+    assert "Stellplatz:      Camping Seeblick" in info.stats_text
+    assert [(round(s.lat or 0, 4), s.lon) for s in info.stops] == [(round(50.0 + 5000 / METRES_PER_DEGREE_LAT, 4), 8.0)]
+    folder = media_dir / "reiseverlauf" / info.folder
+    stored = json.loads((folder / "export.json").read_text(encoding="utf-8"))
+    assert stored["arrival_stay"] == "Camping Seeblick"
+    assert info.base_map is not None
+    assert stored["base_map"]["name"] == info.base_map.name
+    projection = info.base_map.projection
+    with Image.open(folder / info.files[ExportFile.MAP]) as image:
+        stop = projection.to_px(50.0 + 5000 / METRES_PER_DEGREE_LAT, 8.0)
+        arrival = projection.to_px(50.0 + 10000 / METRES_PER_DEGREE_LAT, 8.0)
+        assert symbol_share(image, *stop, COLORS[MarkerKind.FUEL]) > 0.2
+        assert symbol_share(image, *stop, COLORS[MarkerKind.STOP], tolerance=8) < 0.02
+        assert symbol_share(image, *arrival, COLORS[MarkerKind.PITCH]) > 0.2

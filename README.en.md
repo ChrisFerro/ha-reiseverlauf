@@ -15,11 +15,14 @@ blueprint then sends a push notification with the composite image to your phone.
 
 - **Automatic trip detection:** a trip starts when D+ turns on and ends when D+ stays off longer than a
   configurable delay (default 60 min). Fuel stops belong to the same trip.
-- **Ferries and car trains:** if the vehicle moves while D+ is off, the trip goes on.
+- **Ferries and car trains:** if the vehicle moves while D+ is off, the trip goes on. A ferry crossing is detected
+  (or marked by hand), drawn dashed and not counted as distance driven.
 - **Merging:** if the journey continues within a window after the end (default 6 h), for example after a long
   wait at the port, the same trip is resumed and exported again.
 - **Export:** distance, driving time, top and average speed, altitude and elevation gain; map on OpenStreetMap
   tiles, profiles, GPX with altitude and speed, composite image.
+- **Map symbols:** start, end or pitch, stops, fuel and gas stops and ferries as symbols on the map, with a legend in
+  the composite image (see [Map symbols and ferries](#map-symbols-and-ferries)).
 - **Logbook:** odometer (carried forward from the measured distance), levels of the fuel tank and two gas tanks,
   fuel and gas stops with litres and amount. Push reminder at trip start and at each stop; average consumption,
   costs per month and year, a CSV file and the figures in the trip export.
@@ -97,31 +100,37 @@ trips (see [Tours](#tours)); the binary sensor tour in progress is on while a to
 with a tour chosen, the export selection has the attributes `art`, `standorte` and
 `tourkosten`.
 
+The button mark as ferry (“Als Fähre markieren”) switches the ferry mark of the stop chosen in the logbook time
+selection; the button redraw map (“Karte neu zeichnen”) draws the map of the export chosen in the export selection
+anew with tiles (see [Map symbols and ferries](#map-symbols-and-ferries)).
+
 ## Actions
 
-| Action                                       | Purpose                                                                                                                 |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `reiseverlauftracker.exportieren`            | Export any period from the recorder, optionally with title, scale and margin; returns the result                        |
-| `reiseverlauftracker.aufraeumen`             | Delete file types of one export or of all exports; without an export, the export selection applies                      |
-| `reiseverlauftracker.reise_starten`          | Start a trip without D+, or resume the last one within the merge window                                                 |
-| `reiseverlauftracker.reise_beenden`          | End the running trip now and export it                                                                                  |
-| `reiseverlauftracker.fahrtenbuch_speichern`  | Save the logbook form like the button; with `anlass_zeit` only while that occasion is pending                           |
-| `reiseverlauftracker.fahrtenbuch_eintragen`  | Add a logbook entry without the form; returns the entry                                                                 |
-| `reiseverlauftracker.fahrtenbuch_aendern`    | Change fields of an entry; litres of 0 remove a fuel or gas stop; a new time brings the counters and place of that time |
-| `reiseverlauftracker.fahrtenbuch_loeschen`   | Delete an entry; its ID is in the attribute `letzte_eintraege`                                                          |
-| `reiseverlauftracker.fahrtenbuch_csv`        | Write `fahrtenbuch.csv` to the output folder (also done after every change)                                             |
-| `reiseverlauftracker.fahrtenbuch_nachtragen` | Add a fuel or gas stop for an earlier time; a stop within 5 min of the time is matched                                  |
-| `reiseverlauftracker.reisekosten_eintragen`  | Add a travel cost for a trip (folder, selection entry or start time) or only a date                                     |
-| `reiseverlauftracker.reisekosten_aendern`    | Change a travel cost; its ID is in the attribute `reisekosten` of the export selection                                  |
-| `reiseverlauftracker.reisekosten_loeschen`   | Delete a travel cost                                                                                                    |
-| `reiseverlauftracker.keine_maut`             | Mark a trip as having no toll, or remove the mark with `an: false`                                                      |
-| `reiseverlauftracker.tour_erstellen`         | Combine all trips starting from `von` to `bis` into a tour; optional title and scale                                    |
-| `reiseverlauftracker.tour_aendern`           | Change title, period or place names (`standorte`: list of `nacht` and `name`) and renew the tour                        |
+| Action                                       | Purpose                                                                                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reiseverlauftracker.exportieren`            | Export any period from the recorder, optionally with title, scale and margin; returns the result                                                  |
+| `reiseverlauftracker.aufraeumen`             | Delete file types of one export or of all exports; without an export, the export selection applies                                                |
+| `reiseverlauftracker.reise_starten`          | Start a trip without D+, or resume the last one within the merge window                                                                           |
+| `reiseverlauftracker.reise_beenden`          | End the running trip now and export it                                                                                                            |
+| `reiseverlauftracker.fahrtenbuch_speichern`  | Save the logbook form like the button; with `anlass_zeit` only while that occasion is pending                                                     |
+| `reiseverlauftracker.fahrtenbuch_eintragen`  | Add a logbook entry without the form; returns the entry                                                                                           |
+| `reiseverlauftracker.fahrtenbuch_aendern`    | Change fields of an entry; litres of 0 remove a fuel or gas stop; a new time brings the counters and place of that time                           |
+| `reiseverlauftracker.fahrtenbuch_loeschen`   | Delete an entry; its ID is in the attribute `letzte_eintraege`                                                                                    |
+| `reiseverlauftracker.fahrtenbuch_csv`        | Write `fahrtenbuch.csv` to the output folder (also done after every change)                                                                       |
+| `reiseverlauftracker.fahrtenbuch_nachtragen` | Add a fuel or gas stop for an earlier time; a stop within 5 min of the time is matched                                                            |
+| `reiseverlauftracker.reisekosten_eintragen`  | Add a travel cost for a trip (folder, selection entry or start time) or only a date                                                               |
+| `reiseverlauftracker.reisekosten_aendern`    | Change a travel cost; its ID is in the attribute `reisekosten` of the export selection                                                            |
+| `reiseverlauftracker.reisekosten_loeschen`   | Delete a travel cost                                                                                                                              |
+| `reiseverlauftracker.keine_maut`             | Mark a trip as having no toll, or remove the mark with `an: false`                                                                                |
+| `reiseverlauftracker.tour_erstellen`         | Combine all trips starting from `von` to `bis` into a tour; optional title and scale                                                              |
+| `reiseverlauftracker.tour_aendern`           | Change title, period or place names (`standorte`: list of `nacht` and `name`) and renew the tour                                                  |
+| `reiseverlauftracker.faehre_markieren`       | Mark a stop (`halt`: its start or a time during it, optional `reise`) as ferry crossing, or remove it with `faehre: false`                        |
+| `reiseverlauftracker.karte_neu_zeichnen`     | Draw map, base map and composite image of one export (trip or tour) anew with tiles; without `export`, the selection applies; not for all exports |
 
 ## Storage
 
 Each trip gets its own folder named after its start time (for example `2026-10-12_1000`; manual exports
-`2026-10-12_1000-1130`) with the composite image, map, profile, GPX, statistics, raw points and an `export.json`
+`2026-10-12_1000-1130`) with the composite image, map, base map (tiles only, for redrawing), profile, GPX, statistics, raw points and an `export.json`
 the integration uses to manage the export. Only files listed there are ever deleted. The media browser of Home Assistant shows
 only the images; all files can be downloaded from the dashboard.
 
@@ -147,6 +156,32 @@ the vehicle stands at 3 am, named after the camp site or pitch in OpenStreetMap,
 and all travel costs dated within the tour, by category and country; the estimated consumption uses the average
 consumption. When logbook entries or travel costs in the period change, the tour is renewed after 30 s without
 downloading the map again. The push blueprint can report created (default on) and renewed tours (default off).
+
+## Map symbols and ferries
+
+Maps show symbols in coloured circles; the composite image has a legend of the symbols that occur below the map.
+Costs are never shown on the map.
+
+- **Trip map:** start, end (or a pitch symbol with its name in the statistics when the arrival is on a camp site),
+  stops, fuel and gas stops from the logbook (late entries too) and ferry crossings, dashed in blue with a ship in
+  the middle. A refill at a stop replaces the stop symbol; fuel and gas at the same stop stand side by side.
+- **Tour map:** start, end, one pitch per run of nights at the same place, fuel and gas stops within the tour and the
+  ferries of all trips; no stops.
+- **Manual export:** start, end or pitch, fuel and gas stops; no stops and no ferry.
+
+**Ferry:** if the vehicle moves during a stop (D+ off) and the middle of that movement lies on water in
+OpenStreetMap, the stop counts as a ferry crossing. To correct it (for example no GPS on board), choose the stop in
+the logbook time selection and press mark as ferry; its label then ends in “· Fähre”, a second press removes the
+mark. Older stops are marked with the action `faehre_markieren`. The crossing counts neither as distance nor as
+driving time nor in the odometer; statistics and composite image list it separately, and the elevation and speed
+profile draws it dashed in blue. Marking a ferry later moves the counters of later logbook entries by the ferry
+distance and renews the export without downloading tiles.
+
+**Redraw map:** exports from before this version have no symbols yet. Choose the export in the export selection and
+press redraw map (or call `karte_neu_zeichnen`). The tiles are downloaded again, a trip has its stops checked once
+for ferries and its arrival for a camp site, and map, base map, profile, statistics and composite image are renewed.
+One export per call, and only with raw data. If a tile cannot be loaded, the old map stays and you are asked to try
+again later.
 
 ## Push notification (blueprint)
 
@@ -234,12 +269,14 @@ Dashboard views for the form, the travel costs and the evaluation are shown in t
 is ready), `reiseverlauftracker_exportiert` (manual export is ready) and `reiseverlauftracker_fahrtenbuch` (logbook
 occasion: trip start or stop, with the suggestion). The payload keys are German, see the
 [German README](README.md#events); `fahrtenbuch.kosten` includes the travel costs, listed by category in
-`fahrtenbuch.reisekosten`.
+`fahrtenbuch.reisekosten`. Each stop in `halte` has `faehre`; `strecke_km` and `fahrzeit_min` exclude the ferry,
+which is in `faehre_km` and `faehre_min` (also in the tour event).
 
 ## Privacy
 
-Map tiles come from OpenStreetMap, once per trip. For place names and countries, positions are sent to Nominatim
-(OpenStreetMap): start, end and stops of a trip, and for its countries a point of the track about every 20 km, at
+Map tiles come from OpenStreetMap, once per trip and on redraw map. For place names and countries, positions are
+sent to Nominatim (OpenStreetMap): start, end and stops of a trip, for its countries a point of the track about every
+20 km, for the ferry detection one point per stop with movement, and the arrival for a camp site, at
 most one request a second. The place-name lookup can be turned off in the options; then neither places nor
 countries are looked up. Diagnostics contain no
 positions.

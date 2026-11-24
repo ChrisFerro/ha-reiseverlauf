@@ -2,6 +2,7 @@
 
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+import json
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -17,7 +18,7 @@ from custom_components.reiseverlauftracker.coordinator.exports import (
     write_metadata,
 )
 from custom_components.reiseverlauftracker.coordinator.trip_log import TrackCounters
-from custom_components.reiseverlauftracker.export import ExportFile, LogbookFigures
+from custom_components.reiseverlauftracker.export import BaseMapRef, ExportFile, LogbookFigures, MapProjection, Stop
 
 pytestmark = pytest.mark.unit
 
@@ -73,6 +74,67 @@ def test_metadata_round_trip_with_start_counters(tmp_path: Path) -> None:
     write_metadata(tmp_path, info)
 
     assert read_export(tmp_path, "a") == info
+
+
+def test_metadata_round_trip_with_map_symbols(tmp_path: Path) -> None:
+    start = datetime(2026, 10, 1, tzinfo=UTC)
+    info = replace(
+        make_export(tmp_path, "a", start),
+        stops=(Stop(start + timedelta(minutes=30), start + timedelta(minutes=50), "Kiel", 54.32, 10.13),),
+        base_map=BaseMapRef("trip_karte_basis.png", MapProjection(12, 2161.5, 1310.25, 2400, 1600)),
+        arrival_stay="Camping Seeblick",
+    )
+    write_metadata(tmp_path, info)
+
+    assert read_export(tmp_path, "a") == info
+
+
+def test_old_metadata_without_map_symbols_is_still_read(tmp_path: Path) -> None:
+    start = datetime(2026, 10, 1, tzinfo=UTC)
+    info = replace(make_export(tmp_path, "a", start), stops=(Stop(start, start + timedelta(minutes=9), "Kiel"),))
+    write_metadata(tmp_path, info)
+    path = tmp_path / "a" / "export.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for key in ("base_map", "arrival_stay"):
+        del data[key]
+    for stop in data["stops"]:
+        del stop["lat"], stop["lon"]
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    assert read_export(tmp_path, "a") == info
+
+
+def test_removing_the_map_removes_its_base_map(tmp_path: Path) -> None:
+    info = replace(
+        make_export(tmp_path, "a", datetime(2026, 10, 1, tzinfo=UTC)),
+        base_map=BaseMapRef("trip_karte_basis.png", MapProjection(12, 1.0, 2.0, 800, 600)),
+    )
+    write_metadata(tmp_path, info)
+    (tmp_path / "a" / "trip_karte_basis.png").write_text("x")
+
+    kept = remove_files(tmp_path, "a", {ExportFile.GPX})
+    assert kept is not None
+    assert kept.base_map == info.base_map
+    assert (tmp_path / "a" / "trip_karte_basis.png").is_file()
+
+    remaining = remove_files(tmp_path, "a", {ExportFile.MAP})
+
+    assert remaining is not None
+    assert remaining.base_map is None
+    assert not (tmp_path / "a" / "trip_karte_basis.png").exists()
+    assert read_export(tmp_path, "a") == remaining
+
+
+def test_removing_everything_removes_the_base_map_and_the_folder(tmp_path: Path) -> None:
+    info = replace(
+        make_export(tmp_path, "a", datetime(2026, 10, 1, tzinfo=UTC)),
+        base_map=BaseMapRef("trip_karte_basis.png", MapProjection(12, 1.0, 2.0, 800, 600)),
+    )
+    write_metadata(tmp_path, info)
+    (tmp_path / "a" / "trip_karte_basis.png").write_text("x")
+
+    assert remove_files(tmp_path, "a", set(ExportFile)) is None
+    assert not (tmp_path / "a").exists()
 
 
 def test_countries_are_stored_in_the_metadata(tmp_path: Path) -> None:

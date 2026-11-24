@@ -5,7 +5,12 @@ import json
 
 import pytest
 
-from custom_components.reiseverlauftracker.coordinator.trip_log import RunningStatsSettings, TrackCounters, TripLog
+from custom_components.reiseverlauftracker.coordinator.trip_log import (
+    FerryMark,
+    RunningStatsSettings,
+    TrackCounters,
+    TripLog,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -310,3 +315,73 @@ def test_start_counters_survive_a_round_trip() -> None:
     old = log.as_dict()
     del old["counter_start"]
     assert TripLog.from_dict(old, SETTINGS).counter_start is None
+
+
+def ferry_log() -> TripLog:
+    """Drive 1 km, stop and cross 3 km with D+ off, then drive 1 km more."""
+    log = TripLog(T0, SETTINGS)
+    log.counter_start = TrackCounters(100_000)
+    log.add_position(at(0), lat(0), 8.0, 10)
+    log.add_position(at(60), lat(1000), 8.0, 10)
+    log.begin_stop(at(90))
+    for minute in range(1, 4):
+        log.add_position(at(90 + 600 * minute), lat(1000 + 1000 * minute), 8.0, 10)
+    log.end_stop(at(2000), timedelta(minutes=5))
+    log.add_position(at(2060), lat(5000), 8.0, 10)
+    return log
+
+
+def test_marked_ferry_is_not_driven_and_counted_again_when_unmarked() -> None:
+    log = ferry_log()
+    assert log.distance_m == pytest.approx(5000, abs=1)
+
+    changed = log.set_ferry(log.stops[0].start, FerryMark.HAND)
+
+    assert changed is not None
+    assert changed.is_ferry
+    # 1 km before and the step off the ship (4 km → 5 km) after it belong to the crossing.
+    assert log.distance_m == pytest.approx(1000, abs=1)
+    assert log.export_stops(at(3000), timedelta(minutes=5))[0].ferry
+    counters = log.counters_at(at(1500))
+    assert counters is not None
+    assert counters.distance_m == pytest.approx(101_000, abs=1)
+
+    log.set_ferry(log.stops[0].start, FerryMark.NONE)
+
+    assert log.distance_m == pytest.approx(5000, abs=1)
+    assert not log.stops[0].is_ferry
+
+
+def test_ferry_survives_storage_and_is_not_counted_after_a_restart() -> None:
+    log = ferry_log()
+    log.set_ferry(log.stops[0].start, FerryMark.AUTO)
+
+    restored = TripLog.from_dict(json.loads(json.dumps(log.as_dict())), SETTINGS)
+
+    assert restored.stops[0].ferry is FerryMark.AUTO
+    assert restored.distance_m == pytest.approx(1000, abs=1)
+
+
+def test_unknown_stop_cannot_be_marked() -> None:
+    assert ferry_log().set_ferry(at(5), FerryMark.HAND) is None
+
+
+def test_ferry_probe_is_halfway_along_the_movement_during_the_stop() -> None:
+    log = ferry_log()
+
+    probe = log.ferry_probe(log.stops[0])
+
+    assert probe is not None
+    assert probe.lat == pytest.approx(lat(3000))
+
+
+def test_no_ferry_probe_for_a_stop_without_movement() -> None:
+    log = TripLog(T0, SETTINGS)
+    log.add_position(at(0), lat(0), 8.0, 10)
+    log.begin_stop(at(10))
+    log.add_position(at(300), lat(20), 8.0, 10)
+    log.add_position(at(600), lat(40), 8.0, 10)
+    stop = log.end_stop(at(900), timedelta(minutes=5))
+
+    assert stop is not None
+    assert log.ferry_probe(stop) is None

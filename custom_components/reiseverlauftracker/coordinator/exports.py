@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from custom_components.reiseverlauftracker.export import ExportFile, LogbookFigures, Stop
+from custom_components.reiseverlauftracker.export import BaseMapRef, ExportFile, LogbookFigures, MapProjection, Stop
 from custom_components.reiseverlauftracker.export.tour import Night
 
 from .trip_log import TrackCounters
@@ -105,6 +105,13 @@ class ExportInfo:
     updated: datetime | None = None
     kind: ExportKind = ExportKind.TRIP
     tour: TourMeta | None = None
+    base_map: BaseMapRef | None = None
+    """Map without symbols; not one of `files`, so it is neither offered for download nor announced."""
+    arrival_stay: str | None = None
+    """Camp site or pitch at the arrival, if the trip ended on one (docs/features/feat-12-kartensymbole.md 5.7)."""
+    ferry_km: float = 0.0
+    """Distance on ferries, not part of `distance_km` (docs/features/feat-12-kartensymbole.md 5.10)."""
+    ferry_time: timedelta = timedelta()
 
     @property
     def is_tour(self) -> bool:
@@ -145,13 +152,31 @@ class ExportInfo:
             "automatic": self.automatic,
             "departure": self.departure.isoformat() if self.departure else None,
             "arrival": self.arrival.isoformat() if self.arrival else None,
-            "stops": [{"start": s.start.isoformat(), "end": s.end.isoformat(), "place": s.place} for s in self.stops],
+            "stops": [
+                {
+                    "start": s.start.isoformat(),
+                    "end": s.end.isoformat(),
+                    "place": s.place,
+                    "lat": s.lat,
+                    "lon": s.lon,
+                    "ferry": s.ferry,
+                }
+                for s in self.stops
+            ],
             "logbook": self.logbook.as_dict() if self.logbook else None,
             "counter_start": self.counter_start.as_dict() if self.counter_start else None,
             "countries": list(self.countries) if self.countries is not None else None,
             "updated": self.updated.isoformat() if self.updated else None,
             "art": self.kind.value,
             "tour": self.tour.as_dict() if self.tour else None,
+            "base_map": (
+                {"name": self.base_map.name, "projection": self.base_map.projection.as_dict()}
+                if self.base_map
+                else None
+            ),
+            "arrival_stay": self.arrival_stay,
+            "ferry_km": self.ferry_km,
+            "ferry_time_s": self.ferry_time.total_seconds(),
         }
 
     @classmethod
@@ -174,6 +199,9 @@ class ExportInfo:
                     start=datetime.fromisoformat(s["start"]),
                     end=datetime.fromisoformat(s["end"]),
                     place=s.get("place"),
+                    lat=s.get("lat"),
+                    lon=s.get("lon"),
+                    ferry=s.get("ferry", False),
                 )
                 for s in data.get("stops", [])
             ),
@@ -183,7 +211,20 @@ class ExportInfo:
             updated=_optional_datetime(data.get("updated")),
             kind=ExportKind(data.get("art") or ExportKind.TRIP),
             tour=TourMeta.from_dict(data["tour"]) if data.get("tour") else None,
+            base_map=_base_map(data.get("base_map")),
+            arrival_stay=data.get("arrival_stay"),
+            ferry_km=data.get("ferry_km") or 0.0,
+            ferry_time=timedelta(seconds=data.get("ferry_time_s") or 0),
         )
+
+
+def _base_map(data: Any) -> BaseMapRef | None:
+    if not isinstance(data, dict):
+        return None
+    try:
+        return BaseMapRef(str(data["name"]), MapProjection.from_dict(data["projection"]))
+    except KeyError, TypeError, ValueError:
+        return None
 
 
 def _optional_datetime(value: str | None) -> datetime | None:
@@ -221,6 +262,14 @@ def read_raw(base: Path, info: ExportInfo) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
+def write_raw(base: Path, info: ExportInfo, raw: dict[str, Any]) -> None:
+    """Replace the raw data of an export, e.g. after a stop was marked as ferry crossing."""
+    path = base / info.folder / info.files[ExportFile.RAW]
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(raw), encoding="utf-8")
+    tmp.replace(path)
+
+
 def read_export(base: Path, folder: str) -> ExportInfo | None:
     """Return the export in `folder`, or None if it has no readable metadata."""
     try:
@@ -255,11 +304,16 @@ def remove_files(base: Path, folder: str, kinds: set[ExportFile]) -> ExportInfo 
     for kind in kinds & info.files.keys():
         (path / info.files[kind]).unlink(missing_ok=True)
     remaining = {kind: name for kind, name in info.files.items() if kind not in kinds}
+    base_map = info.base_map
+    if base_map is not None and (ExportFile.MAP in kinds or not remaining):
+        # The base map belongs to the map (docs/features/feat-12-kartensymbole.md 6.5).
+        (path / base_map.name).unlink(missing_ok=True)
+        base_map = None
     if not remaining:
         (path / METADATA_FILE).unlink(missing_ok=True)
         if not any(path.iterdir()):
             path.rmdir()
         return None
-    updated = replace(info, files=remaining)
+    updated = replace(info, files=remaining, base_map=base_map)
     write_metadata(base, updated)
     return updated

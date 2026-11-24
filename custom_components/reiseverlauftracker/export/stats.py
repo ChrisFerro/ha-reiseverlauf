@@ -7,6 +7,7 @@ from itertools import pairwise
 
 from custom_components.reiseverlauftracker.utils.geo import distance_m
 
+from .ferry import SplitTrack, ferry_spans, on_ferry, split_track
 from .model import ExportOptions, LogbookFigures, StepSeries, Stop, TrackPoint
 from .texts import Texts, format_duration, format_money, format_number, format_period
 
@@ -25,6 +26,9 @@ class TripStats:
     altitude_max_m: float | None
     ascent_m: float | None
     descent_m: float | None
+    ferry_km: float = 0.0
+    """Distance on ferries; not part of `distance_km` (docs/features/feat-12-kartensymbole.md 5.10)."""
+    ferry_time: timedelta = timedelta()
 
 
 def distance_km(points: Sequence[TrackPoint]) -> float:
@@ -59,28 +63,47 @@ def elevation_change(values: Sequence[float], hysteresis_m: float) -> tuple[floa
     return ascent, descent
 
 
-def compute_stats(points: Sequence[TrackPoint], speed: StepSeries | None, options: ExportOptions) -> TripStats:
-    """Compute the key figures of a prepared track."""
+def compute_stats(
+    points: Sequence[TrackPoint], speed: StepSeries | None, options: ExportOptions, split: SplitTrack | None = None
+) -> TripStats:
+    """
+    Compute the key figures of a prepared track.
+
+    Ferry crossings among `options.stops` count neither as distance nor as driving
+    time, climb or speed; they are summed up on their own. `split` is the track
+    already split at them.
+    """
+    split = split or split_track(points, options.stops)
+    spans = ferry_spans(options.stops)
     max_speed = avg_speed = None
     if speed:
-        max_speed = max(speed.values)
-        moving = [v for v in speed.values if v >= options.standstill_kmh]
+        values = [v for t, v in zip(speed.times, speed.values, strict=True) if not on_ferry(t, spans)]
+        max_speed = max(values) if values else None
+        moving = [v for v in values if v >= options.standstill_kmh]
         avg_speed = sum(moving) / len(moving) if moving else None
     altitudes = [p.altitude for p in points if p.altitude is not None]
     ascent = descent = None
     if altitudes:
-        ascent, descent = elevation_change(altitudes, options.elevation_hysteresis_m)
+        changes = [
+            elevation_change([p.altitude for p in part if p.altitude is not None], options.elevation_hysteresis_m)
+            for part in split.land
+        ]
+        ascent, descent = sum(a for a, _ in changes), sum(d for _, d in changes)
     return TripStats(
         departure=points[0].time,
         arrival=points[-1].time,
-        distance_km=distance_km(points),
-        moving_time=moving_time(points, options.standstill_kmh, options.max_gap),
+        distance_km=sum(distance_km(part) for part in split.land),
+        moving_time=sum(
+            (moving_time(part, options.standstill_kmh, options.max_gap) for part in split.land), timedelta()
+        ),
         max_speed_kmh=max_speed,
         avg_moving_speed_kmh=avg_speed,
         altitude_min_m=min(altitudes) if altitudes else None,
         altitude_max_m=max(altitudes) if altitudes else None,
         ascent_m=ascent,
         descent_m=descent,
+        ferry_km=sum(distance_km(leg) for leg in split.ferries),
+        ferry_time=split.ferry_time if split.ferries else timedelta(),
     )
 
 
@@ -91,6 +114,8 @@ def stats_rows(stats: TripStats, texts: Texts, tz: tzinfo) -> list[tuple[str, st
         (texts.distance, f"{format_number(texts, stats.distance_km, 1)} km"),
         (texts.moving_time, format_duration(stats.moving_time)),
     ]
+    if stats.ferry_km > 0 or stats.ferry_time:
+        rows.append((texts.ferry, f"{format_number(texts, stats.ferry_km, 1)} km, {format_duration(stats.ferry_time)}"))
     if stats.max_speed_kmh is not None:
         rows.append((texts.max_speed, f"{format_number(texts, stats.max_speed_kmh)} km/h"))
     if stats.avg_moving_speed_kmh is not None:
@@ -166,5 +191,8 @@ def stop_lines(stops: Sequence[Stop], texts: Texts, tz: tzinfo) -> list[str]:
     for stop in stops:
         a, b = stop.start.astimezone(tz), stop.end.astimezone(tz)
         span = f"{a:%H:%M}–{b:%H:%M}" if a.date() == b.date() else f"{a:%d.%m. %H:%M}–{b:%d.%m. %H:%M}"
-        lines.append(f"  {stop.place or texts.unknown_place}  {span} ({format_duration(stop.duration)})")
+        place = stop.place or texts.unknown_place
+        if stop.ferry:
+            place = f"{texts.ferry}: {place}"
+        lines.append(f"  {place}  {span} ({format_duration(stop.duration)})")
     return lines

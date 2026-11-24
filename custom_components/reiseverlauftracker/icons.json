@@ -200,6 +200,12 @@
       },
       "travel_cost_remove": {
         "default": "mdi:delete"
+      },
+      "mark_ferry": {
+        "default": "mdi:ferry"
+      },
+      "redraw_map": {
+        "default": "mdi:map"
       }
     },
     "datetime": {
@@ -275,6 +281,12 @@
     },
     "tour_aendern": {
       "service": "mdi:map-check"
+    },
+    "faehre_markieren": {
+      "service": "mdi:ferry"
+    },
+    "karte_neu_zeichnen": {
+      "service": "mdi:map"
     }
   }
 }

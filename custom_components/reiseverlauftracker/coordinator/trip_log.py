@@ -8,6 +8,8 @@ values while a trip runs or may still be merged, persists `as_dict()` in a
 
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
+from enum import StrEnum
+from itertools import pairwise
 from typing import Any
 
 from custom_components.reiseverlauftracker.export.model import StepSeries, Stop, TrackPoint
@@ -42,6 +44,12 @@ class TrackCounters:
             self.distance_m + other.distance_m, self.ascent_m + other.ascent_m, self.descent_m + other.descent_m
         )
 
+    def __sub__(self, other: TrackCounters) -> TrackCounters:
+        """Return the difference of both counters."""
+        return TrackCounters(
+            self.distance_m - other.distance_m, self.ascent_m - other.ascent_m, self.descent_m - other.descent_m
+        )
+
     def as_dict(self) -> dict[str, float]:
         """Return the counters as a JSON-serialisable dict."""
         return {"distance_m": self.distance_m, "ascent_m": self.ascent_m, "descent_m": self.descent_m}
@@ -50,6 +58,17 @@ class TrackCounters:
     def from_dict(cls, data: dict[str, Any]) -> TrackCounters:
         """Rebuild the counters from `as_dict()` output."""
         return cls(data["distance_m"], data.get("ascent_m", 0.0), data.get("descent_m", 0.0))
+
+
+class FerryMark(StrEnum):
+    """Whether a stop was a ferry crossing (docs/features/feat-12-kartensymbole.md 6.1); unchecked is None."""
+
+    AUTO = "auto"
+    """Detected: the vehicle moved on water during the stop."""
+    HAND = "hand"
+    """Marked by hand."""
+    NONE = "kein"
+    """Mark removed by hand; detection does not set it again."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +84,12 @@ class TripStop:
     lon: float | None = None
     end: datetime | None = None
     place: str | None = None
+    ferry: FerryMark | None = None
+
+    @property
+    def is_ferry(self) -> bool:
+        """Return whether the stop was a ferry crossing, detected or marked by hand."""
+        return self.ferry in (FerryMark.AUTO, FerryMark.HAND)
 
     def duration(self, now: datetime) -> timedelta:
         """Return how long the stop lasted, or lasts so far."""
@@ -78,6 +103,7 @@ class TripStop:
             "lat": self.lat,
             "lon": self.lon,
             "place": self.place,
+            "ferry": self.ferry.value if self.ferry else None,
         }
 
     @classmethod
@@ -89,6 +115,7 @@ class TripStop:
             lat=data.get("lat"),
             lon=data.get("lon"),
             place=data.get("place"),
+            ferry=FerryMark(data["ferry"]) if data.get("ferry") in set(FerryMark) else None,
         )
 
 
@@ -192,6 +219,60 @@ class TripLog:
         """Store the place name of the stop that began at `start`."""
         self.stops = [replace(s, place=place) if s.start == start else s for s in self.stops]
 
+    def set_ferry(self, start: datetime, mark: FerryMark | None) -> TripStop | None:
+        """
+        Mark the stop that began at `start` as ferry crossing, or not, and count distance and climb anew.
+
+        Returns:
+            The changed stop, or None if the log has no such stop.
+
+        """
+        stop = next((s for s in self.stops if s.start == start), None)
+        if stop is None:
+            return None
+        changed = replace(stop, ferry=mark)
+        self.stops = [changed if s.start == start else s for s in self.stops]
+        self._recount()
+        return changed
+
+    def ferry_probe(self, stop: TripStop) -> Position | None:
+        """
+        Return the position halfway along the way the vehicle moved during `stop`, or None if it stayed.
+
+        Only there is it worth asking whether the vehicle was on water (6.2).
+        """
+        if stop.end is None:
+            return None
+        points = [
+            p
+            for p in self.positions
+            if stop.start <= p.time <= stop.end and (p.accuracy is None or p.accuracy <= self.settings.max_accuracy_m)
+        ]
+        if len(points) < 2 or max(distance_m(points[0].position, p.position) for p in points) < (
+            self.settings.min_movement_m
+        ):
+            return None
+        steps = [distance_m(a.position, b.position) for a, b in pairwise(points)]
+        half, walked = sum(steps) / 2, 0.0
+        for point, step in zip(points[1:], steps, strict=True):
+            walked += step
+            if walked >= half:
+                return point.position
+        return points[-1].position
+
+    def _ferry_spans(self) -> list[tuple[datetime, datetime]]:
+        return [(s.start, s.end) for s in self.stops if s.is_ferry and s.end is not None]
+
+    def _recount(self) -> None:
+        """Count distance, driving time and climb again from the recorded data, e.g. after a ferry was marked."""
+        positions = self.positions
+        self.positions, self.distance_m, self.moving_distance_m, self.driving_time = [], 0.0, 0.0, timedelta()
+        self._last_usable = self._previous_usable = self._group_start = None
+        self._last_segment = _Segment()
+        for point in positions:
+            self.add_position(point.time, point.lat, point.lon, point.accuracy)
+        self._set_altitude(self.altitude)
+
     def confirmed_stops(self, now: datetime, min_duration: timedelta) -> list[TripStop]:
         """Return the stops, open or closed, that last `min_duration`."""
         return [s for s in self.stops if s.duration(now) >= min_duration]
@@ -199,7 +280,7 @@ class TripLog:
     def export_stops(self, end: datetime, min_duration: timedelta) -> tuple[Stop, ...]:
         """Return the closed stops before `end` that lasted `min_duration`; the open one is the arrival."""
         return tuple(
-            Stop(start=s.start, end=s.end, place=s.place)
+            Stop(start=s.start, end=s.end, place=s.place, lat=s.lat, lon=s.lon, ferry=s.is_ferry)
             for s in self.stops
             if s.end and s.end <= end and s.duration(end) >= min_duration
         )
@@ -228,6 +309,8 @@ class TripLog:
         seconds = (time - previous.time).total_seconds()
         if seconds <= 0:
             return
+        if any(previous.time < end and time > start for start, end in self._ferry_spans()):
+            return  # On board: the crossing is not driven (5.10).
         metres = distance_m(previous.position, point.position)
         segment = _Segment(metres=metres)
         if seconds <= self.settings.max_gap.total_seconds() and metres / seconds * 3.6 >= self.settings.standstill_kmh:
@@ -251,7 +334,8 @@ class TripLog:
     def add_altitude(self, time: datetime, value: float) -> None:
         """Append an altitude reading in metres and count ascent and descent like the export does."""
         self.altitude.append((time, value))
-        self._count_elevation(value)
+        if not any(start <= time <= end for start, end in self._ferry_spans()):
+            self._count_elevation(value)
 
     def _count_elevation(self, value: float) -> None:
         """Count changes of at least the hysteresis, like `elevation_change()`, so GPS noise adds nothing."""
@@ -287,6 +371,7 @@ class TripLog:
         if self.counter_start is None:
             return None
         replay = TripLog(self.start, self.settings)
+        replay.stops = list(self.stops)
         for point in self.positions:
             if point.time > time:
                 break
@@ -347,12 +432,13 @@ class TripLog:
     def from_dict(cls, data: dict[str, Any], settings: RunningStatsSettings) -> TripLog:
         """Rebuild a log, including its running statistics, from `as_dict()` output."""
         log = cls(datetime.fromisoformat(data["start"]), settings)
+        # Stops first: a ferry crossing among them is not counted as driven.
+        log.stops = [TripStop.from_dict(stop) for stop in data.get("stops", [])]
         for ts, lat, lon, accuracy in data["positions"]:
             log.add_position(_from_ts(ts), lat, lon, accuracy)
         log.speed = [(_from_ts(ts), v) for ts, v in data["speed"]]
         log._set_altitude([(_from_ts(ts), v) for ts, v in data["altitude"]])
         log.start_place = data.get("start_place")
-        log.stops = [TripStop.from_dict(stop) for stop in data.get("stops", [])]
         counter_start = data.get("counter_start")
         log.counter_start = TrackCounters.from_dict(counter_start) if counter_start else None
         return log

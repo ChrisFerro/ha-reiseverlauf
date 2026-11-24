@@ -602,3 +602,42 @@ def test_gas_level_litres_per_percent_and_last_price() -> None:
     assert book.last_price("fuel", at(5)) == pytest.approx(1.8)
     assert book.last_price("gas", at(3)) == pytest.approx(0.96)
     assert book.last_price("fuel", at(0.5)) is None
+
+
+def test_counters_after_a_ferry_move_with_its_distance() -> None:
+    book = Logbook()
+    before = book.add(at(0), Occasion.TRIP_START, odometer_km=1000)
+    drive(book, 30)
+    book.record_stop(RecordedStop(trip_start=at(0), start=at(1), distance_counter_m=10_000))
+    after = book.add(at(2), Occasion.MANUAL, odometer_km=1030)
+
+    book.shift_counters(10_000, -18_000, -5, 0, closed_trip=True)
+
+    assert book.get(before.id) == before
+    moved = book.get(after.id)
+    assert moved is not None
+    assert moved.distance_counter_m == 12_000
+    assert moved.odometer_km == 1030
+    assert book.stops[0].distance_counter_m == 10_000
+    assert book.distance_counter_m == 12_000
+
+
+def test_counters_never_fall_below_the_ferry() -> None:
+    book = Logbook()
+    entry = book.add(at(0), Occasion.STOP, distance_counter_m=10_500)
+
+    book.shift_counters(10_000, -2000, 0, 0, closed_trip=False)
+
+    moved = book.get(entry.id)
+    assert moved is not None
+    assert moved.distance_counter_m == 10_000
+
+
+def test_ferry_mark_of_a_stop_is_stored() -> None:
+    book = Logbook()
+    book.record_stop(RecordedStop(trip_start=at(0), start=at(1), distance_counter_m=0))
+
+    book.set_stop_ferry(at(1), True)
+
+    restored = Logbook.from_dict(json.loads(json.dumps(book.as_dict())), 90)
+    assert restored.stops[0].ferry

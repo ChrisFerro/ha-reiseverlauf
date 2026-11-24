@@ -20,6 +20,7 @@ from custom_components.reiseverlauftracker.export import (
     NoMovementError,
     NotEnoughPointsError,
 )
+from custom_components.reiseverlauftracker.export.ferry import ferry_spans, split_track
 from custom_components.reiseverlauftracker.export.stats import compute_stats
 from custom_components.reiseverlauftracker.export.tour import (
     ConsumptionInputs,
@@ -45,8 +46,9 @@ from homeassistant.util import dt as dt_util
 from . import export_runner
 from .export_runner import media_base, media_url, options_for
 from .exports import ExportInfo, ExportKind, TourMeta, existing_files, read_raw, write_metadata
+from .map_symbols import trip_markers
 from .places import async_country, async_place_name, async_stay_name, user_agent
-from .trip_log import RunningStatsSettings, TripLog
+from .trip_log import FerryMark, RunningStatsSettings, TripLog
 
 if TYPE_CHECKING:
     from .base import ReiseverlaufDataUpdateCoordinator
@@ -113,6 +115,8 @@ class _Request:
     scale: float | None
     previous: ExportInfo | None = None
     names: dict[date, str] | None = None
+    redraw: bool = False
+    """Draw the map anew with tiles even if the trips stayed the same (docs/features/feat-12-kartensymbole.md 6.8)."""
 
 
 class Tours:
@@ -259,6 +263,34 @@ class Tours:
         self._fire(changed, OCCASION_UPDATED)
         return changed
 
+    async def async_redraw(self, info: ExportInfo) -> ExportInfo:
+        """
+        Create a tour anew and draw its map with tiles, e.g. to get the map symbols of an old tour.
+
+        No event fires.
+
+        Returns:
+            The new version of the tour.
+
+        Raises:
+            TourError: Not a tour, a trip without raw data, or no movement.
+            OSError: The output folder cannot be written.
+
+        """
+        if not info.is_tour or info.tour is None:
+            raise TourError("not_a_tour", export=info.title)
+        return await self._async_build(
+            _Request(
+                info.folder,
+                info.start,
+                info.end,
+                info.title if info.tour.title_given else None,
+                info.tour.scale,
+                previous=info,
+                redraw=True,
+            )
+        )
+
     async def _async_build(self, request: _Request) -> ExportInfo:
         self._building += 1
         self.coordinator.async_update_listeners()
@@ -285,7 +317,9 @@ class Tours:
             options_for(hass, settings, request.title or "", user_agent(str(version) if version else None), (), None),
             scale=scale,
         )
-        trips = await hass.async_add_executor_job(_prepare_trips, raw_trips, log_settings, options)
+        trips = await hass.async_add_executor_job(
+            _prepare_trips, raw_trips, log_settings, options, self._ferry_marks(), settings.min_stop_duration
+        )
         if not trips:
             raise TourError("no_movement")
 
@@ -296,6 +330,11 @@ class Tours:
         end_place = await self._async_end_place(trips, meta, previous)
 
         refills, refill_countries = await self._async_refills(request.start, request.end, meta)
+        markers = trip_markers(
+            (),
+            coordinator.logbook.logbook.entries_between(request.start, request.end),
+            [p for trip in trips for p in trip.points],
+        )
         costs = self._costs(request.start, request.end)
         inputs = self._consumption_inputs(request.start, request.end, refills)
         odometer = self._odometer(raw_trips)
@@ -312,7 +351,7 @@ class Tours:
             odometer=odometer,
         )
         title = request.title or tour_title(hass.config.language, summary, nights, tz)
-        same_trips = meta is not None and meta.trips == tuple(t.folder for t in raw_trips)
+        same_trips = meta is not None and meta.trips == tuple(t.folder for t in raw_trips) and not request.redraw
         raw = {
             "version": RAW_VERSION,
             "art": ExportKind.TOUR.value,
@@ -342,7 +381,7 @@ class Tours:
                 trips,
                 nights,
                 title,
-                replace(options, title=title),
+                replace(options, title=title, markers=markers),
                 raw,
                 same_trips,
                 tour_meta,
@@ -469,6 +508,14 @@ class Tours:
             gas_price=book.last_price("gas", end),
         )
 
+    def _ferry_marks(self) -> dict[str, dict[datetime, bool]]:
+        """
+        Return which stops of each trip export are ferry crossings, by folder.
+
+        A tour keeps a copy of the trips; a ferry marked later is only in the trip's export (Feat-12 6.3).
+        """
+        return {info.folder: {s.start: s.ferry for s in info.stops} for info in self.coordinator.exports if info.stops}
+
     def _odometer(self, trips: list[RawTrip]) -> tuple[float | None, float | None]:
         """Return the odometer at the start of the first and the end of the last trip, as their exports know it."""
         exports = {info.folder: info for info in self.coordinator.exports}
@@ -503,6 +550,8 @@ def event_data(coordinator: ReiseverlaufDataUpdateCoordinator, info: ExportInfo,
         "naechte": len(meta.nights),
         "strecke_km": round(info.distance_km, 1),
         "fahrzeit_min": round(info.driving_time.total_seconds() / 60),
+        "faehre_km": round(info.ferry_km, 1),
+        "faehre_min": round(info.ferry_time.total_seconds() / 60),
         "kosten": round(meta.total_cost, 2),
         "kostenaufstellung": meta.costs,
         "verbrauch": meta.estimate,
@@ -533,8 +582,18 @@ def nights_data(info: ExportInfo) -> list[dict[str, Any]]:
     ]
 
 
-def _prepare_trips(raw_trips: list[RawTrip], settings: RunningStatsSettings, options: ExportOptions) -> list[TourTrip]:
-    """Turn the raw data of the trips into prepared tracks with their key figures; trips without movement drop out."""
+def _prepare_trips(
+    raw_trips: list[RawTrip],
+    settings: RunningStatsSettings,
+    options: ExportOptions,
+    ferry_marks: dict[str, dict[datetime, bool]],
+    min_stop_duration: timedelta,
+) -> list[TourTrip]:
+    """
+    Turn the raw data of the trips into prepared tracks with their key figures; trips without movement drop out.
+
+    The ferry marks of the trip exports win over those in the copies (Feat-12 6.3).
+    """
     trips: list[TourTrip] = []
     for raw in raw_trips:
         try:
@@ -542,12 +601,18 @@ def _prepare_trips(raw_trips: list[RawTrip], settings: RunningStatsSettings, opt
         except KeyError, ValueError, TypeError:
             LOGGER.warning("Raw data of the trip %s are unreadable and left out of the tour", raw.folder)
             continue
+        for start, ferry in ferry_marks.get(raw.folder, {}).items():
+            known = next((s for s in log.stops if s.start == start), None)
+            if known is not None and known.is_ferry != ferry:
+                log.set_ferry(start, FerryMark.HAND if ferry else FerryMark.NONE)
         positions, speed, altitude = log.export_inputs()
         try:
             track = prepare_track([p for p in positions if p.time <= raw.end], speed, altitude, options)
         except NotEnoughPointsError, NoMovementError:
             continue
-        stats = compute_stats(track.points, track.speed, options)
+        trip_options = replace(options, stops=log.export_stops(raw.end, min_stop_duration))
+        split = split_track(track.points, trip_options.stops)
+        stats = compute_stats(track.points, track.speed, trip_options, split)
         trips.append(
             TourTrip(
                 folder=raw.folder,
@@ -560,6 +625,9 @@ def _prepare_trips(raw_trips: list[RawTrip], settings: RunningStatsSettings, opt
                 ascent_m=stats.ascent_m,
                 descent_m=stats.descent_m,
                 countries=raw.countries,
+                ferry_spans=tuple(ferry_spans(trip_options.stops)),
+                ferry_km=stats.ferry_km,
+                ferry_time=stats.ferry_time,
             )
         )
     return trips
@@ -591,6 +659,7 @@ def _write(
         previous=previous_files,
         raw=raw,
         reuse_map=reuse_map,
+        base_map=previous.base_map if previous is not None else None,
     )
     info = ExportInfo(
         folder=folder,
@@ -606,6 +675,9 @@ def _write(
         updated=updated,
         kind=ExportKind.TOUR,
         tour=meta,
+        base_map=result.base_map,
+        ferry_km=summary.ferry_km,
+        ferry_time=summary.ferry_time,
     )
     write_metadata(base, info)
     return info

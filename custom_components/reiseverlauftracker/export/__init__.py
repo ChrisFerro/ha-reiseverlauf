@@ -1,18 +1,45 @@
 """Trip export: statistics, GPX, map, profile and composite image, independent of Home Assistant."""
 
-from .exporter import FILE_SUFFIXES, ExportFile, ExportResult, export_trip, refresh_export, slugify
-from .model import ExportOptions, LogbookFigures, StepSeries, Stop, TrackPoint
+from .exporter import (
+    BASE_MAP_SUFFIX,
+    FILE_SUFFIXES,
+    BaseMapRef,
+    ExportFile,
+    ExportResult,
+    RefreshResult,
+    export_trip,
+    refresh_export,
+    slugify,
+)
+from .model import (
+    ExportOptions,
+    FerryLeg,
+    LogbookFigures,
+    MapMarker,
+    MapProjection,
+    MarkerKind,
+    StepSeries,
+    Stop,
+    TrackPoint,
+)
 from .stats import TripStats
 from .track import NoMovementError, NotEnoughPointsError, decode_speed
 
 __all__ = [
+    "BASE_MAP_SUFFIX",
     "FILE_SUFFIXES",
+    "BaseMapRef",
     "ExportFile",
     "ExportOptions",
     "ExportResult",
+    "FerryLeg",
     "LogbookFigures",
+    "MapMarker",
+    "MapProjection",
+    "MarkerKind",
     "NoMovementError",
     "NotEnoughPointsError",
+    "RefreshResult",
     "StepSeries",
     "Stop",
     "TrackPoint",

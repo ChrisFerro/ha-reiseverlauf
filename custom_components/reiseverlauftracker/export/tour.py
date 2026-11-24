@@ -38,6 +38,10 @@ class TourTrip:
     ascent_m: float | None = None
     descent_m: float | None = None
     countries: tuple[str, ...] = ()
+    ferry_spans: tuple[tuple[datetime, datetime], ...] = ()
+    """Start and end of the ferry crossings; their distance is not part of `distance_km` (Feat-12 5.10)."""
+    ferry_km: float = 0.0
+    ferry_time: timedelta = timedelta()
 
 
 @dataclass(frozen=True, slots=True)
@@ -208,6 +212,8 @@ class TourSummary:
     countries: tuple[str, ...]
     odometer_start_km: float | None = None
     odometer_end_km: float | None = None
+    ferry_km: float = 0.0
+    ferry_time: timedelta = timedelta()
 
 
 def night_dates(start: datetime, end: datetime, tz: tzinfo) -> list[date]:
@@ -398,6 +404,8 @@ def day_rows(
     km: dict[date, float] = {}
     for trip in trips:
         for a, b in pairwise(trip.points):
+            if any(a.time < end_ and b.time > start_ for start_, end_ in trip.ferry_spans):
+                continue  # Not driven: on a ferry (Feat-12 5.10).
             day = b.time.astimezone(tz).date()
             km[day] = km.get(day, 0.0) + distance_m(a.position, b.position) / 1000
     paid: dict[date, float] = {}
@@ -498,6 +506,8 @@ def summarize(
         countries=tuple(c for c in countries if c),
         odometer_start_km=odometer[0],
         odometer_end_km=odometer[1],
+        ferry_km=sum(trip.ferry_km for trip in trips),
+        ferry_time=sum((trip.ferry_time for trip in trips), timedelta()),
     )
 
 

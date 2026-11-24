@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 from custom_components.reiseverlauftracker.const import EXPORT_CHOICE_ALL, LATE_CHOICE_CURRENT, LATE_CHOICE_OTHER
 from homeassistant.util import dt as dt_util
 
+from .ferries import FerryChange, FerryError
 from .late_entry import (
     LatePoint,
     TripSpan,
@@ -69,6 +70,29 @@ class LateEntryForm:
             self.coordinator.logbook.select_late(await self.async_point_at(self.time))
         else:
             self.coordinator.async_update_listeners()
+
+    def chosen_stop(self) -> RecordedStop | None:
+        """Return the stop chosen in the selection, or None for "current" and "other time"."""
+        return self._stops_by_label().get(self.current_option())
+
+    async def async_toggle_ferry(self) -> FerryChange:
+        """
+        Switch the ferry mark of the chosen stop; the stop stays chosen under its new label.
+
+        Returns:
+            The changed stop.
+
+        Raises:
+            FerryError: No stop is chosen, or it cannot be marked.
+
+        """
+        stop = self.chosen_stop()
+        if stop is None:
+            raise FerryError("no_stop_chosen")
+        change = await self.coordinator.ferries.async_mark(stop.trip_start, stop.start, not stop.ferry)
+        self.choice = next((label for label, s in self._stops_by_label().items() if s.start == stop.start), self.choice)
+        self.coordinator.async_update_listeners()
+        return change
 
     def show_time(self, time: datetime) -> None:
         """Put the time of a stored entry into the time field, without choosing an earlier time."""

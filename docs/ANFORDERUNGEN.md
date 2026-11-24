@@ -1,6 +1,6 @@
 # Reiseverlauf – Anforderungen und Übergabe
 
-Stand: 23.11.2026. Übersicht über die Home-Assistant-Integration `reiseverlauftracker`: Ziel, Umgebung,
+Stand: 24.11.2026. Übersicht über die Home-Assistant-Integration `reiseverlauftracker`: Ziel, Umgebung,
 Datenquellen, Entitäten und Einstellungen. Die einzelnen Features stehen in eigenen Dokumenten (siehe 11).
 
 ## 1. Ziel
@@ -81,6 +81,10 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
 - Tour-Formular: `datetime.…_tour_von`, `…_tour_bis`, `text.…_tour_titel`, `button.…_tour_erstellen`,
   `…_tour_aktualisieren`; bei einer Tour in der Export-Auswahl Attribute `art`, `standorte`, `tourkosten` (siehe
   [Tour](features/feat-10-tour.md) 7)
+- Fähre: `button.…_als_faehre_markieren` schaltet die Fähren-Markierung des in `select.…_fahrtenbuch_zeitpunkt`
+  gewählten Halts um; Attribut `halte` mit `faehre` (siehe [Kartensymbole](features/feat-12-kartensymbole.md) 6.3)
+- Karte: `button.…_karte_neu_zeichnen` zeichnet die Karte des in `select.…_export_auswahl` gewählten Exports mit
+  Kacheln neu (siehe [Kartensymbole](features/feat-12-kartensymbole.md) 6.8)
 - Fahrtenbuch-Auswertung: `sensor.…_kilometerstand`, `…_kraftstoff`, `…_gas_1`, `…_gas_2`, `…_durchschnittsverbrauch`,
   `…_reisekosten_monat`, `…_reisekosten_jahr` (alle Kosten, seit 0.3.0 statt `…_tank_und_gaskosten_*`), `…_maut_offen`
   (siehe [Nachträge](features/feat-09-nachtraege.md) 6.5),
@@ -101,18 +105,24 @@ Dienste (alle mit Pflichtfeld `config_entry_id`):
   und `reiseverlauftracker.keine_maut` (reise, an), siehe [Nachträge](features/feat-09-nachtraege.md) 6.3
 - `reiseverlauftracker.tour_erstellen` (von, bis, titel, skala) / `tour_aendern` (export, titel, von, bis,
   standorte), siehe [Tour](features/feat-10-tour.md) 6.2
+- `reiseverlauftracker.faehre_markieren` (halt, reise, faehre): Halt als Fährfahrt markieren oder die Markierung
+  entfernen, siehe [Kartensymbole](features/feat-12-kartensymbole.md) 6.3
+- `reiseverlauftracker.karte_neu_zeichnen` (export): Karte, Grundkarte und Gesamtbild eines Exports (Reise oder Tour)
+  mit Kacheln neu zeichnen; ohne `export` gilt die Export-Auswahl, „Alle“ ist nicht erlaubt; prüft ältere Reisen
+  einmal auf Fähren und das Ziel auf einen Stellplatz, siehe [Kartensymbole](features/feat-12-kartensymbole.md) 6.8
 
 Events:
 
 - `reiseverlauftracker_gestartet`
 - `reiseverlauftracker_exportiert` nach manuellem Export (Daten wie `_beendet`, siehe [Export](features/feat-03-export.md) 5.5)
 - `reiseverlauftracker_beendet` mit Daten: Titel, Start, Ende, Strecke_km, Fahrzeit, Dateiliste (Name, URL),
-  Statistiktext, Pfad des Gesamtbilds, Halte, Fahrtenbuch (Kilometerstand, Liter, Kosten, Verbrauch)
+  Statistiktext, Pfad des Gesamtbilds, Halte (mit `faehre`), Fahrtenbuch (Kilometerstand, Liter, Kosten, Verbrauch),
+  Fährstrecke `faehre_km` und `faehre_min` (siehe [Kartensymbole](features/feat-12-kartensymbole.md) 5.10)
 - `reiseverlauftracker_fahrtenbuch` bei Reisestart und bei jedem Halt ab der Mindestdauer: Anlass, Zeit, Ort,
   Reise- und Halt-Start, Vorschlag (Kilometerstand, Kraftstoff, Gas 1, Gas 2), siehe [Fahrtenbuch](features/feat-06-fahrtenbuch.md) 6.3
 
 - `reiseverlauftracker_tour` nach dem Erstellen und jeder Neuerstellung einer Tour: Anlass (`erstellt`,
-  `aktualisiert`), Titel, Zeitraum, Strecke, Kosten, Dateien, Gesamtbild (siehe [Tour](features/feat-10-tour.md) 6.5)
+  `aktualisiert`), Titel, Zeitraum, Strecke, Fährstrecke, Kosten, Dateien, Gesamtbild (siehe [Tour](features/feat-10-tour.md) 6.5)
 
 Push-Nachricht: **nicht** in der Integration, sondern als Automation aus einem mitgelieferten Blueprint, siehe
 [features/feat-04-push-benachrichtigung.md](features/feat-04-push-benachrichtigung.md); die Fahrtenbuch-Erinnerung hat einen eigenen
@@ -169,6 +179,8 @@ das Dokument ihres Features umgezogen (Abschnitt 5 „Entscheidungen“ dort).
     zusammenfassen (siehe [features/feat-10-tour.md](features/feat-10-tour.md)). – umgesetzt 23.11.2026
 11. Einträge bearbeiten: Fahrtenbuch-Einträge im Dashboard ändern und löschen (siehe
     [features/feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)). – umgesetzt 23.11.2026
+12. Kartensymbole: Halte, Tank- und Gasstopps, Stellplätze mit Symbolen auf den Karten (siehe
+    [features/feat-12-kartensymbole.md](features/feat-12-kartensymbole.md)). – umgesetzt 24.11.2026
 
 ## 11. Feature-Dokumente
 
@@ -192,3 +204,4 @@ neues Feature bekommt die nächste freie Nummer; Nummern werden nicht neu vergeb
 | Feat-09 | Nachträge (Tank, Kosten) | [feat-09-nachtraege.md](features/feat-09-nachtraege.md)                       | 9      | umgesetzt                 |
 | Feat-10 | Tour                     | [feat-10-tour.md](features/feat-10-tour.md)                                   | 10     | umgesetzt                 |
 | Feat-11 | Einträge bearbeiten      | [feat-11-eintraege-bearbeiten.md](features/feat-11-eintraege-bearbeiten.md)   | 11     | umgesetzt                 |
+| Feat-12 | Kartensymbole            | [feat-12-kartensymbole.md](features/feat-12-kartensymbole.md)                 | 12     | umgesetzt                 |

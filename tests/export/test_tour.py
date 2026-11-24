@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from PIL import Image
 import pytest
 
-from custom_components.reiseverlauftracker.export import ExportFile, ExportOptions
+from custom_components.reiseverlauftracker.export import ExportFile, ExportOptions, MapMarker, MarkerKind
 from custom_components.reiseverlauftracker.export.model import TrackPoint
 from custom_components.reiseverlauftracker.export.texts import texts_for
 from custom_components.reiseverlauftracker.export.tour import (
@@ -26,7 +26,14 @@ from custom_components.reiseverlauftracker.export.tour import (
     summarize,
     unnamed_groups,
 )
-from custom_components.reiseverlauftracker.export.tour_export import days_csv, export_tour, format_days, tour_title
+from custom_components.reiseverlauftracker.export.tour_export import (
+    days_csv,
+    export_tour,
+    format_days,
+    tour_markers,
+    tour_routes,
+    tour_title,
+)
 from custom_components.reiseverlauftracker.utils.geo import Position, distance_m
 
 BERLIN = ZoneInfo("Europe/Berlin")
@@ -287,10 +294,101 @@ def test_new_export_reuses_the_map_and_removes_old_files(tour, tmp_path: Path, o
         options,
         previous=first.files,
         reuse_map=True,
+        base_map=first.base_map,
         fetch_tile=offline_fetcher,
     )
 
     assert len(fake_tiles) == tiles
-    assert sorted(p.name for p in tmp_path.iterdir()) == sorted(second.files.values())
+    assert second.base_map is not None
+    assert first.base_map is not None
+    assert second.base_map.name == "neu_karte_basis.png"
+    assert second.base_map.projection == first.base_map.projection
+    assert sorted(p.name for p in tmp_path.iterdir()) == sorted([*second.files.values(), second.base_map.name])
     assert second.files[ExportFile.RAW] == "neu_rohdaten.json"
     assert (tmp_path / "neu_rohdaten.json").read_text() == '{"v": 1}'
+
+
+def test_tour_map_has_one_pitch_per_run_of_nights_refills_start_and_end(tour) -> None:
+    trips, nights, _summary = tour
+    fuel = MapMarker(MarkerKind.FUEL, 47.0, 11.0)
+
+    markers = tour_markers(trips, nights, [fuel])
+
+    assert [m.kind for m in markers] == [MarkerKind.PITCH, fuel.kind, MarkerKind.START, MarkerKind.END]
+    assert (markers[0].lat, markers[0].lon) == pytest.approx(CAMP)
+    assert (markers[2].lat, markers[2].lon) == pytest.approx(HOME)
+    assert tour_markers([], nights) == []
+
+
+def test_ferry_of_a_trip_counts_on_its_own_in_the_tour() -> None:
+    crossing = trip("faehre", local(10, 8), (54.4, 11.1), (54.7, 11.3))
+    spans = ((crossing.points[3].time, crossing.points[6].time),)
+    driven = sum(distance_m(a.position, b.position) for a, b in zip(crossing.points, crossing.points[1:], strict=False))
+    # The steps from point 3 to point 6 lie within the crossing.
+    ferry = distance_m(crossing.points[3].position, crossing.points[6].position)
+    with_ferry = TourTrip(
+        crossing.folder,
+        crossing.title,
+        crossing.start,
+        crossing.end,
+        crossing.points,
+        (driven - ferry) / 1000,
+        timedelta(minutes=30),
+        ferry_spans=spans,
+        ferry_km=ferry / 1000,
+        ferry_time=timedelta(minutes=18),
+    )
+    start, end = local(10, 7), local(10, 12)
+
+    summary = summarize([with_ferry], [], [], [], ConsumptionInputs(), start, end, BERLIN)
+    land, legs = tour_routes([with_ferry])
+
+    assert summary.ferry_km == pytest.approx(ferry / 1000)
+    assert summary.ferry_time == timedelta(minutes=18)
+    assert summary.days[0].km == pytest.approx((driven - ferry) / 1000)
+    assert [len(part) for part in land] == [4, 5]
+    assert len(legs) == 1
+    assert len(legs[0].points) == 4
+
+
+def test_export_stores_a_base_map_beside_its_files(tour, tmp_path: Path, offline_fetcher) -> None:
+    trips, nights, summary = tour
+    options = ExportOptions(language="de", timezone=BERLIN, map_size=(800, 600))
+
+    result = export_tour(summary, trips, nights, "Mit", tmp_path, options, fetch_tile=offline_fetcher)
+
+    assert result.base_map is not None
+    assert (tmp_path / result.base_map.name).is_file()
+    assert result.base_map.name not in result.files.values()
+
+
+def test_old_tour_without_base_map_keeps_its_map(tour, tmp_path: Path, offline_fetcher, fake_tiles) -> None:
+    trips, nights, summary = tour
+    options = ExportOptions(language="de", timezone=BERLIN, map_size=(800, 600))
+    first = export_tour(summary, trips, nights, "Alt", tmp_path, options, fetch_tile=offline_fetcher)
+    assert first.base_map is not None
+    (tmp_path / first.base_map.name).unlink()
+    old_map = (tmp_path / first.files[ExportFile.MAP]).read_bytes()
+    with Image.open(tmp_path / first.files[ExportFile.COMPOSITE]) as image:
+        height = image.height
+    tiles = len(fake_tiles)
+
+    second = export_tour(
+        summary,
+        trips,
+        nights,
+        "Alt",
+        tmp_path,
+        options,
+        previous=first.files,
+        reuse_map=True,
+        base_map=first.base_map,
+        fetch_tile=offline_fetcher,
+    )
+
+    assert len(fake_tiles) == tiles
+    assert second.base_map is None
+    assert (tmp_path / second.files[ExportFile.MAP]).read_bytes() == old_map
+    with Image.open(tmp_path / second.files[ExportFile.COMPOSITE]) as image:
+        # Without a base map the symbols are not current, so there is no legend under the map.
+        assert height - image.height == 80 + 40

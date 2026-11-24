@@ -19,3 +19,6 @@ tage
 titel
 unter
 vor
+bord
+symbole
+beginn

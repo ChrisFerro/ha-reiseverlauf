@@ -4,6 +4,8 @@ from bisect import bisect_right
 from collections.abc import Iterable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta, tzinfo
+from enum import StrEnum
+import math
 from typing import Any
 
 from custom_components.reiseverlauftracker.utils.geo import Position
@@ -69,6 +71,10 @@ class Stop:
     start: datetime
     end: datetime
     place: str | None = None
+    lat: float | None = None
+    lon: float | None = None
+    ferry: bool = False
+    """The vehicle was on a ferry; the crossing does not count as distance driven."""
 
     @property
     def duration(self) -> timedelta:
@@ -152,3 +158,91 @@ class ExportOptions:
     stops: tuple[Stop, ...] = ()
     logbook: LogbookFigures | None = None
     currency: str = "EUR"
+    markers: tuple[MapMarker, ...] = ()
+    """Symbols besides start and end, e.g. stops and refills (docs/features/feat-12-kartensymbole.md)."""
+    arrival_stay: str | None = None
+    """Name of the camp site or pitch at the arrival; the end symbol then shows a pitch."""
+
+
+class MarkerKind(StrEnum):
+    """Kinds of map symbols (docs/features/feat-12-kartensymbole.md 5.1); the value is used in texts and files."""
+
+    START = "start"
+    END = "ziel"
+    PITCH = "stellplatz"
+    STOP = "halt"
+    FUEL = "diesel"
+    GAS = "gas"
+    FERRY = "faehre"
+
+
+@dataclass(frozen=True, slots=True)
+class MapMarker:
+    """One symbol on the map."""
+
+    kind: MarkerKind
+    lat: float
+    lon: float
+
+
+@dataclass(frozen=True, slots=True)
+class FerryLeg:
+    """
+    A ferry crossing, drawn dashed with its symbol halfway along.
+
+    `points` are (latitude, longitude) pairs; without positions on board they are
+    just the last position before and the first after the crossing.
+    """
+
+    points: tuple[tuple[float, float], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MapProjection:
+    """
+    Where a coordinate lies on a rendered map: Web Mercator tile numbers at `zoom`.
+
+    Stored with the base map, so that symbols can be drawn again without tiles
+    (docs/features/feat-12-kartensymbole.md 6.5).
+    """
+
+    zoom: int
+    x_center: float
+    y_center: float
+    width: int
+    height: int
+    tile_size: int = 256
+
+    def to_px(self, lat: float, lon: float) -> tuple[float, float]:
+        """Return the pixel position of a coordinate, the same way `staticmap` draws its lines."""
+        tiles = 2**self.zoom
+        x = (lon + 180.0) / 360.0 * tiles
+        rad = math.radians(lat)
+        y = (1 - math.log(math.tan(rad) + 1 / math.cos(rad)) / math.pi) / 2 * tiles
+        return (
+            (x - self.x_center) * self.tile_size + self.width / 2,
+            (y - self.y_center) * self.tile_size + self.height / 2,
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return the projection as a JSON-serialisable dict."""
+        return {
+            "zoom": self.zoom,
+            "x_center": self.x_center,
+            "y_center": self.y_center,
+            "width": self.width,
+            "height": self.height,
+            "tile_size": self.tile_size,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> MapProjection:
+        """Rebuild a projection from `as_dict()` output."""
+        return cls(
+            zoom=int(data["zoom"]),
+            x_center=float(data["x_center"]),
+            y_center=float(data["y_center"]),
+            width=int(data["width"]),
+            height=int(data["height"]),
+            tile_size=int(data.get("tile_size", 256)),
+        )

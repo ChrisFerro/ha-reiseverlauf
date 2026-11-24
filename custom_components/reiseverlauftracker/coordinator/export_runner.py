@@ -10,9 +10,11 @@ from typing import TYPE_CHECKING, Any
 from custom_components.reiseverlauftracker.const import TITLE_FORMAT_DATE
 from custom_components.reiseverlauftracker.export import (
     FILE_SUFFIXES,
+    BaseMapRef,
     ExportFile,
     ExportOptions,
     LogbookFigures,
+    MapMarker,
     StepSeries,
     Stop,
     TrackPoint,
@@ -23,7 +25,7 @@ from custom_components.reiseverlauftracker.export.texts import texts_for
 from homeassistant.util import dt as dt_util
 
 from .exports import ExportInfo, existing_files, remove_files, write_metadata
-from .places import async_place_name, user_agent
+from .places import async_camp_site_name, async_place_name, user_agent
 from .title import trip_title
 from .trip_log import TrackCounters
 
@@ -60,12 +62,15 @@ async def async_export(
     stops: tuple[Stop, ...] = (),
     logbook: LogbookFigures | None = None,
     counter_start: TrackCounters | None = None,
+    markers: tuple[MapMarker, ...] = (),
 ) -> ExportInfo:
     """
     Export one trip; an earlier export in the same folder is replaced.
 
     Without `title`, the title follows the configured format and place names.
     Without `folder`, the folder is named after the local start time.
+    `markers` are the map symbols besides start and end; whether the arrival is on a
+    camp site is looked up here (docs/features/feat-12-kartensymbole.md 5.7).
 
     Raises:
         NotEnoughPointsError: Fewer than two usable positions.
@@ -80,7 +85,10 @@ async def async_export(
         start_place, end_place = await _async_places(hass, settings, positions)
         texts = texts_for(hass.config.language)
         title = trip_title(settings.title_format, texts, start, end, tz, start_place, end_place)
-    options = options_for(hass, settings, title, agent, stops, logbook)
+    arrival_stay = await async_arrival_stay(hass, settings, positions)
+    options = replace(
+        options_for(hass, settings, title, agent, stops, logbook), markers=markers, arrival_stay=arrival_stay
+    )
     folder = folder or f"{start.astimezone(tz):%Y-%m-%d_%H%M}"
     return await hass.async_add_executor_job(
         _export_sync, media_base(hass, settings), folder, data, options, raw, start, end, automatic, counter_start
@@ -120,11 +128,20 @@ async def async_refresh(
     info: ExportInfo,
     data: tuple[list[TrackPoint], StepSeries | None, StepSeries | None] | None,
     logbook: LogbookFigures | None,
-) -> ExportInfo:
+    markers: tuple[MapMarker, ...] = (),
+    *,
+    redraw: bool = False,
+    version: str | None = None,
+) -> tuple[ExportInfo, bool]:
     """
-    Renew statistics, composite image and metadata of an export with new logbook figures.
+    Renew statistics, map symbols, composite image and metadata of an export with new logbook figures.
 
     Without track `data` (no raw data left), only the metadata gets the new figures.
+    The map symbols are drawn on the stored base map; without one, the map stays.
+    With `redraw`, the map is drawn anew with tiles (docs/features/feat-12-kartensymbole.md 6.8).
+
+    Returns:
+        The renewed export, and whether its map was drawn anew with tiles.
 
     Raises:
         NotEnoughPointsError: Fewer than two usable positions.
@@ -132,9 +149,13 @@ async def async_refresh(
         OSError: The output folder cannot be written.
 
     """
-    options = options_for(hass, settings, info.title, user_agent(None), info.stops, logbook)
+    options = replace(
+        options_for(hass, settings, info.title, user_agent(version), info.stops, logbook),
+        markers=markers,
+        arrival_stay=info.arrival_stay,
+    )
     return await hass.async_add_executor_job(
-        _refresh_sync, media_base(hass, settings), info, data, options, dt_util.utcnow()
+        _refresh_sync, media_base(hass, settings), info, data, options, dt_util.utcnow(), redraw
     )
 
 
@@ -144,13 +165,27 @@ def _refresh_sync(
     data: tuple[list[TrackPoint], StepSeries | None, StepSeries | None] | None,
     options: ExportOptions,
     now: datetime,
-) -> ExportInfo:
-    stats_text = info.stats_text
+    redraw: bool,
+) -> tuple[ExportInfo, bool]:
+    refreshed = replace(info, logbook=options.logbook, stops=options.stops, updated=now)
+    redrawn = False
     if data is not None:
-        stats_text = refresh_export(*data, base / info.folder, options, existing_files(base, info))
-    refreshed = replace(info, logbook=options.logbook, stats_text=stats_text, updated=now)
+        result = refresh_export(
+            *data, base / info.folder, options, existing_files(base, info), info.base_map, redraw=redraw
+        )
+        redrawn = result.map_redrawn
+        refreshed = replace(
+            refreshed,
+            stats_text=result.stats_text,
+            distance_km=result.stats.distance_km,
+            driving_time=result.stats.moving_time,
+            ferry_km=result.stats.ferry_km,
+            ferry_time=result.stats.ferry_time,
+            files={**info.files, **result.files},
+            base_map=result.base_map,
+        )
     write_metadata(base, refreshed)
-    return refreshed
+    return refreshed, redrawn
 
 
 def event_data(settings: ReiseverlaufSettings, info: ExportInfo, base: Path) -> dict[str, Any]:
@@ -172,19 +207,35 @@ def event_data(settings: ReiseverlaufSettings, info: ExportInfo, base: Path) -> 
         "statistik": info.stats_text,
         "gesamtbild": str(base / info.folder / composite) if composite else None,
         "gesamtbild_url": media_url(settings, info.folder, composite) if composite else None,
-        "halte": [stop_data(s.place, s.start, s.end) for s in info.stops],
+        "faehre_km": round(info.ferry_km, 1),
+        "faehre_min": round(info.ferry_time.total_seconds() / 60),
+        "halte": [stop_data(s.place, s.start, s.end, ferry=s.ferry) for s in info.stops],
         "fahrtenbuch": info.logbook.as_dict() if info.logbook else None,
     }
 
 
-def stop_data(place: str | None, start: datetime, end: datetime | None) -> dict[str, Any]:
-    """Return one stop as it appears in events and attributes."""
+def stop_data(place: str | None, start: datetime, end: datetime | None, *, ferry: bool = False) -> dict[str, Any]:
+    """Return one stop as it appears in events and attributes; `faehre` marks a ferry crossing."""
     return {
         "ort": place,
         "von": start.isoformat(),
         "bis": end.isoformat() if end else None,
         "dauer_min": round(((end or dt_util.utcnow()) - start).total_seconds() / 60),
+        "faehre": ferry,
     }
+
+
+async def async_arrival_stay(
+    hass: HomeAssistant, settings: ReiseverlaufSettings, positions: list[TrackPoint]
+) -> str | None:
+    """Return the camp site or pitch at the last usable position, or None."""
+    usable = [p for p in positions if p.accuracy is None or p.accuracy <= settings.max_accuracy_m]
+    if not settings.place_names or not usable:
+        return None
+    # Keep Nominatim's limit of one request a second after the title's place names.
+    await asyncio.sleep(NOMINATIM_INTERVAL_S)
+    last = max(usable, key=lambda p: p.time)
+    return await async_camp_site_name(hass, settings, last.lat, last.lon)
 
 
 async def _async_places(
@@ -236,6 +287,14 @@ def _export_sync(
         stops=options.stops,
         logbook=options.logbook,
         counter_start=counter_start,
+        base_map=(
+            BaseMapRef(result.base_map.name, result.projection)
+            if result.base_map is not None and result.projection is not None
+            else None
+        ),
+        arrival_stay=options.arrival_stay,
+        ferry_km=result.stats.ferry_km,
+        ferry_time=result.stats.ferry_time,
     )
     write_metadata(base, info)
     return info

@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, tzinfo
+from itertools import pairwise
 import math
 
 from PIL import Image, ImageDraw
@@ -10,6 +11,7 @@ from PIL import Image, ImageDraw
 from custom_components.reiseverlauftracker.utils.geo import distance_m
 
 from .fonts import load_font
+from .map import FERRY_COLOR, dashes
 from .model import StepSeries, TrackPoint
 from .texts import Texts
 
@@ -33,6 +35,8 @@ class Panel:
     line_color: str
     fill_color: str | None = None
     y_min: float | None = None
+    ferry: Sequence[bool] = ()
+    """Per step from one point to the next: on a ferry, drawn dashed and without fill (Feat-12 5.3)."""
 
 
 def nice_step(span: float, target: int = 6) -> float:
@@ -99,9 +103,15 @@ def _draw_panel(draw: ImageDraw.ImageDraw, top: int, width: int, height: int, pa
             draw.text((xx - draw.textlength(label, font=f_text) / 2, py1 + s(15)), label, fill="#333333", font=f_text)
 
     line = [(px(x), py(y)) for x, y in zip(panel.xs, panel.ys, strict=True)]
-    if panel.fill_color:
-        draw.polygon([*line, (px1, py1), (px0, py1)], fill=panel.fill_color)
-    draw.line(line, fill=panel.line_color, width=s(5), joint="curve")
+    width = s(5)
+    for on_ferry, run in _runs(line, panel.ferry):
+        if on_ferry:
+            for a, b in dashes(run, width * 3, width * 2):
+                draw.line([a, b], fill=FERRY_COLOR, width=width)
+            continue
+        if panel.fill_color:
+            draw.polygon([*run, (run[-1][0], py1), (run[0][0], py1)], fill=panel.fill_color)
+        draw.line(run, fill=panel.line_color, width=width, joint="curve")
     draw.rectangle([px0, py0, px1, py1], outline="#555555", width=s(2))
     draw.text((px0, top + s(25)), panel.title, fill="#111111", font=f_title)
     draw.text((px0, py0 - s(48)), panel.y_label, fill="#555555", font=f_text)
@@ -109,9 +119,29 @@ def _draw_panel(draw: ImageDraw.ImageDraw, top: int, width: int, height: int, pa
     draw.text(((px0 + px1) / 2 - x_label_width / 2, py1 + s(70)), panel.x_label, fill="#555555", font=f_text)
 
 
-def _elevation_panel(points: Sequence[TrackPoint], title: str | None, texts: Texts) -> Panel:
+def _runs(line: Sequence[tuple[float, float]], ferry: Sequence[bool]) -> list[tuple[bool, list[tuple[float, float]]]]:
+    """Split a polyline into runs on land and on a ferry; neighbouring runs share their end point."""
+    if not ferry:
+        return [(False, list(line))]
+    runs: list[tuple[bool, list[tuple[float, float]]]] = [(ferry[0], [line[0]])]
+    for (a, b), on_ferry in zip(pairwise(line), ferry, strict=True):
+        if on_ferry != runs[-1][0]:
+            runs.append((on_ferry, [a]))
+        runs[-1][1].append(b)
+    return runs
+
+
+def _crossing(t0: float, t1: float, spans: Sequence[tuple[float, float]]) -> bool:
+    """Return whether the step from `t0` to `t1` (epoch seconds) overlaps a crossing, like `ferry.split_at`."""
+    return any(t0 < end and t1 > start if t1 > t0 else start < t0 < end for start, end in spans)
+
+
+def _elevation_panel(
+    points: Sequence[TrackPoint], title: str | None, texts: Texts, spans: Sequence[tuple[float, float]]
+) -> Panel:
     km: list[float] = []
     altitudes: list[float] = []
+    times: list[float] = []
     total = 0.0
     for prev, point in zip([None, *points[:-1]], points, strict=True):
         if prev is not None:
@@ -119,6 +149,7 @@ def _elevation_panel(points: Sequence[TrackPoint], title: str | None, texts: Tex
         if point.altitude is not None:
             km.append(total)
             altitudes.append(point.altitude)
+            times.append(point.time.timestamp())
     step = nice_step(km[-1] - km[0])
     ticks = [(i * step, f"{i * step:.0f}") for i in range(int(km[-1] / step) + 1)]
     return Panel(
@@ -130,10 +161,13 @@ def _elevation_panel(points: Sequence[TrackPoint], title: str | None, texts: Tex
         x_ticks=ticks,
         line_color="#023047",
         fill_color="#bde0f2",
+        ferry=[_crossing(a, b, spans) for a, b in pairwise(times)] if spans else (),
     )
 
 
-def _speed_panel(speed: StepSeries, start: datetime, end: datetime, tz: tzinfo, texts: Texts) -> Panel:
+def _speed_panel(
+    speed: StepSeries, start: datetime, end: datetime, tz: tzinfo, texts: Texts, spans: Sequence[tuple[float, float]]
+) -> Panel:
     current = speed.value_at(start)
     xs, ys = [start.timestamp()], [current if current is not None else speed.values[0]]
     for t, v in zip(speed.times, speed.values, strict=True):
@@ -151,6 +185,7 @@ def _speed_panel(speed: StepSeries, start: datetime, end: datetime, tz: tzinfo, 
         x_ticks=time_ticks(xs[0], xs[-1], tz, texts),
         line_color="#d62828",
         y_min=0,
+        ferry=[_crossing(a, b, spans) for a, b in pairwise(xs)] if spans else (),
     )
 
 
@@ -162,13 +197,19 @@ def render_profile(
     tz: tzinfo,
     scale: float = 1.0,
     title: str | None = None,
+    ferries: Sequence[tuple[datetime, datetime]] = (),
 ) -> Image.Image | None:
-    """Draw elevation over distance and speed over time; None without data for either."""
+    """
+    Draw elevation over distance and speed over time; None without data for either.
+
+    The crossings from start to end in `ferries` are drawn dashed in the ferry colour, as on the map.
+    """
+    spans = [(start.timestamp(), end.timestamp()) for start, end in ferries]
     panels = []
     if sum(1 for p in points if p.altitude is not None) >= 2:
-        panels.append(_elevation_panel(points, title, texts))
+        panels.append(_elevation_panel(points, title, texts, spans))
     if speed is not None and len(speed) >= 2:
-        panels.append(_speed_panel(speed, window[0], window[1], tz, texts))
+        panels.append(_speed_panel(speed, window[0], window[1], tz, texts, spans))
     if not panels:
         return None
     width, panel_height = round(BASE_WIDTH * scale), round(BASE_PANEL_HEIGHT * scale)

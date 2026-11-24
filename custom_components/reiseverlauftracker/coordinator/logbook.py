@@ -121,6 +121,8 @@ class RecordedStop:
     lat: float | None = None
     lon: float | None = None
     place: str | None = None
+    ferry: bool = False
+    """The stop was a ferry crossing (docs/features/feat-12-kartensymbole.md 6.3)."""
 
     def is_short(self, min_duration: timedelta, now: datetime) -> bool:
         """Return whether the stop is shorter than a halt; an open stop counts until now."""
@@ -138,6 +140,7 @@ class RecordedStop:
             "lat": self.lat,
             "lon": self.lon,
             "place": self.place,
+            "ferry": self.ferry,
         }
 
     @classmethod
@@ -153,6 +156,7 @@ class RecordedStop:
             lat=data.get("lat"),
             lon=data.get("lon"),
             place=data.get("place"),
+            ferry=data.get("ferry", False),
         )
 
 
@@ -813,6 +817,14 @@ class Logbook:
             c.category is CostCategory.TOLL for c in self.travel_costs_of_trip(trip_start)
         )
 
+    def trip_entries(self, trip_start: datetime) -> list[LogbookEntry]:
+        """Return the entries of the trip that started at `trip_start`, including its arrival."""
+        return [e for e in self.entries if e.trip_start == trip_start]
+
+    def entries_between(self, start: datetime, end: datetime) -> list[LogbookEntry]:
+        """Return the entries made from `start` to `end`, whichever trip they belong to."""
+        return [e for e in self.entries if start <= e.time <= end]
+
     def trip_summary(
         self, trip_start: datetime, *, end_counter_m: float | None = None, until: datetime | None = None
     ) -> TripSummary:
@@ -826,7 +838,7 @@ class Logbook:
         For an earlier trip, `end_counter_m` is the distance counter at its end and
         `until` the time up to which readings count (the start of the next trip).
         """
-        entries = [e for e in self.entries if e.trip_start == trip_start]
+        entries = self.trip_entries(trip_start)
         readings = [e for e in entries if e.odometer_km is not None and e.occasion is Occasion.TRIP_START]
         fuel = [e.fuel for e in entries if e.fuel is not None]
         gas = [e.gas for e in entries if e.gas is not None]
@@ -862,6 +874,57 @@ class Logbook:
     def set_stop_place(self, start: datetime, place: str) -> None:
         """Store the place name of the stop that began at `start`."""
         self.stops = [replace(s, place=place) if s.start == start else s for s in self.stops]
+
+    def set_stop_ferry(self, start: datetime, ferry: bool) -> None:
+        """Mark the stop that began at `start` as ferry crossing, or not."""
+        self.stops = [replace(s, ferry=ferry) if s.start == start else s for s in self.stops]
+
+    def shift_counters(
+        self, after_m: float, distance_m: float, ascent_m: float, descent_m: float, *, closed_trip: bool
+    ) -> None:
+        """
+        Move the counters of everything measured after `after_m` by the given metres.
+
+        A ferry marked or unmarked later changes the distance driven since
+        (docs/features/feat-12-kartensymbole.md 6.2): the entries and stops after
+        it move with the total, so the distances between them stay right; the
+        odometer readings stay as read off. No counter falls below `after_m`.
+        `closed_trip` also moves the total of the closed trips; the running trip's
+        distance comes from its log.
+        """
+
+        def moved(counter: float, step: float) -> float:
+            return max(counter + step, after_m) if counter > after_m else counter
+
+        def climb(counter: float | None, step: float) -> float | None:
+            return None if counter is None else max(counter + step, 0.0)
+
+        self.entries = [
+            replace(
+                e,
+                distance_counter_m=moved(e.distance_counter_m, distance_m),
+                ascent_counter_m=climb(e.ascent_counter_m, ascent_m),
+                descent_counter_m=climb(e.descent_counter_m, descent_m),
+            )
+            if e.distance_counter_m > after_m
+            else e
+            for e in self.entries
+        ]
+        self.stops = [
+            replace(
+                s,
+                distance_counter_m=moved(s.distance_counter_m, distance_m),
+                ascent_counter_m=climb(s.ascent_counter_m, ascent_m),
+                descent_counter_m=climb(s.descent_counter_m, descent_m),
+            )
+            if s.distance_counter_m > after_m
+            else s
+            for s in self.stops
+        ]
+        if closed_trip:
+            self.closed_trips_m = max(self.closed_trips_m + distance_m, 0.0)
+            self.closed_trips_ascent_m = max(self.closed_trips_ascent_m + ascent_m, 0.0)
+            self.closed_trips_descent_m = max(self.closed_trips_descent_m + descent_m, 0.0)
 
     def prune_stops(self, now: datetime) -> bool:
         """

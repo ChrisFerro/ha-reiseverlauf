@@ -18,6 +18,7 @@ STOP_MATCH_TOLERANCE = timedelta(minutes=5)
 # The selection lists this many of the newest stops, plus all stops of the trip chosen in the export selection.
 RECENT_STOPS = 30
 SHORT_STOP_WORDS = {"de": "kurz", "en": "short"}
+FERRY_WORDS = {"de": "Fähre", "en": "ferry"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,12 +68,15 @@ def stop_point(stop: RecordedStop) -> LatePoint:
 
 
 def stop_label(stop: RecordedStop, tz: tzinfo, language: str, min_duration: timedelta, now: datetime) -> str:
-    """Return how a stop appears in the selection, such as `14.11. 10:42 · Irschenberg · kurz`."""
+    """Return how a stop appears in the selection, such as `14.11. 10:42 · Irschenberg · kurz` or `… · Fähre`."""
     parts = [f"{stop.start.astimezone(tz):%d.%m. %H:%M}"]
     if stop.place:
         parts.append(stop.place)
-    if stop.is_short(min_duration, now):
-        parts.append(SHORT_STOP_WORDS.get(language.split("-", maxsplit=1)[0], SHORT_STOP_WORDS["en"]))
+    words = language.split("-", maxsplit=1)[0]
+    if stop.ferry:
+        parts.append(FERRY_WORDS.get(words, FERRY_WORDS["en"]))
+    elif stop.is_short(min_duration, now):
+        parts.append(SHORT_STOP_WORDS.get(words, SHORT_STOP_WORDS["en"]))
     return " · ".join(parts)
 
 
