@@ -246,7 +246,7 @@ def _draw_ferries(image: Image.Image, legs: Sequence[Sequence[tuple[float, float
     dash, gap = line_width * 3, line_width * 2
     for color, width in ((OUTLINE_COLOR, line_width + 4), (FERRY_COLOR, line_width)):
         for leg in legs:
-            for a, b in _dashes(leg, dash, gap):
+            for a, b in dashes(leg, dash, gap):
                 start, end = (a[0] * 2, a[1] * 2), (b[0] * 2, b[1] * 2)
                 draw.line([start, end], fill=color, width=width * 2)
                 for x, y in (start, end):
@@ -257,7 +257,7 @@ def _draw_ferries(image: Image.Image, legs: Sequence[Sequence[tuple[float, float
 type Px = tuple[float, float]
 
 
-def _dashes(points: Sequence[Px], dash: float, gap: float) -> list[tuple[Px, Px]]:
+def dashes(points: Sequence[Px], dash: float, gap: float) -> list[tuple[Px, Px]]:
     """Split a polyline into dashes of length `dash` with `gap` between them."""
     pieces: list[tuple[Px, Px]] = []
     drawing, left = True, dash

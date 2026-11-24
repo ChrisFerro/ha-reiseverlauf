@@ -16,7 +16,7 @@ from PIL import Image
 
 from .chart import BASE_WIDTH, render_profile
 from .composite import render_composite
-from .ferry import SplitTrack, split_track
+from .ferry import SplitTrack, ferry_spans, split_track
 from .gpx import build_gpx
 from .map import TileFetcher, draw_overlay, http_tile_fetcher, render_base_map
 from .model import ExportOptions, FerryLeg, MapMarker, MapProjection, MarkerKind, StepSeries, TrackPoint
@@ -156,12 +156,13 @@ def export_trip(
             map_image.save(path(ExportFile.MAP))
 
     window = (track.chart_start, track.chart_end)
-    profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale, title)
+    spans = ferry_spans(options.stops)
+    profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale, title, spans)
     if profile is not None:
         profile.save(path(ExportFile.PROFILE))
         profile.close()
 
-    untitled_profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale)
+    untitled_profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale, ferries=spans)
     legend = legend_image(map_image, markers, split.legs, texts, scale)
     composite = render_composite([map_image, legend, untitled_profile], title, rows[0][1], rows[1:], scale, logbook)
     if composite is not None:
@@ -322,9 +323,16 @@ def refresh_export(
         else:
             map_image = _open_image(out_dir / map_name)
 
+    window = (track.chart_start, track.chart_end)
+    spans = ferry_spans(options.stops)
+    if (name := files.get(ExportFile.PROFILE)) is not None:
+        # A ferry marked later changes the profile too.
+        titled = render_profile(track.points, track.chart_speed, window, texts, tz, scale, title, spans)
+        if titled is not None:
+            titled.save(out_dir / name)
+            titled.close()
     if (name := files.get(ExportFile.COMPOSITE)) is not None:
-        window = (track.chart_start, track.chart_end)
-        profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale)
+        profile = render_profile(track.points, track.chart_speed, window, texts, tz, scale, ferries=spans)
         legend = legend_image(map_image, markers, split.legs, texts, scale) if base_map is not None else None
         composite = render_composite([map_image, legend, profile], title, rows[0][1], rows[1:], scale, logbook)
         if composite is not None:

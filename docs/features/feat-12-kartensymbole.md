@@ -141,6 +141,10 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
 - **5.11 Grundkarte speichern** (23.11.2026): Jeder Export mit Karte speichert zusätzlich die Karte ohne Symbole
   (Grundkarte) und ihre Projektion (6.5). Erneuern zeichnet die Symbole darauf neu, ohne Kacheln zu laden; die
   zusätzliche Datei (bei Skala 2 einige MB) wird in Kauf genommen.
+- **5.12 Fähre im Profil** (24.11.2026): Das Höhen- und Geschwindigkeitsprofil zeigt die Überfahrt wie die Karte
+  gestrichelt in der Fähren-Farbe (Blau), im Höhenprofil ohne Füllfläche darunter. Die Achsen bleiben durchgehend
+  (Strecke und Zeit einschließlich Fähre). Umgesetzt: auch das einzelne Profilbild wird beim Erneuern neu gezeichnet,
+  damit eine nachträglich markierte Fähre darin erscheint.
 
 ## 6. Entwurf der Umsetzung (zur Freigabe)
 

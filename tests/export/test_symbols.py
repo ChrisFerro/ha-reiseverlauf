@@ -10,8 +10,8 @@ import pytest
 from custom_components.reiseverlauftracker.export.map import (
     FERRY_COLOR,
     ROUTE_COLOR,
-    _dashes,
     _halfway,
+    dashes,
     default_markers,
     draw_overlay,
     render_base_map,
@@ -140,14 +140,14 @@ def test_legend_scales() -> None:
 
 
 def test_dashes_alternate_dash_and_gap() -> None:
-    pieces = _dashes([(0.0, 0.0), (100.0, 0.0)], dash=18, gap=12)
+    pieces = dashes([(0.0, 0.0), (100.0, 0.0)], dash=18, gap=12)
 
     assert [round(a[0]) for a, _ in pieces] == [0, 30, 60, 90]
     assert [round(b[0]) for _, b in pieces] == [18, 48, 78, 100]
 
 
 def test_dashes_continue_around_corners() -> None:
-    pieces = _dashes([(0.0, 0.0), (10.0, 0.0), (10.0, 20.0)], dash=15, gap=5)
+    pieces = dashes([(0.0, 0.0), (10.0, 0.0), (10.0, 20.0)], dash=15, gap=5)
 
     assert round(sum(math.dist(a, b) for a, b in pieces)) == 25
 
