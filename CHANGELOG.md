@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.6](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.5...v0.3.6) (2026-11-24)
+
+
+### Features
+
+* **map:** map symbols and ferry crossings (Feat-12) ([#52](https://github.com/ChrisFerro/ha-reiseverlauf/issues/52)) ([4d74f3f](https://github.com/ChrisFerro/ha-reiseverlauf/commit/4d74f3f71590e9515509717f0fbbac075f457138))
+
 ## [0.3.5](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.4...v0.3.5) (2026-11-23)
 
 
