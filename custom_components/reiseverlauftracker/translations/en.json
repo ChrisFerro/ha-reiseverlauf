@@ -593,6 +593,9 @@
       },
       "mark_ferry": {
         "name": "Mark as ferry"
+      },
+      "redraw_map": {
+        "name": "Redraw map"
       }
     },
     "datetime": {
@@ -1038,6 +1041,20 @@
           "description": "Off removes the mark again."
         }
       }
+    },
+    "karte_neu_zeichnen": {
+      "name": "Redraw map",
+      "description": "Draws map, base map and composite image of one export (trip or tour) anew with map tiles, e.g. to get the map symbols on older exports. Stops of older trips are checked once for ferries and the arrival for a camp site.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Vehicle",
+          "description": "The trip recording entry of the vehicle."
+        },
+        "export": {
+          "name": "Export",
+          "description": "Leave empty for the export chosen in the export selection. Otherwise an entry of the export selection or the folder name; all exports at once is not possible."
+        }
+      }
     }
   },
   "exceptions": {
@@ -1148,6 +1165,15 @@
     },
     "no_stop_chosen": {
       "message": "First choose a stop in the time selection."
+    },
+    "redraw_all": {
+      "message": "The map is redrawn for exactly one export per call; choose a single export instead of all exports."
+    },
+    "redraw_without_raw_data": {
+      "message": "No raw data left; the map cannot be redrawn."
+    },
+    "map_tiles_failed": {
+      "message": "The map tiles could not be loaded; the map is unchanged. Try again later."
     }
   }
 }

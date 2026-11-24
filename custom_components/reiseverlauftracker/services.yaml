@@ -523,3 +523,15 @@ faehre_markieren:
       default: true
       selector:
         boolean:
+
+karte_neu_zeichnen:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: reiseverlauftracker
+    export:
+      example: "{{ states('select.wohnmobil_export_auswahl') }}"
+      selector:
+        text:

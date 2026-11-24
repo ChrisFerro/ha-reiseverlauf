@@ -100,16 +100,45 @@ class Ferries:
         raw = await coordinator.async_raw_log(info)
         if raw is None:
             raise FerryError("ferry_without_raw_data")
-        stop = _stop_at(raw, time)
-        after = _counter_before(coordinator, raw, stop)
+        change = await self._async_apply_closed(info, raw, _stop_at(raw, time), mark)
+        await coordinator.refresher.async_refresh(trip_start)
+        return change
+
+    async def async_check_closed(self, info: ExportInfo) -> int:
+        """
+        Ask once for each stop of a finished trip not checked yet whether it was a ferry crossing (6.8).
+
+        Meant for trips from before the detection; their export is not renewed here.
+
+        Returns:
+            How many stops turned out to be ferry crossings.
+
+        """
+        coordinator = self.coordinator
+        raw = await coordinator.async_raw_log(info)
+        if raw is None:
+            return 0
+        found = 0
+        for stop in [s for s in raw.stops if s.end is not None and s.ferry is None]:
+            if (probe := raw.ferry_probe(stop)) is None:
+                continue
+            await asyncio.sleep(NOMINATIM_INTERVAL_S)
+            if await async_on_water(coordinator.hass, coordinator.settings, probe.lat, probe.lon):
+                LOGGER.info("Stop from %s of the trip %s was a ferry crossing", stop.start, info.folder)
+                await self._async_apply_closed(info, raw, stop, FerryMark.AUTO)
+                found += 1
+        return found
+
+    async def _async_apply_closed(self, info: ExportInfo, raw: TripLog, stop: TripStop, mark: FerryMark) -> FerryChange:
+        """Mark a stop in the raw data of a finished trip, store them and move the later logbook counters."""
+        after = _counter_before(self.coordinator, raw, stop)
         before = raw.counters_at(info.end) or raw.counters
         changed = raw.set_ferry(stop.start, mark)
         if changed is None:
             raise FerryError("unknown_stop")
         delta = (raw.counters_at(info.end) or raw.counters) - before
         await self._async_write_raw(info, raw)
-        await self._async_shift(trip_start, changed, after, delta, closed_trip=True)
-        await coordinator.refresher.async_refresh(trip_start)
+        await self._async_shift(info.start, changed, after, delta, closed_trip=True)
         return FerryChange(changed, delta)
 
     async def _async_apply_running(self, log: TripLog, start: datetime, mark: FerryMark) -> FerryChange:

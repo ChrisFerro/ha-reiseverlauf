@@ -593,6 +593,9 @@
       },
       "mark_ferry": {
         "name": "Als Fähre markieren"
+      },
+      "redraw_map": {
+        "name": "Karte neu zeichnen"
       }
     },
     "datetime": {
@@ -1038,6 +1041,20 @@
           "description": "Aus entfernt die Markierung wieder."
         }
       }
+    },
+    "karte_neu_zeichnen": {
+      "name": "Karte neu zeichnen",
+      "description": "Zeichnet Karte, Grundkarte und Gesamtbild eines Exports (Reise oder Tour) mit Kartenkacheln neu, z. B. für die Kartensymbole älterer Exporte. Halte älterer Reisen werden dabei einmal auf Fähren geprüft und das Ziel auf einen Stellplatz.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Fahrzeug",
+          "description": "Der Eintrag der Reiseaufzeichnung für das Fahrzeug."
+        },
+        "export": {
+          "name": "Export",
+          "description": "Leer lassen für den in der Export-Auswahl gewählten Export. Sonst ein Eintrag der Export-Auswahl oder der Ordnername; „Alle Exporte“ ist nicht möglich."
+        }
+      }
     }
   },
   "exceptions": {
@@ -1148,6 +1165,15 @@
     },
     "no_stop_chosen": {
       "message": "Zuerst in der Zeitpunkt-Auswahl einen Halt wählen."
+    },
+    "redraw_all": {
+      "message": "Die Karte wird je Aufruf für genau einen Export neu gezeichnet; bitte einen einzelnen Export wählen statt „Alle Exporte“."
+    },
+    "redraw_without_raw_data": {
+      "message": "Keine Rohdaten mehr vorhanden, Karte kann nicht neu gezeichnet werden."
+    },
+    "map_tiles_failed": {
+      "message": "Die Kartenkacheln konnten nicht geladen werden; die Karte ist unverändert. Später erneut versuchen."
     }
   }
 }

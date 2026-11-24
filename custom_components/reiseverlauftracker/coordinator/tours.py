@@ -115,6 +115,8 @@ class _Request:
     scale: float | None
     previous: ExportInfo | None = None
     names: dict[date, str] | None = None
+    redraw: bool = False
+    """Draw the map anew with tiles even if the trips stayed the same (docs/features/feat-12-kartensymbole.md 6.8)."""
 
 
 class Tours:
@@ -261,6 +263,34 @@ class Tours:
         self._fire(changed, OCCASION_UPDATED)
         return changed
 
+    async def async_redraw(self, info: ExportInfo) -> ExportInfo:
+        """
+        Create a tour anew and draw its map with tiles, e.g. to get the map symbols of an old tour.
+
+        No event fires.
+
+        Returns:
+            The new version of the tour.
+
+        Raises:
+            TourError: Not a tour, a trip without raw data, or no movement.
+            OSError: The output folder cannot be written.
+
+        """
+        if not info.is_tour or info.tour is None:
+            raise TourError("not_a_tour", export=info.title)
+        return await self._async_build(
+            _Request(
+                info.folder,
+                info.start,
+                info.end,
+                info.title if info.tour.title_given else None,
+                info.tour.scale,
+                previous=info,
+                redraw=True,
+            )
+        )
+
     async def _async_build(self, request: _Request) -> ExportInfo:
         self._building += 1
         self.coordinator.async_update_listeners()
@@ -321,7 +351,7 @@ class Tours:
             odometer=odometer,
         )
         title = request.title or tour_title(hass.config.language, summary, nights, tz)
-        same_trips = meta is not None and meta.trips == tuple(t.folder for t in raw_trips)
+        same_trips = meta is not None and meta.trips == tuple(t.folder for t in raw_trips) and not request.redraw
         raw = {
             "version": RAW_VERSION,
             "art": ExportKind.TOUR.value,

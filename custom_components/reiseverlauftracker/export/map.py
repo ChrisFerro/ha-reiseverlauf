@@ -94,6 +94,8 @@ class BaseMap:
 
     image: Image.Image
     projection: MapProjection
+    missing_tiles: int = 0
+    """Tiles that could not be loaded and stay blank."""
 
 
 def symbol_diameter(line_width: int) -> int:
@@ -191,7 +193,7 @@ def render_base_map(
         height=size[1],
         tile_size=TILE_SIZE,
     )
-    return BaseMap(image, projection)
+    return BaseMap(image, projection, static_map.missing_tiles)
 
 
 def draw_overlay(

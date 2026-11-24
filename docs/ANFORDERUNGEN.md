@@ -83,6 +83,8 @@ Entitäten (Entity-IDs: `<Gerät>_<Name>`, Gerät = Name des Eintrags, z. B. `se
   [Tour](features/feat-10-tour.md) 7)
 - Fähre: `button.…_als_faehre_markieren` schaltet die Fähren-Markierung des in `select.…_fahrtenbuch_zeitpunkt`
   gewählten Halts um; Attribut `halte` mit `faehre` (siehe [Kartensymbole](features/feat-12-kartensymbole.md) 6.3)
+- Karte: `button.…_karte_neu_zeichnen` zeichnet die Karte des in `select.…_export_auswahl` gewählten Exports mit
+  Kacheln neu (siehe [Kartensymbole](features/feat-12-kartensymbole.md) 6.8)
 - Fahrtenbuch-Auswertung: `sensor.…_kilometerstand`, `…_kraftstoff`, `…_gas_1`, `…_gas_2`, `…_durchschnittsverbrauch`,
   `…_reisekosten_monat`, `…_reisekosten_jahr` (alle Kosten, seit 0.3.0 statt `…_tank_und_gaskosten_*`), `…_maut_offen`
   (siehe [Nachträge](features/feat-09-nachtraege.md) 6.5),
@@ -105,6 +107,9 @@ Dienste (alle mit Pflichtfeld `config_entry_id`):
   standorte), siehe [Tour](features/feat-10-tour.md) 6.2
 - `reiseverlauftracker.faehre_markieren` (halt, reise, faehre): Halt als Fährfahrt markieren oder die Markierung
   entfernen, siehe [Kartensymbole](features/feat-12-kartensymbole.md) 6.3
+- `reiseverlauftracker.karte_neu_zeichnen` (export): Karte, Grundkarte und Gesamtbild eines Exports (Reise oder Tour)
+  mit Kacheln neu zeichnen; ohne `export` gilt die Export-Auswahl, „Alle“ ist nicht erlaubt; prüft ältere Reisen
+  einmal auf Fähren und das Ziel auf einen Stellplatz, siehe [Kartensymbole](features/feat-12-kartensymbole.md) 6.8
 
 Events:
 

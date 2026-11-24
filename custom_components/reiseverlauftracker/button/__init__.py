@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from custom_components.reiseverlauftracker.const import DOMAIN
 from custom_components.reiseverlauftracker.coordinator.cost_form import CostFormError
 from custom_components.reiseverlauftracker.coordinator.ferries import FerryError
+from custom_components.reiseverlauftracker.coordinator.map_redraw import RedrawError, async_redraw_map
 from custom_components.reiseverlauftracker.coordinator.tours import TourError
 from custom_components.reiseverlauftracker.entity import ReiseverlaufEntity
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
@@ -112,6 +113,17 @@ async def _mark_ferry(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key=err.reason) from err
 
 
+async def _redraw_map(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
+    """Draw the map of the export selection's choice anew with tiles (docs/features/feat-12-kartensymbole.md 6.8)."""
+    try:
+        await async_redraw_map(coordinator, None)
+    except RedrawError as err:
+        kind = ServiceValidationError if err.invalid else HomeAssistantError
+        raise kind(
+            translation_domain=DOMAIN, translation_key=err.key, translation_placeholders=err.placeholders
+        ) from err
+
+
 async def _discard(coordinator: ReiseverlaufDataUpdateCoordinator) -> None:
     coordinator.logbook.discard()
 
@@ -154,6 +166,7 @@ ENTITY_DESCRIPTIONS = (
     LogbookButtonEntityDescription(
         key="mark_ferry", translation_key="mark_ferry", press_fn=_mark_ferry, object_id="als_faehre_markieren"
     ),
+    LogbookButtonEntityDescription(key="redraw_map", translation_key="redraw_map", press_fn=_redraw_map),
 )
 
 

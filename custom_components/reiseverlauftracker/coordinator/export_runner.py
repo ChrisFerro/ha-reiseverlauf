@@ -85,7 +85,7 @@ async def async_export(
         start_place, end_place = await _async_places(hass, settings, positions)
         texts = texts_for(hass.config.language)
         title = trip_title(settings.title_format, texts, start, end, tz, start_place, end_place)
-    arrival_stay = await _async_arrival_stay(hass, settings, positions)
+    arrival_stay = await async_arrival_stay(hass, settings, positions)
     options = replace(
         options_for(hass, settings, title, agent, stops, logbook), markers=markers, arrival_stay=arrival_stay
     )
@@ -129,12 +129,19 @@ async def async_refresh(
     data: tuple[list[TrackPoint], StepSeries | None, StepSeries | None] | None,
     logbook: LogbookFigures | None,
     markers: tuple[MapMarker, ...] = (),
-) -> ExportInfo:
+    *,
+    redraw: bool = False,
+    version: str | None = None,
+) -> tuple[ExportInfo, bool]:
     """
     Renew statistics, map symbols, composite image and metadata of an export with new logbook figures.
 
     Without track `data` (no raw data left), only the metadata gets the new figures.
     The map symbols are drawn on the stored base map; without one, the map stays.
+    With `redraw`, the map is drawn anew with tiles (docs/features/feat-12-kartensymbole.md 6.8).
+
+    Returns:
+        The renewed export, and whether its map was drawn anew with tiles.
 
     Raises:
         NotEnoughPointsError: Fewer than two usable positions.
@@ -143,12 +150,12 @@ async def async_refresh(
 
     """
     options = replace(
-        options_for(hass, settings, info.title, user_agent(None), info.stops, logbook),
+        options_for(hass, settings, info.title, user_agent(version), info.stops, logbook),
         markers=markers,
         arrival_stay=info.arrival_stay,
     )
     return await hass.async_add_executor_job(
-        _refresh_sync, media_base(hass, settings), info, data, options, dt_util.utcnow()
+        _refresh_sync, media_base(hass, settings), info, data, options, dt_util.utcnow(), redraw
     )
 
 
@@ -158,22 +165,27 @@ def _refresh_sync(
     data: tuple[list[TrackPoint], StepSeries | None, StepSeries | None] | None,
     options: ExportOptions,
     now: datetime,
-) -> ExportInfo:
+    redraw: bool,
+) -> tuple[ExportInfo, bool]:
     refreshed = replace(info, logbook=options.logbook, stops=options.stops, updated=now)
+    redrawn = False
     if data is not None:
-        stats_text, stats = refresh_export(
-            *data, base / info.folder, options, existing_files(base, info), info.base_map
+        result = refresh_export(
+            *data, base / info.folder, options, existing_files(base, info), info.base_map, redraw=redraw
         )
+        redrawn = result.map_redrawn
         refreshed = replace(
             refreshed,
-            stats_text=stats_text,
-            distance_km=stats.distance_km,
-            driving_time=stats.moving_time,
-            ferry_km=stats.ferry_km,
-            ferry_time=stats.ferry_time,
+            stats_text=result.stats_text,
+            distance_km=result.stats.distance_km,
+            driving_time=result.stats.moving_time,
+            ferry_km=result.stats.ferry_km,
+            ferry_time=result.stats.ferry_time,
+            files={**info.files, **result.files},
+            base_map=result.base_map,
         )
     write_metadata(base, refreshed)
-    return refreshed
+    return refreshed, redrawn
 
 
 def event_data(settings: ReiseverlaufSettings, info: ExportInfo, base: Path) -> dict[str, Any]:
@@ -213,7 +225,7 @@ def stop_data(place: str | None, start: datetime, end: datetime | None, *, ferry
     }
 
 
-async def _async_arrival_stay(
+async def async_arrival_stay(
     hass: HomeAssistant, settings: ReiseverlaufSettings, positions: list[TrackPoint]
 ) -> str | None:
     """Return the camp site or pitch at the last usable position, or None."""

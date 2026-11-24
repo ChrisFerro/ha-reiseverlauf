@@ -139,7 +139,7 @@ def test_refresh_rewrites_statistics_and_composite_but_keeps_the_map(
     figures = LogbookFigures(fuel_litres=40, fuel_cost=70, travel_costs={"maut": 23.4})
 
     with patch("custom_components.reiseverlauftracker.export.exporter.render_base_map") as render_base_map:
-        text, _ = refresh_export(positions, speed, altitude, tmp_path, replace(options, logbook=figures), files)
+        text = refresh_export(positions, speed, altitude, tmp_path, replace(options, logbook=figures), files).stats_text
 
     render_base_map.assert_not_called()
     assert text == (tmp_path / files[ExportFile.STATS]).read_text(encoding="utf-8")
@@ -202,6 +202,73 @@ def test_refresh_draws_new_symbols_on_the_base_map_without_tiles(
     with Image.open(result.files[ExportFile.COMPOSITE]) as composite:
         # The composite follows the scale setting (2); the legend lists start, end and diesel.
         assert composite.height == 380 * 2 + 3200 + 80 + 160 + 80 + 3600 + 80
+
+
+def test_redraw_loads_tiles_and_gives_an_old_export_map_base_map_and_legend(
+    positions: list[TrackPoint],
+    speed: StepSeries,
+    altitude: StepSeries,
+    tmp_path: Path,
+    offline_fetcher: Callable[[str], bytes],
+) -> None:
+    # An export from before the base map, whose map could not be drawn at all.
+    options = ExportOptions(title="Pass", map_size=(1200, 800), scale=0.5)
+    result = export_trip(positions, speed, altitude, tmp_path, replace(options, with_map=False))
+    files = {kind: path.name for kind, path in result.files.items()}
+    assert ExportFile.MAP not in files
+    with Image.open(result.files[ExportFile.COMPOSITE]) as composite:
+        old_height = composite.height
+    fuel = MapMarker(MarkerKind.FUEL, *north(15000))
+
+    renewed = refresh_export(
+        positions,
+        speed,
+        altitude,
+        tmp_path,
+        replace(options, markers=(fuel,)),
+        files,
+        None,
+        offline_fetcher,
+        redraw=True,
+    )
+
+    assert renewed.map_redrawn
+    assert renewed.files[ExportFile.MAP] == "pass.png"
+    assert renewed.base_map is not None
+    assert renewed.base_map.name == "pass_karte_basis.png"
+    assert (tmp_path / renewed.base_map.name).is_file()
+    x, y = renewed.base_map.projection.to_px(fuel.lat, fuel.lon)
+    with Image.open(tmp_path / "pass.png") as image:
+        assert image.size == (600, 400)
+        assert _close(image.getpixel((round(x) - 6, round(y))), COLORS[MarkerKind.FUEL])
+    with Image.open(result.files[ExportFile.COMPOSITE]) as composite:
+        # Map and legend, each with its gap, are new.
+        assert composite.height == old_height + 800 + 20 + 40 + 20
+
+
+def test_redraw_with_a_missing_tile_keeps_the_map(
+    positions: list[TrackPoint],
+    speed: StepSeries,
+    altitude: StepSeries,
+    tmp_path: Path,
+    offline_fetcher: Callable[[str], bytes],
+) -> None:
+    options = ExportOptions(title="Pass", map_size=(1200, 800), scale=0.5)
+    result = export_trip(positions, speed, altitude, tmp_path, options, offline_fetcher)
+    files = {kind: path.name for kind, path in result.files.items()}
+    map_bytes = result.files[ExportFile.MAP].read_bytes()
+
+    # One tile is missing: the old map is better than one with a gap.
+    tiles = iter([None])
+
+    def fetch(url: str) -> bytes | None:
+        return next(tiles, offline_fetcher(url))
+
+    renewed = refresh_export(positions, speed, altitude, tmp_path, options, files, None, fetch, redraw=True)
+
+    assert not renewed.map_redrawn
+    assert renewed.base_map is None
+    assert result.files[ExportFile.MAP].read_bytes() == map_bytes
 
 
 def test_arrival_on_a_pitch_shows_the_pitch_symbol_and_its_name(

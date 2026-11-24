@@ -1,6 +1,6 @@
 # Feat-12: Kartensymbole
 
-Stand: 23.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf freigegeben (Abschnitt 6), Teilschritte 1 bis 4
+Stand: 24.11.2026, alle Fragen geklärt (Abschnitt 5); Entwurf freigegeben (Abschnitt 6), Teilschritte 1 bis 5
 umgesetzt (6.11).
 Übergeordnete Anforderungen und Entitäten: [ANFORDERUNGEN.md](../ANFORDERUNGEN.md). Grundlage:
 [Halte](feat-02-halte.md), [Export](feat-03-export.md), [Fahrtenbuch](feat-06-fahrtenbuch.md),
@@ -274,6 +274,15 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
   Fähre (6.2) und fragt das Ziel einmal nach einem Stellplatz ab (5.7).
 - Fehlen die Rohdaten: Fehler „Keine Rohdaten mehr vorhanden, Karte kann nicht neu gezeichnet werden“; der Export
   bleibt unverändert. Kein Event `_beendet`.
+- **Umgesetzt** (Teilschritt 5): Die Aktion antwortet mit `ordner`, `titel` und `faehren_erkannt` (Anzahl der neu
+  erkannten Fähren). Der Knopf nimmt die Export-Auswahl. Reisen (auch manuelle Exporte) werden wie beim Erneuern
+  geschrieben, nur mit neu geladenen Kacheln in der aktuellen Skala; ein Export ohne Karte bekommt eine. Fehlt auch nur
+  eine Kachel, bleibt die alte Karte und die Aktion meldet „Kartenkacheln konnten nicht geladen werden“ (Statistik und
+  Gesamtbild sind dann schon erneuert). Die Fähren-Prüfung fragt nur Halte mit Bewegung ohne Markierung ab; ein Halt an
+  Land bleibt ungeprüft und wird beim nächsten Neuzeichnen erneut abgefragt. Eine erkannte Fähre verschiebt die
+  Zählerstände wie die Markierung von Hand (6.3). Läuft die Reise noch (Zusammenführungsfenster), entfällt die
+  Prüfung, weil die Halte schon beim Ende geprüft wurden. Eine Tour wird mit Kacheln neu erstellt, ohne Event
+  `reiseverlauftracker_tour`; ihre Fähren kommen aus den Exporten der Reisen.
 
 ### 6.9 Abgrenzung
 
@@ -294,7 +303,7 @@ Campingplatz stand und weitere Ereignisse. So lässt sich die Reise auf einen Bl
    23.11.2026
 3. Fähre erkennen (6.2) und von Hand markieren (6.3), Strecke ohne Fähre (5.10), mit Tests. – umgesetzt 23.11.2026
 4. Tour: Symbole und Legende (6.6). – umgesetzt 23.11.2026
-5. „Karte neu zeichnen“ (6.8): Aktion, Knopf, Übersetzungen, Tests.
+5. „Karte neu zeichnen“ (6.8): Aktion, Knopf, Übersetzungen, Tests. – umgesetzt 24.11.2026
 6. README (de/en), Release-Notes, Feature-Dokumente; Prüfpunkt in `script/develop` mit simulierter Reise (Halt,
    Tankstopp, Gasstopp, Fähre) und Kartenbild ansehen.
 

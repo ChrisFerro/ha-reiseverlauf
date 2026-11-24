@@ -203,6 +203,9 @@
       },
       "mark_ferry": {
         "default": "mdi:ferry"
+      },
+      "redraw_map": {
+        "default": "mdi:map"
       }
     },
     "datetime": {
@@ -281,6 +284,9 @@
     },
     "faehre_markieren": {
       "service": "mdi:ferry"
+    },
+    "karte_neu_zeichnen": {
+      "service": "mdi:map"
     }
   }
 }
