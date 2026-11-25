@@ -44,7 +44,7 @@ from .country_finder import CountryFinder
 from .download_links import RENEW_INTERVAL, DownloadLinks
 from .edit_form import EntryEditForm
 from .export_refresher import ExportRefresher
-from .export_runner import NOMINATIM_INTERVAL_S, async_export, event_data, media_base
+from .export_runner import async_export, event_data, media_base
 from .exports import ExportInfo, list_exports, read_raw, remove_files, set_countries
 from .ferries import Ferries
 from .late_form import LateEntryForm
@@ -566,7 +566,7 @@ class ReiseverlaufDataUpdateCoordinator(DataUpdateCoordinator[TripSnapshot]):
         for stop in self.logbook.logbook.stops_of_trip(trip_start):
             if stop.place is not None or stop.lat is None:
                 continue
-            await asyncio.sleep(NOMINATIM_INTERVAL_S)
+            await asyncio.sleep(export_runner.NOMINATIM_INTERVAL_S)
             if (place := await async_place_name(self.hass, self.settings, stop.lat, stop.lon)) is None:
                 continue
             self.logbook.set_stop_place(stop.start, place)
