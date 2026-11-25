@@ -20,9 +20,10 @@ concurrency:
 # - validate.yml (if added in the future)
 
 jobs:
-  ruff:
-    name: "Ruff"
-    runs-on: "ubuntu-latest"
+  lint:
+    name: "Lint and test"
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
     permissions:
       contents: read # check out the repository
     steps:
@@ -31,40 +32,37 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      # mise installs the Python, uv and shfmt versions mise.toml pins.
+      - name: Set up mise
+        uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
-          python-version: "3.14"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          version: "0.9.3"
-          enable-cache: true
-          cache-dependency-glob: "**/requirements*.txt"
+          # renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)$
+          version: "2026.11.12"
 
       - name: Get Home Assistant version
         id: ha_version
         run: |
-          HA_VERSION=$(grep '"homeassistant"' hacs.json | head -1 | sed 's/.*"homeassistant"\s*:\s*"\([^"]*\)".*/\1/')
-          echo "HA_VERSION=${HA_VERSION}" >> $GITHUB_OUTPUT
-          echo "Home Assistant version: ${HA_VERSION}"
+          version=$(bash script/.lib/ha_version.sh)
+          echo "HA_VERSION=${version}" >>"$GITHUB_OUTPUT"
 
       - name: Cache Home Assistant installation
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .local/ha-venv
-          key: ha-venv-${{ runner.os }}-py314-ha${{ steps.ha_version.outputs.HA_VERSION }}-${{ hashFiles('**/requirements*.txt') }}
+          key: ha-venv-v2-${{ runner.os }}-ha${{ steps.ha_version.outputs.HA_VERSION }}-${{ hashFiles('mise.toml', '.config/mise/conf.d/*.toml', '**/requirements*.txt') }}
           restore-keys: |
-            ha-venv-${{ runner.os }}-py314-ha${{ steps.ha_version.outputs.HA_VERSION }}-
-            ha-venv-${{ runner.os }}-py314-
-
-      - name: Install shfmt
-        run: sudo apt-get install -y shfmt
+            ha-venv-v2-${{ runner.os }}-ha${{ steps.ha_version.outputs.HA_VERSION }}-
 
       - name: Install requirements
         run: script/setup/bootstrap
 
+      # Lint, types and tests share one job: each would otherwise install the same venv and Home Assistant again.
       - name: Lint check
         run: script/lint-check
+
+      - name: Type check
+        run: script/type-check
+
+      - name: Tests
+        run: script/test

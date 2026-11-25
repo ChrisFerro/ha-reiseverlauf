@@ -41,7 +41,7 @@ log_date_format = "%Y-%m-%d %H:%M:%S"
 asyncio_debug = true
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-addopts = "-ra -q --strict-markers"
+addopts = "-ra -q --strict-markers -p no:respx"
 markers = [
     "unit: Unit tests (fast, no external dependencies)",
     "integration: Integration tests (may use coordinator/time service)",

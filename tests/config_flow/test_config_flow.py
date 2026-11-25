@@ -4,7 +4,7 @@ from datetime import timedelta
 from typing import Any
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.reiseverlauftracker.config_flow_handler.validators import (
     InvalidOutputDirError,
@@ -72,6 +72,8 @@ async def test_reconfigure_changes_tracker_and_unique_id(
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {**entry_data, CONF_TRACKER_ENTITY: "device_tracker.new_gps"}
     )
+    # The entry reloads in the background; let it finish so its timers belong to the loaded entry.
+    await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"

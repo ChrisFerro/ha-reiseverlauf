@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
+from pytest_homeassistant.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.reiseverlauftracker.const import DOMAIN, EXPORT_CHOICE_ALL
 from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUpdateCoordinator
@@ -47,7 +47,7 @@ async def advance(hass: HomeAssistant, freezer: FrozenDateTimeFactory, delta: ti
     """Move the clock forward and run the timers and tasks that became due."""
     freezer.tick(delta)
     async_fire_time_changed(hass, dt_util.utcnow())
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
 
 @pytest.fixture
