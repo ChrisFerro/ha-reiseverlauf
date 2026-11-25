@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.7](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.6...v0.3.7) (2026-11-25)
+
+
+### Features
+
+* **select:** give the export selection the full title as attribute ([#54](https://github.com/ChrisFerro/ha-reiseverlauf/issues/54)) ([ce56f27](https://github.com/ChrisFerro/ha-reiseverlauf/commit/ce56f2799b7d0b10c8523e7355361202b96d8f68))
+
 ## [0.3.6](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.5...v0.3.6) (2026-11-24)
 
 
