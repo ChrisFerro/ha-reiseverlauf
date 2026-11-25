@@ -35,7 +35,7 @@ async def advance(hass: HomeAssistant, freezer: FrozenDateTimeFactory, delta: ti
     """Move the clock forward and run the timers and tasks that became due."""
     freezer.tick(delta)
     async_fire_time_changed(hass, dt_util.utcnow())
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
 
 async def setup(hass: HomeAssistant, entry: MockConfigEntry) -> ReiseverlaufDataUpdateCoordinator:

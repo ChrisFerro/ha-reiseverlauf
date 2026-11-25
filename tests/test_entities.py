@@ -45,7 +45,7 @@ async def advance(hass: HomeAssistant, freezer: FrozenDateTimeFactory, delta: ti
     """Move the clock forward and run what became due."""
     freezer.tick(delta)
     async_fire_time_changed(hass, dt_util.utcnow())
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
 
 async def drive(hass: HomeAssistant, freezer: FrozenDateTimeFactory, start_m: float, metres: float) -> None:
