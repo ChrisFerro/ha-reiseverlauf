@@ -144,7 +144,8 @@ async def drive(hass: HomeAssistant, freezer: FrozenDateTimeFactory, start_m: fl
     await hass.async_block_till_done()
     freezer.tick(timedelta(minutes=61))
     async_fire_time_changed(hass, dt_util.utcnow())
-    await hass.async_block_till_done()
+    # The export looks up places and countries in a background task that rewrites export.json.
+    await hass.async_block_till_done(wait_background_tasks=True)
 
 
 async def test_cleanup_removes_chosen_types_and_then_folder(
