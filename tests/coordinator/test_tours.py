@@ -279,6 +279,7 @@ async def test_manual_exports_join_without_overlap(
     assert exports[response["ordner"]]["art"] == "tour"
     assert exports[response["ordner"]]["auswahl"] in options
     assert exports[first.folder]["strecke_km"] == pytest.approx(10, abs=0.5)
+    assert exports[first.folder]["titel"] == first.title
 
 
 async def test_busy_sensor_is_on_while_the_tour_is_built(

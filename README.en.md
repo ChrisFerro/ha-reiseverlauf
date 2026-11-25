@@ -83,7 +83,8 @@ processing, can continue, error), start (with the start place), distance, drivin
 time, duration and end of the last trip (the title carries the file list with URLs and the statistics as
 attributes), an image entity with the composite image, and an export selection used by the cleanup action. In the
 export selection, manual exports carry the mark “Manual” (“Manuell” in German); its attribute `exporte` lists every
-export with `auswahl`, `ordner`, `art`, `automatisch`, `start`, `ende`, `strecke_km` and `rohdaten`.
+export with `auswahl`, `titel`, `ordner`, `art`, `automatisch`, `start`, `ende`, `strecke_km` and `rohdaten`. The
+option shortens long titles to fit on a phone; the attribute `titel` holds the full title of the chosen export.
 For the logbook there are the form (numbers for odometer, fuel, gas 1 and 2, litres and amounts refuelled, buttons to
 save and discard), a logbook entry sensor (pending or saved, with the latest entries), and sensors for odometer,
 last levels, average consumption, heating while parked (read), all costs of the month and year (fuel, gas and travel

@@ -152,6 +152,9 @@ async def test_last_trip_entities_after_export(
     assert len(choice.attributes["options"]) == 2
     assert choice.state == choice.attributes["options"][0]
     assert choice.state.endswith(f"· {title.state[:17]}…")
+    # The option shortens the title; the attribute keeps it whole.
+    assert choice.attributes["titel"] == title.state
+    assert choice.attributes["exporte"][0]["titel"] == title.state
 
 
 async def test_entities_start_with_an_existing_export(
@@ -175,6 +178,7 @@ async def test_export_choice_keeps_selection(
         "select", SERVICE_SELECT_OPTION, {ATTR_ENTITY_ID: CHOICE, ATTR_OPTION: "all"}, blocking=True
     )
     assert hass.states.get(CHOICE).state == "all"
+    assert hass.states.get(CHOICE).attributes["titel"] is None
 
     await drive(hass, freezer, 5000, 5000)
     assert hass.states.get(CHOICE).state == "all"

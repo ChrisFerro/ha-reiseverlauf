@@ -44,9 +44,12 @@ Die Skalierung wirkt auf alle Bilder. Dateinamen: `<slug des Titels>` oder `trac
 - `select.…_export_auswahl`: alle Exporte und „Alle Exporte“, aktualisiert nach Export/Löschen.
   - Kennzeichen im Eintrag (seit 23.11.2026): Touren „Tour“, manuelle Exporte „Manuell“ (englisch „Manual“),
     automatisch erkannte Reisen keines, z. B. `31.10.26 14:00 · Manuell · Fahrt Pullach zum…`.
-  - Attribut `exporte`: alle Exporte mit `auswahl` (Eintrag der Auswahl), `ordner`, `art` (`reise`/`tour`),
-    `automatisch`, `start`, `ende`, `strecke_km` und `rohdaten` (ja/nein), damit ein Dashboard manuelle und automatische
-    Exporte unterscheiden und beim Aufräumen anzeigen kann, welche noch Rohdaten haben.
+  - Attribut `exporte`: alle Exporte mit `auswahl` (Eintrag der Auswahl), `titel` (voller Titel), `ordner`, `art`
+    (`reise`/`tour`), `automatisch`, `start`, `ende`, `strecke_km` und `rohdaten` (ja/nein), damit ein Dashboard
+    manuelle und automatische Exporte unterscheiden und beim Aufräumen anzeigen kann, welche noch Rohdaten haben.
+  - Der Eintrag kürzt den Titel auf 18 Zeichen, damit die Auswahl auch auf dem Handy schmal bleibt. Das Attribut `titel`
+    (seit 24.11.2026) enthält den vollen Titel des gewählten Exports (bei „Alle Exporte“ leer), für Überschriften und
+    Tabellen im Dashboard.
 - Dienst `aufraeumen` (export, dateitypen): löscht Dateien eines Exports oder aller Exporte; ohne `export` gilt
   die Export-Auswahl; nur im Ausgabeordner, nur Dateien aus `export.json`.
 - Event `reiseverlauftracker_exportiert` nach manuellem Export, `reiseverlauftracker_beendet` nach einer Reise.
