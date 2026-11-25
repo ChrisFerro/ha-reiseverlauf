@@ -210,8 +210,10 @@ eigene Dateien im Ordner bleiben erhalten.
 
 In der Export-Auswahl tragen manuelle Exporte das Kennzeichen „Manuell“ (z. B. `31.10.26 14:00 · Manuell · Fahrt
 Pullach zum…`), Touren „Tour“; automatisch erkannte Reisen haben keines. Das Attribut `exporte` der Export-Auswahl
-listet alle Exporte mit `auswahl`, `ordner`, `art` (`reise`/`tour`), `automatisch`, `start`, `ende`, `strecke_km` und
-`rohdaten` (ja/nein), z. B. für eine Übersicht im Dashboard vor dem Aufräumen.
+listet alle Exporte mit `auswahl`, `titel`, `ordner`, `art` (`reise`/`tour`), `automatisch`, `start`, `ende`,
+`strecke_km` und `rohdaten` (ja/nein), z. B. für eine Übersicht im Dashboard vor dem Aufräumen. Der Eintrag kürzt
+lange Titel, damit die Auswahl auf dem Handy schmal bleibt; den vollen Titel des gewählten Exports enthält das Attribut
+`titel` (z. B. `{{ state_attr('select.wohnmobil_gps_export_auswahl', 'titel') }}` für eine Überschrift).
 
 ### Downloads
 

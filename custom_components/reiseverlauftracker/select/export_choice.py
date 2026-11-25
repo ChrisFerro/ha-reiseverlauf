@@ -35,13 +35,15 @@ class ReiseverlaufExportChoice(SelectEntity, ReiseverlaufEntity, RestoreEntity):
         Return the signed download links and the travel costs of the chosen export; none for "all exports".
 
         A tour has no travel costs of its own; it lists its kind, night places and costs instead. `exporte`
-        lists every export with its kind, so a dashboard can tell manual exports from detected trips.
+        lists every export with its kind, so a dashboard can tell manual exports from detected trips. `titel`
+        carries the full title, which the option shortens.
         """
         choice = self.current_option
         exports = self.coordinator.find_exports(choice) if choice and choice != EXPORT_CHOICE_ALL else []
         info = exports[0] if exports else None
         tour = info is not None and info.is_tour and info.tour is not None
         return {
+            "titel": info.title if info else None,
             ATTR_DOWNLOADS: self.coordinator.download_links.for_export(info) if info else [],
             "reisekosten": trip_costs_data(self.coordinator, info) if info and not tour else None,
             "art": info.kind.value if info else None,
@@ -50,6 +52,7 @@ class ReiseverlaufExportChoice(SelectEntity, ReiseverlaufEntity, RestoreEntity):
             "exporte": [
                 {
                     "auswahl": self.coordinator.export_label(export),
+                    "titel": export.title,
                     "ordner": export.folder,
                     "art": export.kind.value,
                     "automatisch": export.automatic,
