@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.reiseverlauftracker.const import (
     CONF_ALTITUDE_ENTITY,
@@ -29,11 +29,6 @@ ENTRY_DATA: dict[str, Any] = {
     CONF_ALTITUDE_ENTITY: "sensor.camper_altitude",
     CONF_OUTPUT_DIR: "reiseverlauf",
 }
-
-
-@pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
-    """Load custom integrations in every test."""
 
 
 @pytest.fixture(autouse=True)

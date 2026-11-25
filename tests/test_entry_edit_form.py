@@ -3,7 +3,7 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.reiseverlauftracker.const import CLEAR_CHOICE_NONE, DOMAIN, EDIT_CHOICE_NEW
 from custom_components.reiseverlauftracker.coordinator import ReiseverlaufDataUpdateCoordinator

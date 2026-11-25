@@ -6,8 +6,8 @@ from pathlib import Path
 import zipfile
 
 from freezegun.api import FrozenDateTimeFactory
-from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
-from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
+from pytest_homeassistant.common import MockConfigEntry, async_fire_time_changed
+from pytest_homeassistant.typing import ClientSessionGenerator
 
 from custom_components.reiseverlauftracker.const import DOMAIN, EXPORT_CHOICE_ALL
 from custom_components.reiseverlauftracker.coordinator.download_links import (

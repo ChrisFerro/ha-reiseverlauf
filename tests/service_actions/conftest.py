@@ -16,5 +16,5 @@ def media_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(recorder_db_url: str, enable_custom_integrations: None) -> None:
-    """Prepare the recorder database before `hass` exists, then load custom integrations."""
+def recorder_before_hass(recorder_db_url: str) -> None:
+    """Prepare the recorder database before `hass` exists."""
