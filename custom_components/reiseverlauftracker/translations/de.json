@@ -223,6 +223,15 @@
           },
           "exporte": {
             "name": "Exporte"
+          },
+          "titel": {
+            "name": "Titel"
+          },
+          "downloads": {
+            "name": "Downloads"
+          },
+          "reisekosten": {
+            "name": "Reisekosten"
           }
         }
       },
@@ -440,6 +449,9 @@
           },
           "nicht_abgelesen": {
             "name": "Nicht abgelesen"
+          },
+          "downloads": {
+            "name": "Downloads"
           }
         }
       },
@@ -459,7 +471,18 @@
         "name": "Durchschnittsverbrauch"
       },
       "parked_heating_read": {
-        "name": "Heizung im Stand (abgelesen)"
+        "name": "Heizung im Stand (abgelesen)",
+        "state_attributes": {
+          "standzeiten": {
+            "name": "Standzeiten"
+          },
+          "standtage": {
+            "name": "Standtage"
+          },
+          "abnahme_liter": {
+            "name": "Abnahme in Litern"
+          }
+        }
       },
       "travel_costs_month": {
         "name": "Reisekosten Monat",

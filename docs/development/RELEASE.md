@@ -64,12 +64,13 @@ Once the project reaches `1.0.0`, standard SemVer applies (`feat` → minor, `fi
 
 Only user-facing changes appear in the public CHANGELOG:
 
-| Type                                      | Visible        |
-| ----------------------------------------- | -------------- |
-| `feat`                                    | ✅ Features    |
-| `fix`                                     | ✅ Bug Fixes   |
-| `perf`                                    | ✅ Performance |
-| `refactor`, `chore`, `docs`, `test`, `ci` | hidden         |
+| Type                                      | Visible                    |
+| ----------------------------------------- | -------------------------- |
+| `feat`                                    | ✅ 🎉 What's new           |
+| `fix`                                     | ✅ 🐛 Fixed                |
+| `perf`                                    | ✅ ⚡ More reliable        |
+| `build`                                   | ✅ 📦 Updated dependencies |
+| `refactor`, `chore`, `docs`, `test`, `ci` | hidden                     |
 
 ## Developer Scripts
 

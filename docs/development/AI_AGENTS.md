@@ -73,14 +73,14 @@ configuration files rather than in instruction prose.
 
 Claude Code, Codex, VS Code, and Copilot CLI all support lifecycle hooks. The configuration paths differ, but the
 commands here converge on `.agents/hooks/` so security behavior is implemented and tested once. Claude slash commands
-under `.claude/commands/` remain Claude-specific; the corresponding reusable workflow is the vendor-neutral
-[`ha-issue-triage`](../../.agents/skills/ha-issue-triage/SKILL.md), with `.github/prompts/` providing Copilot dispatch.
+under `.claude/commands/` remain Claude-specific; backlog triage is the plugin `haci-triage` (skill
+`haci-issue-triage`, off by default), see _Agent plugins_ in [`AGENTS.md`](../../AGENTS.md).
 These agent lifecycle hooks are unrelated to `script/hooks/`, which customizes the repository's validation scripts.
 
 ### Branch/PR-based work is available, not mandatory
 
 Most of this repository's own history is direct commits to `main` — that stays a perfectly normal way to work here,
-especially for a single request handled live with a developer watching each change. `ha-issue-triage` adds the other
+especially for a single request handled live with a developer watching each change. `haci-issue-triage` adds the other
 option as opt-in tooling: working a backlog of issues through a feature branch, a pull request, and green CI before
 merging — useful specifically because nobody is reviewing each individual commit in real time when an agent works
 through several issues in a row. See `RELEASE.md`'s branch-protection section if you want to require PRs on `main`

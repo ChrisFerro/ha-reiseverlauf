@@ -58,7 +58,11 @@ blueprint then sends a push notification with the composite image to your phone.
 3. Search for **Reiseverlauf Tracker für Wohnmobile** and download it.
 4. Restart Home Assistant.
 
+<!-- ha-marketplace:exclude-start -->
+
 [![Open the repository in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ChrisFerro&repository=ha-reiseverlauf&category=integration)
+
+<!-- ha-marketplace:exclude-end -->
 
 ## Setup
 

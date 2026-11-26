@@ -223,6 +223,15 @@
           },
           "exporte": {
             "name": "Exports"
+          },
+          "titel": {
+            "name": "Title"
+          },
+          "downloads": {
+            "name": "Downloads"
+          },
+          "reisekosten": {
+            "name": "Travel costs"
           }
         }
       },
@@ -440,6 +449,9 @@
           },
           "nicht_abgelesen": {
             "name": "Not read off"
+          },
+          "downloads": {
+            "name": "Downloads"
           }
         }
       },
@@ -459,7 +471,18 @@
         "name": "Average consumption"
       },
       "parked_heating_read": {
-        "name": "Heating while parked (read)"
+        "name": "Heating while parked (read)",
+        "state_attributes": {
+          "standzeiten": {
+            "name": "Parked periods"
+          },
+          "standtage": {
+            "name": "Parked days"
+          },
+          "abnahme_liter": {
+            "name": "Decrease in litres"
+          }
+        }
       },
       "travel_costs_month": {
         "name": "Travel costs month",

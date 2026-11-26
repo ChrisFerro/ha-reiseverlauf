@@ -21,7 +21,7 @@ keine Abhängigkeit von der SSH-App, Einstellungen in der Oberfläche statt im C
 
 - Home Assistant OS, Core 2026.11.x (Python 3.14, Alpine/musl).
 - Fahrzeug-Router: Teltonika RUTC50 (GPS-Daten per Modbus in HA; Höhe per Router-Skript, siehe 3).
-- Entwicklungsvorlage: `jpawlowski/hacs.integration_blueprint` (HA 2026.8+, Codespaces/Devcontainer).
+- Entwicklungsvorlage: `jpawlowski/ha-integration-blueprint` (HA 2026.8+, Codespaces/Devcontainer).
 - Integrationsdomain: `reiseverlauftracker`. Code-Bezeichner englisch, Oberflächentexte deutsch (+ englisch).
 
 ## 3. Vorhandene Entitäten und Datenquellen (Ist-Zustand)

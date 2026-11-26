@@ -74,7 +74,9 @@ Die Skalierung wirkt auf alle Bilder. Dateinamen: `<slug des Titels>` oder `trac
 
 ## 4. Offene Fragen
 
-Keine.
+- **Neu-Export aus Rohdaten** (Idee, noch nicht umgesetzt): `exportieren` liest nur den Recorder. Würde es stattdessen
+  `<Name>_rohdaten.json` lesen, ließen sich auch Exporte erstellen, die älter sind als die Aufbewahrungszeit des
+  Recorders. Übernommen aus den früheren „Future Considerations“ in `DECISIONS.md`.
 
 ## 5. Entscheidungen
 

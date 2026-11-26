@@ -62,7 +62,11 @@ mit dem Gesamtbild aufs Handy.
 3. **Reiseverlauf Tracker für Wohnmobile** suchen und herunterladen.
 4. Home Assistant neu starten.
 
+<!-- ha-marketplace:exclude-start -->
+
 [![Repository in HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ChrisFerro&repository=ha-reiseverlauf&category=integration)
+
+<!-- ha-marketplace:exclude-end -->
 
 ## Einrichtung
 
@@ -674,15 +678,19 @@ Debug-Protokoll einschalten: **Einstellungen → Geräte & Dienste → Reiseverl
 aktivieren**. Steht der Reisestatus auf „Fehler“, ist die letzte Auswertung fehlgeschlagen; der Grund steht im
 Protokoll.
 
+<!-- ha-marketplace:exclude-start -->
+
 ## Entwicklung
 
-Die Integration basiert auf [jpawlowski/hacs.integration_blueprint](https://github.com/jpawlowski/hacs.integration_blueprint)
+Die Integration basiert auf [jpawlowski/ha-integration-blueprint](https://github.com/jpawlowski/ha-integration-blueprint)
 und lässt sich in GitHub Codespaces oder einem lokalen Devcontainer entwickeln. Die Entwicklungsinstanz bringt
 simulierte Fahrzeugsensoren mit (`config/packages/simulation.yaml`). Siehe [CONTRIBUTING.md](CONTRIBUTING.md),
 [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md) und
 [docs/development/CODESPACES.md](docs/development/CODESPACES.md).
 
 [![In GitHub Codespaces öffnen](https://github.com/codespaces/badge.svg)](https://codespaces.new/ChrisFerro/ha-reiseverlauf?quickstart=1)
+
+<!-- ha-marketplace:exclude-end -->
 
 ## KI-gestützte Entwicklung
 
