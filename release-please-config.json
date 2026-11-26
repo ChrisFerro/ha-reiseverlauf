@@ -3,6 +3,8 @@
   "packages": {
     ".": {
       "release-type": "simple",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
@@ -14,10 +16,11 @@
         }
       ],
       "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance" },
-        { "type": "refactor", "section": "Code Refactoring", "hidden": true },
+        { "type": "feat", "section": "🎉 What's new" },
+        { "type": "fix", "section": "🐛 Fixed" },
+        { "type": "perf", "section": "⚡ More reliable" },
+        { "type": "build", "section": "📦 Updated dependencies" },
+        { "type": "refactor", "section": "Code refactoring", "hidden": true },
         { "type": "chore", "section": "Maintenance", "hidden": true },
         { "type": "docs", "section": "Documentation", "hidden": true },
         { "type": "test", "section": "Tests", "hidden": true },

@@ -16,7 +16,7 @@ Ausführliche Anforderungen und der Ist-Zustand stehen in der importierten Datei
 - Keine Änderungen an der Live-Home-Assistant-Instanz des Nutzers ohne ausdrückliche Zustimmung.
   Entwickelt und getestet wird in der Entwicklungsumgebung des Repositories (`script/develop`).
 - Keine Zugangsdaten, IP-Adressen, Tokens oder persönliche Angaben ins Repository (es ist öffentlich).
-- Vorlage des Repositories: `jpawlowski/hacs.integration_blueprint` (HA 2026.8+, Python 3.14).
+- Vorlage des Repositories: `jpawlowski/ha-integration-blueprint` (HA 2026.8+, Python 3.14).
   Domain: `reiseverlauftracker`. Verzeichnis: `custom_components/reiseverlauftracker/`.
 - Tests mit `pytest-homeassistant-custom-component`; Linting und Validierung (ruff, hassfest, HACS) laufen
   in den Workflows der Vorlage und müssen grün bleiben.

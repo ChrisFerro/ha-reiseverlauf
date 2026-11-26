@@ -20,9 +20,6 @@ any of it in your own repository, see [`../README.md`](../README.md). This file 
 | [`ha-quality-review`](ha-quality-review/SKILL.md)       | auditing the integration against the Integration Quality Scale              |
 | [`ha-modern-apis`](ha-modern-apis/SKILL.md)             | verifying an API is current, or fixing deprecation warnings                 |
 | [`ha-breaking-changes`](ha-breaking-changes/SKILL.md)   | anything that could break existing installs — IDs, entry data, migrations   |
-| [`ha-grill`](ha-grill/SKILL.md)                         | settling the requirements of a change by interview, before any code         |
-| [`ha-planning`](ha-planning/SKILL.md)                   | planning a large change or recording an architectural decision              |
-| [`ha-issue-triage`](ha-issue-triage/SKILL.md)           | working through the GitHub issue backlog one issue at a time                |
 | [`blueprint-decisions`](blueprint-decisions/SKILL.md)   | recording or superseding an architectural decision, and its index           |
 | [`blueprint-lessons`](blueprint-lessons/SKILL.md)       | keeping a lesson from a bug or a repeated correction; project skills        |
 | [`ha-release`](ha-release/SKILL.md)                     | cutting a release, commit messages, changelog, release notes                |

@@ -1,0 +1,12 @@
+{
+  "identity": {
+    "domain": "reiseverlauftracker",
+    "title": "Reiseverlauf Tracker f\u00fcr Wohnmobile",
+    "prefix": "Reiseverlauf",
+    "owner": "ChrisFerro",
+    "repository": "ha-reiseverlauf",
+    "author": "ChrisFerro @ChrisFerro"
+  },
+  "skipped": ["release-zip-asset", "brand-images", "root-gitignore"],
+  "reviewed": "7af5d432827d97d4ff7fe0685dbbbf9cd39e739c"
+}
