@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.8](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.7...v0.3.8) (2026-11-26)
+
+
+### 🎉 What's new
+
+* **brand:** add integration icon ([#58](https://github.com/ChrisFerro/ha-reiseverlauf/issues/58)) ([506a1cf](https://github.com/ChrisFerro/ha-reiseverlauf/commit/506a1cf109f25e7eb929e158db6ecc43229b8ea6))
+
 ## [0.3.7](https://github.com/ChrisFerro/ha-reiseverlauf/compare/v0.3.6...v0.3.7) (2026-11-25)
 
 
