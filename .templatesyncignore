@@ -28,10 +28,11 @@ pyproject.toml
 .config/mise/conf.d/project.toml
 
 # ── Ignore pattern files ───────────────────────────────────────
-# .gitignore and .prettierignore contain a domain-specific negation pattern
+# .prettierignore contains a domain-specific negation pattern
 # (!custom_components/<your_domain>/) set by initialize.sh that cannot be
 # expressed as a generic placeholder. Syncing would revert that line.
-.gitignore
+# The root .gitignore is synced; the integration is re-included by
+# custom_components/.gitignore.
 .prettierignore
 
 # ── Runtime dependencies ──────────────────────────────────────

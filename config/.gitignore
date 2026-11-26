@@ -1,0 +1,5 @@
+# Re-includes the development packages and the media folder; kept here so the root .gitignore stays template-synced.
+!packages/
+!media/
+media/*
+!media/.gitkeep
